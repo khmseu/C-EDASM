@@ -25,4 +25,4 @@ Line# Addr  Bytes        Source
 
 Symbol Table (by name):
 ============================================================
-LOOP             $2008 RE  PUTCHAR          $0000 XU  START            $2000 RE  
+LOOP             $2008 RE  PUTCHAR          $0000 RXU START            $2000 RE  

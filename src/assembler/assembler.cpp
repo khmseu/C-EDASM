@@ -178,9 +178,17 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
         if (sym) {
             // Symbol already exists - add EXTERNAL flag
             sym->flags |= SYM_EXTERNAL;
+            // In REL mode, external symbols are also relative
+            if (rel_mode_) {
+                sym->flags |= SYM_RELATIVE;
+            }
         } else {
             // Define as external with undefined value
-            symbols_.define(line.operand, 0, SYM_EXTERNAL | SYM_UNDEFINED, line.line_number);
+            uint8_t flags = SYM_EXTERNAL | SYM_UNDEFINED;
+            if (rel_mode_) {
+                flags |= SYM_RELATIVE;
+            }
+            symbols_.define(line.operand, 0, flags, line.line_number);
         }
     } else if (mnem == "LST") {
         // LST directive - control listing output (from ASM3.S L8ECA)
@@ -545,7 +553,7 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
             } else if (in_string) {
                 uint8_t byte = static_cast<uint8_t>(c);
                 if (msb_on_) {
-                    byte |= 0x80;  // Set high bit if MSB ON
+                    byte |= HIGH_BIT_MASK;  // Set high bit if MSB ON
                 }
                 emit_byte(byte, result);
             }
@@ -566,7 +574,7 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
         for (size_t i = 0; i < chars.size(); ++i) {
             if (i == chars.size() - 1) {
                 // Last character - invert high bit
-                emit_byte(chars[i] ^ 0x80, result);
+                emit_byte(chars[i] ^ HIGH_BIT_MASK, result);
             } else {
                 emit_byte(chars[i], result);
             }

@@ -34,6 +34,7 @@ constexpr uint8_t ESCAPE = 0x1B;
 constexpr uint8_t SPACE = 0x20;
 constexpr uint8_t UNDERSCORE = 0x5F;
 constexpr uint8_t DEL = 0x7F;
+constexpr uint8_t HIGH_BIT_MASK = 0x80;  // Mask for setting/clearing high bit
 
 // =================================================
 // ProDOS file types (mapped to Linux extensions)
