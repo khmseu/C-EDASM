@@ -1,0 +1,9 @@
+; Simple 6502 test program
+; Demonstrates basic instructions
+
+START   LDA #$00    ; Load accumulator with 0
+        STA $0400   ; Store to screen memory
+        LDX #$10    ; Load X with 16
+LOOP    DEX         ; Decrement X
+        BNE LOOP    ; Branch if not zero
+        RTS         ; Return from subroutine
