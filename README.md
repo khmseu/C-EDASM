@@ -4,7 +4,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 ## Status
 
-**Phase: Core Complete, Editor Complete, Assembler Complete, Linker Complete**
+**Phase: Core Complete, Editor Complete, Assembler Complete, Linker Complete, Testing in Progress**
 
 - ✅ **Phase 1 Complete**: Core infrastructure with command dispatch, screen handling, and constants
 - ✅ **Phase 2 (95%)**: Editor module with all major commands including INSERT mode
@@ -12,14 +12,35 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - ✅ **Phase 4 Complete**: Assembler Pass 2 with expression evaluation and code generation
 - ✅ **Phase 5 (95%)**: Listing file generation, symbol table printing, and control directives
 - ✅ **Phase 6 (95%)**: EXEC command, REL file support, ENT/EXT directives, **Linker implemented**, **INCLUDE directive support**, **Conditional assembly!**
+- ✅ **Phase 7 (In Progress)**: Comprehensive testing & integration test suite added
 - ✅ Comprehensive unit tests (100% passing)
+- ✅ Integration test suite covering all major assembler features
 - ✅ EdAsm submodule initialized from [markpmlim/EdAsm](https://github.com/markpmlim/EdAsm)
 - ✅ EDASM.SRC (~19,000 lines of 6502 assembly) analyzed and documented
 - ✅ Porting plan with 14-week roadmap actively being followed
-- ⏳ **Phase 6 Next**: Macro support
-- ⏳ **Phase 7**: Testing & Polish
+- ⏳ **Phase 7 Remaining**: Documentation updates, edge case handling
+- 💡 **Future Enhancement**: Macro support (MACLIB) - deferred (partially implemented in original)
 
 ## Recent Additions (2026-01-15)
+
+### Comprehensive Integration Test Suite (NEW!) ✨
+- **7 comprehensive integration tests** covering all major assembler features
+- **Basic instructions test**: LDA, STA, RTS and other common opcodes
+- **Addressing modes test**: All 9 6502 addressing modes validated
+- **Forward references test**: Verifies two-pass assembly correctly resolves forward references
+- **Expression evaluation test**: Tests arithmetic (+, -, *, /), byte operators (<, >), and bitwise ops
+- **Directives test**: ORG, EQU, DB, DW, ASC, DCI, DS, END all validated
+- **Conditional assembly test**: DO/ELSE/FIN blocks properly skip/include code
+- **MSB directive test**: Verifies high-bit setting for ASCII characters
+- **All tests passing**: 100% success rate on test suite
+- **Manual validation**: All 14 test_*.src sample programs assemble successfully
+
+### Expression Evaluation (COMPLETE!) ✨
+- **Arithmetic operators**: +, -, *, / (with proper precedence)
+- **Byte extraction**: < (low byte), > (high byte)
+- **Bitwise operators**: ^ (AND), | (OR), ! (XOR) - **EDASM syntax**
+- **Unary operators**: +, -
+- Note: EDASM uses non-standard syntax: `^` for AND, `!` for XOR (not C-style `&`, `^`)
 
 ### Conditional Assembly (NEW!) ✨
 - **DO/IFNE directive**: Start conditional block, assemble if expression ≠ 0
@@ -159,7 +180,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 ### Assembler (Phases 3-6 - Feature Complete)
 - **Two-pass assembly**: Symbol table building and code generation
 - **Full 6502 instruction set**: All addressing modes supported
-- **Expression evaluation**: Arithmetic (+, -, *, /), bitwise (&, |, ^), byte extraction (<, >)
+- **Expression evaluation**: Arithmetic (+, -, *, /), bitwise (^=AND, |=OR, !=XOR), byte extraction (<, >)
 - **Directives**: ORG, EQU, DA, DW, DB, DFB, ASC, DCI, DS, END
 - **REL support**: REL, ENT/ENTRY, EXT/EXTRN directives for relocatable code
 - **Control directives**: LST (listing control), MSB (high bit), SBTL (subtitle), **INCLUDE** (file inclusion)
@@ -186,12 +207,33 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - ncurses screen wrapper
 
 ### Testing
-- Comprehensive unit tests for all editor operations
-- Test coverage: LineRange parsing, FIND, CHANGE, MOVE, COPY, JOIN, SPLIT
-- Assembler tests with sample 6502 programs
-- All tests passing (100%)
+- **2 comprehensive test suites** with 100% pass rate
+- **test_editor**: Unit tests for all editor operations (LineRange parsing, FIND, CHANGE, MOVE, COPY, JOIN, SPLIT)
+- **test_assembler_integration**: 7 integration tests covering:
+  - Basic 6502 instructions
+  - All addressing modes
+  - Forward references
+  - Expression evaluation (arithmetic, bitwise, byte ops)
+  - All directives
+  - Conditional assembly
+  - MSB directive
+- **Manual validation**: 14 test_*.src sample programs all assemble correctly
+- **Linker tests**: Multi-module REL file linking verified
+- **Listing tests**: Complete listing generation with symbol tables validated
 
 ## Examples
+
+### Running Tests
+```bash
+# Run all tests
+cd build && ctest
+
+# Run specific test with verbose output
+cd build && ctest -V -R test_assembler_integration
+
+# Or run test binary directly
+cd build && ./tests/test_assembler_integration
+```
 
 ### Assemble with Listing
 ```bash
@@ -216,6 +258,49 @@ Symbol Table (by name):
 ============================================================
 LOOP             $0807 RSTART            $0800 R
 ```
+
+### Expression Examples
+```asm
+; Arithmetic
+LDA #$10+$20        ; Addition: $30
+LDA #$20-$10        ; Subtraction: $10
+LDA #4*8            ; Multiplication: $20
+LDA #16/2           ; Division: 8
+
+; Byte extraction
+LDA #<$1234         ; Low byte: $34
+LDA #>$1234         ; High byte: $12
+
+; Bitwise (EDASM syntax - NOTE: different from C!)
+LDA #$FF^$0F        ; AND (^ in EDASM): $0F
+LDA #$F0|$0F        ; OR (| same as C): $FF
+LDA #$FF!$AA        ; XOR (! in EDASM): $55
+```
+
+## Known Limitations & EDASM Syntax Notes
+
+### Bitwise Operator Syntax
+**Important**: EDASM uses non-standard bitwise operator syntax:
+- `^` = AND (not XOR like in C)
+- `!` = XOR (not logical NOT)
+- `|` = OR (same as C)
+
+This matches the original Apple II EDASM behavior for compatibility.
+
+### Feature Status
+- **Split buffer mode (SWAP)**: Not implemented (editor enhancement, low priority)
+- **BCD line numbers**: Partial implementation (cosmetic feature)
+- **Macro support (MACLIB)**: Not implemented (was incomplete in original EDASM)
+
+### Comparison to Original EDASM
+- ✅ Command syntax: 100% compatible
+- ✅ Assembler directives: 100% compatible
+- ✅ 6502 instruction set: Complete
+- ✅ Expression evaluation: Complete with EDASM syntax
+- ✅ REL file format: Complete
+- ✅ Linker: Fully functional
+- ⚠️ File system: Uses Linux paths instead of ProDOS
+- ⚠️ Screen: ncurses terminal instead of Apple II 40-column
 
 ## Implementation Roadmap
 

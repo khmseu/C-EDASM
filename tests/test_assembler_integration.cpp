@@ -147,6 +147,15 @@ OFFSET  EQU $10
         ; High byte
         LDA #>BASE
         
+        ; Bitwise AND (EDASM uses ^ for AND)
+        LDA #$FF^$0F
+        
+        ; Bitwise OR
+        LDA #$F0|$0F
+        
+        ; Bitwise XOR (EDASM uses ! for XOR)
+        LDA #$FF!$AA
+        
         END
 )";
     
@@ -181,10 +190,19 @@ OFFSET  EQU $10
     assert(data[idx] == 0xA9); idx++;
     assert(data[idx] == 0x10); idx++;
     
-    // TODO: Bitwise operations (&, |, ^) need implementation
-    // Currently not parsed properly in expression evaluator
+    // $FF^$0F = $0F (AND in EDASM)
+    assert(data[idx] == 0xA9); idx++;
+    assert(data[idx] == 0x0F); idx++;
     
-    std::cout << "  ✓ Expression evaluation test passed" << std::endl;
+    // $F0|$0F = $FF (OR)
+    assert(data[idx] == 0xA9); idx++;
+    assert(data[idx] == 0xFF); idx++;
+    
+    // $FF!$AA = $55 (XOR in EDASM)
+    assert(data[idx] == 0xA9); idx++;
+    assert(data[idx] == 0x55); idx++;
+    
+    std::cout << "  ✓ Expression evaluation test passed (including EDASM bitwise ops)" << std::endl;
 }
 
 void test_all_directives() {
