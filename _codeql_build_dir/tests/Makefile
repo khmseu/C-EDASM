@@ -129,6 +129,44 @@ depend:
 	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
+# Convenience name for target.
+tests/CMakeFiles/test_editor.dir/rule:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/test_editor.dir/rule
+.PHONY : tests/CMakeFiles/test_editor.dir/rule
+
+# Convenience name for target.
+test_editor: tests/CMakeFiles/test_editor.dir/rule
+.PHONY : test_editor
+
+# fast build rule for target.
+test_editor/fast:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_editor.dir/build.make tests/CMakeFiles/test_editor.dir/build
+.PHONY : test_editor/fast
+
+test_editor.o: test_editor.cpp.o
+.PHONY : test_editor.o
+
+# target to build an object file
+test_editor.cpp.o:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_editor.dir/build.make tests/CMakeFiles/test_editor.dir/test_editor.cpp.o
+.PHONY : test_editor.cpp.o
+
+test_editor.i: test_editor.cpp.i
+.PHONY : test_editor.i
+
+# target to preprocess a source file
+test_editor.cpp.i:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_editor.dir/build.make tests/CMakeFiles/test_editor.dir/test_editor.cpp.i
+.PHONY : test_editor.cpp.i
+
+test_editor.s: test_editor.cpp.s
+.PHONY : test_editor.s
+
+# target to generate assembly for a file
+test_editor.cpp.s:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_editor.dir/build.make tests/CMakeFiles/test_editor.dir/test_editor.cpp.s
+.PHONY : test_editor.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -138,6 +176,10 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
+	@echo "... test_editor"
+	@echo "... test_editor.o"
+	@echo "... test_editor.i"
+	@echo "... test_editor.s"
 .PHONY : help
 
 

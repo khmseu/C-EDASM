@@ -300,9 +300,19 @@ Full 6502 instruction set with all addressing modes:
   - [x] Nesting prevention (INCLUDE/CHN NESTING error)
   - [x] Error handling (file not found, invalid from include)
   - [x] Line number tracking across includes
-- [ ] Conditional assembly (DO/ELSE/FIN/IF* directives)
+- [x] **Conditional assembly (DO/ELSE/FIN/IF* directives)** ✨ NEW!
+  - [x] DO directive (start conditional block)
+  - [x] ELSE directive (alternate block)
+  - [x] FIN directive (end conditional block)
+  - [x] IFEQ directive (if equal to zero)
+  - [x] IFNE directive (if not equal to zero)
+  - [x] IFGT directive (if greater than zero)
+  - [x] IFGE directive (if greater or equal to zero)
+  - [x] IFLT directive (if less than zero)
+  - [x] IFLE directive (if less or equal to zero)
+  - [x] Line skipping when condition is false
+  - [x] Expression evaluation for conditions
 - [ ] Macro support (if needed)
-- [ ] Include file support
 
 ### Phase 7: Testing & Polish (Week 13-14)
 - [ ] Test with sample 6502 programs

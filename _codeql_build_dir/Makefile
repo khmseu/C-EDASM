@@ -168,6 +168,58 @@ test_asm/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm.dir/build.make CMakeFiles/test_asm.dir/build
 .PHONY : test_asm/fast
 
+#=============================================================================
+# Target rules for targets named test_asm_listing
+
+# Build rule for target.
+test_asm_listing: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_asm_listing
+.PHONY : test_asm_listing
+
+# fast build rule for target.
+test_asm_listing/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_listing.dir/build.make CMakeFiles/test_asm_listing.dir/build
+.PHONY : test_asm_listing/fast
+
+#=============================================================================
+# Target rules for targets named test_linker
+
+# Build rule for target.
+test_linker: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_linker
+.PHONY : test_linker
+
+# fast build rule for target.
+test_linker/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_linker.dir/build.make CMakeFiles/test_linker.dir/build
+.PHONY : test_linker/fast
+
+#=============================================================================
+# Target rules for targets named test_asm_rel
+
+# Build rule for target.
+test_asm_rel: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_asm_rel
+.PHONY : test_asm_rel
+
+# fast build rule for target.
+test_asm_rel/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_rel.dir/build.make CMakeFiles/test_asm_rel.dir/build
+.PHONY : test_asm_rel/fast
+
+#=============================================================================
+# Target rules for targets named test_editor
+
+# Build rule for target.
+test_editor: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_editor
+.PHONY : test_editor
+
+# fast build rule for target.
+test_editor/fast:
+	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_editor.dir/build.make tests/CMakeFiles/test_editor.dir/build
+.PHONY : test_editor/fast
+
 src/assembler/assembler.o: src/assembler/assembler.cpp.o
 .PHONY : src/assembler/assembler.o
 
@@ -191,6 +243,78 @@ src/assembler/assembler.s: src/assembler/assembler.cpp.s
 src/assembler/assembler.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/assembler.cpp.s
 .PHONY : src/assembler/assembler.cpp.s
+
+src/assembler/expression.o: src/assembler/expression.cpp.o
+.PHONY : src/assembler/expression.o
+
+# target to build an object file
+src/assembler/expression.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/expression.cpp.o
+.PHONY : src/assembler/expression.cpp.o
+
+src/assembler/expression.i: src/assembler/expression.cpp.i
+.PHONY : src/assembler/expression.i
+
+# target to preprocess a source file
+src/assembler/expression.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/expression.cpp.i
+.PHONY : src/assembler/expression.cpp.i
+
+src/assembler/expression.s: src/assembler/expression.cpp.s
+.PHONY : src/assembler/expression.s
+
+# target to generate assembly for a file
+src/assembler/expression.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/expression.cpp.s
+.PHONY : src/assembler/expression.cpp.s
+
+src/assembler/linker.o: src/assembler/linker.cpp.o
+.PHONY : src/assembler/linker.o
+
+# target to build an object file
+src/assembler/linker.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/linker.cpp.o
+.PHONY : src/assembler/linker.cpp.o
+
+src/assembler/linker.i: src/assembler/linker.cpp.i
+.PHONY : src/assembler/linker.i
+
+# target to preprocess a source file
+src/assembler/linker.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/linker.cpp.i
+.PHONY : src/assembler/linker.cpp.i
+
+src/assembler/linker.s: src/assembler/linker.cpp.s
+.PHONY : src/assembler/linker.s
+
+# target to generate assembly for a file
+src/assembler/linker.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/linker.cpp.s
+.PHONY : src/assembler/linker.cpp.s
+
+src/assembler/listing.o: src/assembler/listing.cpp.o
+.PHONY : src/assembler/listing.o
+
+# target to build an object file
+src/assembler/listing.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/listing.cpp.o
+.PHONY : src/assembler/listing.cpp.o
+
+src/assembler/listing.i: src/assembler/listing.cpp.i
+.PHONY : src/assembler/listing.i
+
+# target to preprocess a source file
+src/assembler/listing.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/listing.cpp.i
+.PHONY : src/assembler/listing.cpp.i
+
+src/assembler/listing.s: src/assembler/listing.cpp.s
+.PHONY : src/assembler/listing.s
+
+# target to generate assembly for a file
+src/assembler/listing.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/edasm.dir/build.make CMakeFiles/edasm.dir/src/assembler/listing.cpp.s
+.PHONY : src/assembler/listing.cpp.s
 
 src/assembler/opcode_table.o: src/assembler/opcode_table.cpp.o
 .PHONY : src/assembler/opcode_table.o
@@ -408,6 +532,78 @@ src/test_asm.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm.dir/build.make CMakeFiles/test_asm.dir/src/test_asm.cpp.s
 .PHONY : src/test_asm.cpp.s
 
+src/test_asm_listing.o: src/test_asm_listing.cpp.o
+.PHONY : src/test_asm_listing.o
+
+# target to build an object file
+src/test_asm_listing.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_listing.dir/build.make CMakeFiles/test_asm_listing.dir/src/test_asm_listing.cpp.o
+.PHONY : src/test_asm_listing.cpp.o
+
+src/test_asm_listing.i: src/test_asm_listing.cpp.i
+.PHONY : src/test_asm_listing.i
+
+# target to preprocess a source file
+src/test_asm_listing.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_listing.dir/build.make CMakeFiles/test_asm_listing.dir/src/test_asm_listing.cpp.i
+.PHONY : src/test_asm_listing.cpp.i
+
+src/test_asm_listing.s: src/test_asm_listing.cpp.s
+.PHONY : src/test_asm_listing.s
+
+# target to generate assembly for a file
+src/test_asm_listing.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_listing.dir/build.make CMakeFiles/test_asm_listing.dir/src/test_asm_listing.cpp.s
+.PHONY : src/test_asm_listing.cpp.s
+
+src/test_asm_rel.o: src/test_asm_rel.cpp.o
+.PHONY : src/test_asm_rel.o
+
+# target to build an object file
+src/test_asm_rel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_rel.dir/build.make CMakeFiles/test_asm_rel.dir/src/test_asm_rel.cpp.o
+.PHONY : src/test_asm_rel.cpp.o
+
+src/test_asm_rel.i: src/test_asm_rel.cpp.i
+.PHONY : src/test_asm_rel.i
+
+# target to preprocess a source file
+src/test_asm_rel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_rel.dir/build.make CMakeFiles/test_asm_rel.dir/src/test_asm_rel.cpp.i
+.PHONY : src/test_asm_rel.cpp.i
+
+src/test_asm_rel.s: src/test_asm_rel.cpp.s
+.PHONY : src/test_asm_rel.s
+
+# target to generate assembly for a file
+src/test_asm_rel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_asm_rel.dir/build.make CMakeFiles/test_asm_rel.dir/src/test_asm_rel.cpp.s
+.PHONY : src/test_asm_rel.cpp.s
+
+src/test_linker.o: src/test_linker.cpp.o
+.PHONY : src/test_linker.o
+
+# target to build an object file
+src/test_linker.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_linker.dir/build.make CMakeFiles/test_linker.dir/src/test_linker.cpp.o
+.PHONY : src/test_linker.cpp.o
+
+src/test_linker.i: src/test_linker.cpp.i
+.PHONY : src/test_linker.i
+
+# target to preprocess a source file
+src/test_linker.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_linker.dir/build.make CMakeFiles/test_linker.dir/src/test_linker.cpp.i
+.PHONY : src/test_linker.cpp.i
+
+src/test_linker.s: src/test_linker.cpp.s
+.PHONY : src/test_linker.s
+
+# target to generate assembly for a file
+src/test_linker.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_linker.dir/build.make CMakeFiles/test_linker.dir/src/test_linker.cpp.s
+.PHONY : src/test_linker.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -420,9 +616,22 @@ help:
 	@echo "... edasm"
 	@echo "... edasm_cli"
 	@echo "... test_asm"
+	@echo "... test_asm_listing"
+	@echo "... test_asm_rel"
+	@echo "... test_editor"
+	@echo "... test_linker"
 	@echo "... src/assembler/assembler.o"
 	@echo "... src/assembler/assembler.i"
 	@echo "... src/assembler/assembler.s"
+	@echo "... src/assembler/expression.o"
+	@echo "... src/assembler/expression.i"
+	@echo "... src/assembler/expression.s"
+	@echo "... src/assembler/linker.o"
+	@echo "... src/assembler/linker.i"
+	@echo "... src/assembler/linker.s"
+	@echo "... src/assembler/listing.o"
+	@echo "... src/assembler/listing.i"
+	@echo "... src/assembler/listing.s"
 	@echo "... src/assembler/opcode_table.o"
 	@echo "... src/assembler/opcode_table.i"
 	@echo "... src/assembler/opcode_table.s"
@@ -450,6 +659,15 @@ help:
 	@echo "... src/test_asm.o"
 	@echo "... src/test_asm.i"
 	@echo "... src/test_asm.s"
+	@echo "... src/test_asm_listing.o"
+	@echo "... src/test_asm_listing.i"
+	@echo "... src/test_asm_listing.s"
+	@echo "... src/test_asm_rel.o"
+	@echo "... src/test_asm_rel.i"
+	@echo "... src/test_asm_rel.s"
+	@echo "... src/test_linker.o"
+	@echo "... src/test_linker.i"
+	@echo "... src/test_linker.s"
 .PHONY : help
 
 
