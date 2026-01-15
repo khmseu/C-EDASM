@@ -1,0 +1,10 @@
+        ORG $1000
+
+; Test that we understand immediate mode only takes low byte
+BASE    EQU $1000
+START   LDA #BASE           ; Should be $00 (low byte of $1000)
+        LDA #>BASE          ; Should be $10 (high byte of $1000)  
+        LDA #<BASE          ; Should be $00 (low byte of $1000)
+        LDA #BASE+$10       ; Should be $10 (low byte of $1010)
+        LDA BASE            ; Absolute mode - should be $00 $10 (little-endian)
+        RTS

@@ -1,0 +1,7 @@
+        ORG $1000
+        
+CONST   EQU $42
+
+; Simple addition
+START   LDA #$10+$20
+        RTS

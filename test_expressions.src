@@ -1,0 +1,40 @@
+; Test file with complex expressions
+; Testing arithmetic and bitwise operators
+
+        ORG $2000
+
+BASE    EQU $1000
+OFFSET  EQU $10
+
+; Test addition and subtraction
+START   LDA #BASE+OFFSET    ; $1010
+        STA $20
+        
+; Test multiplication
+        LDA #10*5           ; $32 (50 decimal)
+        STA $21
+        
+; Test division
+        LDA #100/4          ; $19 (25 decimal)
+        STA $22
+        
+; Test bitwise AND (^ in EDASM)
+MASK    EQU $0F
+        LDA #$FF^MASK       ; $0F (AND operation)
+        STA $23
+        
+; Test bitwise OR (|)
+        LDA #$10|$01        ; $11
+        STA $24
+        
+; Test low/high byte extraction
+ADDR    EQU $1234
+        LDA #<ADDR          ; $34 (low byte)
+        STA $25
+        LDA #>ADDR          ; $12 (high byte)
+        STA $26
+        
+; Test complex expression
+        LDA #(BASE+OFFSET)*2 ; $2020
+        
+        RTS

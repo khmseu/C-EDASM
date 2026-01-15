@@ -1,0 +1,4 @@
+        ORG $1000
+
+START   LDA #$1000+$10
+        RTS

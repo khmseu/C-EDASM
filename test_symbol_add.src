@@ -1,0 +1,7 @@
+        ORG $1000
+
+A       EQU $10
+B       EQU $20
+
+START   LDA #A+B
+        RTS

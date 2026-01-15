@@ -43,11 +43,14 @@ class ExpressionEvaluator {
     ExpressionResult parse_simple(const std::string& expr, int pass);
     
     // Full expression parsing with operators (Phase 4)
-    // TODO: Implement in Phase 4
-    // - Addition/subtraction (+/-)
-    // - Multiplication/division (*,/)
-    // - Logical ops (AND &, OR |, XOR ^)
-    // - Unary ops (< low byte, > high byte)
+    // From ASM2.S EvalExpr (line 2561+)
+    ExpressionResult parse_full(const std::string& expr, int pass);
+    
+    // Helper functions for full parser
+    ExpressionResult parse_term(const std::string& expr, size_t& pos, int pass);
+    uint16_t apply_operator(char op, uint16_t left, uint16_t right);
+    int get_precedence(char op);
+    bool is_operator(char c);
 };
 
 } // namespace edasm

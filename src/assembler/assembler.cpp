@@ -272,48 +272,17 @@ void Assembler::emit_word(uint16_t word, Result& result) {
 }
 
 uint16_t Assembler::evaluate_operand(const std::string& operand) {
-    // TODO: Implement full expression evaluator
-    // For now, handle simple cases
+    // Use the full ExpressionEvaluator (from ASM2.S EvalExpr line 2561+)
+    ExpressionEvaluator eval(symbols_);
     
-    std::string op = operand;
+    // Pass 2 evaluation (all symbols should be defined)
+    auto result = eval.evaluate(operand, 2);
     
-    // Strip addressing mode prefixes
-    if (!op.empty() && op[0] == '#') {
-        op = op.substr(1);  // Immediate mode
+    if (result.success) {
+        return result.value;
     }
     
-    // Strip indexing suffixes
-    size_t comma = op.find(',');
-    if (comma != std::string::npos) {
-        op = op.substr(0, comma);
-    }
-    
-    // Strip parentheses for indirect modes
-    if (!op.empty() && op[0] == '(') {
-        op = op.substr(1);
-        size_t close = op.find(')');
-        if (close != std::string::npos) {
-            op = op.substr(0, close);
-        }
-    }
-    
-    // Try to parse as hex ($nnnn)
-    if (!op.empty() && op[0] == '$') {
-        return static_cast<uint16_t>(std::stoul(op.substr(1), nullptr, 16));
-    }
-    
-    // Try to parse as decimal
-    if (!op.empty() && std::isdigit(static_cast<unsigned char>(op[0]))) {
-        return static_cast<uint16_t>(std::stoul(op, nullptr, 10));
-    }
-    
-    // Must be a symbol - look it up
-    auto value = symbols_.get_value(op);
-    if (value.has_value()) {
-        return value.value();
-    }
-    
-    // Undefined symbol - return 0 (error will be reported elsewhere)
+    // Error - return 0 (error will be reported elsewhere)
     return 0;
 }
 
