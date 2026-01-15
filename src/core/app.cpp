@@ -27,6 +27,12 @@ App::App()
     commands_["INSERT"] = [this](const auto& args) { cmd_insert(args); };
     commands_["I"] = [this](const auto& args) { cmd_insert(args); }; // Shorthand
     commands_["DELETE"] = [this](const auto& args) { cmd_delete(args); };
+    commands_["FIND"] = [this](const auto& args) { cmd_find(args); };
+    commands_["CHANGE"] = [this](const auto& args) { cmd_change(args); };
+    commands_["MOVE"] = [this](const auto& args) { cmd_move(args); };
+    commands_["COPY"] = [this](const auto& args) { cmd_copy(args); };
+    commands_["JOIN"] = [this](const auto& args) { cmd_join(args); };
+    commands_["SPLIT"] = [this](const auto& args) { cmd_split(args); };
     commands_["CATALOG"] = [this](const auto& args) { cmd_catalog(args); };
     commands_["CAT"] = [this](const auto& args) { cmd_catalog(args); }; // Shorthand
     commands_["PREFIX"] = [this](const auto& args) { cmd_prefix(args); };
@@ -284,21 +290,151 @@ void App::cmd_bye(const std::vector<std::string>& args) {
     running_ = false;
 }
 
+void App::cmd_find(const std::vector<std::string>& args) {
+    if (args.empty()) {
+        print_error("FIND requires search text");
+        return;
+    }
+    
+    std::string pattern = args[0];
+    
+    // Parse optional range (default: all lines)
+    LineRange range;
+    if (args.size() > 1) {
+        std::string range_str;
+        for (size_t i = 1; i < args.size(); ++i) {
+            range_str += args[i];
+        }
+        range = LineRange::parse(range_str);
+    }
+    
+    auto result = editor_->find(pattern, range);
+    if (result.found) {
+        screen_->write_line(1, "Found at line " + std::to_string(result.line_num) + 
+                           ", position " + std::to_string(result.pos));
+        screen_->refresh();
+    } else {
+        print_error("Pattern not found");
+    }
+}
+
+void App::cmd_change(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        print_error("CHANGE requires old/new text");
+        return;
+    }
+    
+    std::string old_text = args[0];
+    std::string new_text = args[1];
+    
+    // Parse optional range (default: all lines)
+    LineRange range;
+    if (args.size() > 2) {
+        std::string range_str;
+        for (size_t i = 2; i < args.size(); ++i) {
+            range_str += args[i];
+        }
+        range = LineRange::parse(range_str);
+    }
+    
+    int count = editor_->change(old_text, new_text, range, true);
+    screen_->write_line(1, "Changed " + std::to_string(count) + " occurrence(s)");
+    screen_->refresh();
+}
+
+void App::cmd_move(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        print_error("MOVE requires range,dest");
+        return;
+    }
+    
+    try {
+        auto range = LineRange::parse(args[0]);
+        int dest = std::stoi(args[1]);
+        editor_->move_lines(range, dest);
+        screen_->write_line(1, "Lines moved");
+        screen_->refresh();
+    } catch (const std::exception& e) {
+        print_error(e.what());
+    }
+}
+
+void App::cmd_copy(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        print_error("COPY requires range,dest");
+        return;
+    }
+    
+    try {
+        auto range = LineRange::parse(args[0]);
+        int dest = std::stoi(args[1]);
+        editor_->copy_lines(range, dest);
+        screen_->write_line(1, "Lines copied");
+        screen_->refresh();
+    } catch (const std::exception& e) {
+        print_error(e.what());
+    }
+}
+
+void App::cmd_join(const std::vector<std::string>& args) {
+    if (args.empty()) {
+        print_error("JOIN requires line range");
+        return;
+    }
+    
+    std::string range_str = args[0];
+    for (size_t i = 1; i < args.size(); ++i) {
+        range_str += "," + args[i];
+    }
+    
+    try {
+        auto range = LineRange::parse(range_str);
+        editor_->join_lines(range);
+        screen_->write_line(1, "Lines joined");
+        screen_->refresh();
+    } catch (const std::exception& e) {
+        print_error(e.what());
+    }
+}
+
+void App::cmd_split(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        print_error("SPLIT requires line,position");
+        return;
+    }
+    
+    try {
+        int line_num = std::stoi(args[0]);
+        size_t pos = std::stoul(args[1]);
+        editor_->split_line(line_num, pos);
+        screen_->write_line(1, "Line split");
+        screen_->refresh();
+    } catch (const std::exception& e) {
+        print_error(e.what());
+    }
+}
+
 void App::cmd_help(const std::vector<std::string>& args) {
     // Display help information
     screen_->clear();
     int row = 0;
     screen_->write_line(row++, "EDASM Commands:");
-    screen_->write_line(row++, "  LOAD <file>    - Load source file");
-    screen_->write_line(row++, "  SAVE <file>    - Save buffer to file");
-    screen_->write_line(row++, "  LIST [range]   - List lines");
-    screen_->write_line(row++, "  INSERT         - Enter insert mode");
-    screen_->write_line(row++, "  DELETE <range> - Delete lines");
-    screen_->write_line(row++, "  CATALOG [path] - List directory");
-    screen_->write_line(row++, "  PREFIX [path]  - Set/show directory");
-    screen_->write_line(row++, "  ASM [opts]     - Assemble buffer");
-    screen_->write_line(row++, "  BYE/QUIT       - Exit EDASM");
-    screen_->write_line(row++, "  HELP/?         - Show this help");
+    screen_->write_line(row++, "  LOAD <file>       - Load source file");
+    screen_->write_line(row++, "  SAVE <file>       - Save buffer to file");
+    screen_->write_line(row++, "  LIST [range]      - List lines");
+    screen_->write_line(row++, "  INSERT            - Enter insert mode");
+    screen_->write_line(row++, "  DELETE <range>    - Delete lines");
+    screen_->write_line(row++, "  FIND <text>       - Find text");
+    screen_->write_line(row++, "  CHANGE <old> <new> - Replace text");
+    screen_->write_line(row++, "  MOVE <range> <dest> - Move lines");
+    screen_->write_line(row++, "  COPY <range> <dest> - Copy lines");
+    screen_->write_line(row++, "  JOIN <range>      - Join lines");
+    screen_->write_line(row++, "  SPLIT <line> <pos> - Split line");
+    screen_->write_line(row++, "  CATALOG [path]    - List directory");
+    screen_->write_line(row++, "  PREFIX [path]     - Set/show directory");
+    screen_->write_line(row++, "  ASM [opts]        - Assemble buffer");
+    screen_->write_line(row++, "  BYE/QUIT          - Exit EDASM");
+    screen_->write_line(row++, "  HELP/?            - Show this help");
     screen_->write_line(row++, "");
     screen_->write_line(row++, "Press any key to continue...");
     screen_->refresh();

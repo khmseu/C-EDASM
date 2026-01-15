@@ -27,11 +27,29 @@ class Editor {
     void load_file(const std::string& path);
     void save_file(const std::string& path);
     
-    // Line editing
+    // Line editing (from EDITOR2.S, EDITOR3.S)
     void insert_line(int line_num, const std::string& text);
     void delete_line(int line_num);
     void delete_range(const LineRange& range);
     void replace_line(int line_num, const std::string& text);
+    
+    // Search and replace (from EDITOR2.S LD865, LD8C6)
+    struct FindResult {
+        bool found{false};
+        int line_num{-1};
+        size_t pos{0};
+    };
+    FindResult find(const std::string& pattern, const LineRange& range, int start_line = 0);
+    int change(const std::string& old_text, const std::string& new_text, 
+               const LineRange& range, bool all = true);
+    
+    // Buffer manipulation (from EDITOR2.S LD819)
+    void move_lines(const LineRange& src_range, int dest_line);
+    void copy_lines(const LineRange& src_range, int dest_line);
+    
+    // Line operations
+    void join_lines(const LineRange& range);
+    void split_line(int line_num, size_t pos);
     
     // Display
     void render();

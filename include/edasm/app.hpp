@@ -35,6 +35,12 @@ class App {
     void cmd_list(const std::vector<std::string>& args);
     void cmd_insert(const std::vector<std::string>& args);
     void cmd_delete(const std::vector<std::string>& args);
+    void cmd_find(const std::vector<std::string>& args);
+    void cmd_change(const std::vector<std::string>& args);
+    void cmd_move(const std::vector<std::string>& args);
+    void cmd_copy(const std::vector<std::string>& args);
+    void cmd_join(const std::vector<std::string>& args);
+    void cmd_split(const std::vector<std::string>& args);
     void cmd_catalog(const std::vector<std::string>& args);
     void cmd_prefix(const std::vector<std::string>& args);
     void cmd_asm(const std::vector<std::string>& args);
