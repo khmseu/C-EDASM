@@ -1,0 +1,28 @@
+Line# Addr  Bytes        Source
+----- ----  ----------   ---------------------------
+0001                     ; Test REL, ENT, and EXT directives
+0002                     ; This tests relocatable code generation
+0003                     
+0004                             REL             ; Enable relocatable mode
+0005                             ORG $2000       ; Set origin
+0006                     
+0007                     ; Define an entry point
+0008                     START   ENT START       ; START is an entry point
+0009  2000  A9 00                LDA #$00
+0010  2002  8D 00 04             STA $0400
+0011                     
+0012                     ; Use external symbol
+0013                             EXT PUTCHAR     ; PUTCHAR is external
+0014  2005  20 00 00             JSR PUTCHAR
+0015                     
+0016                     ; Define another entry
+0017                     LOOP    ENT LOOP
+0018  2008  CA                   DEX
+0019  2009  D0 FD                BNE LOOP
+0020  200B  60                   RTS
+0021                     
+0022                             END
+
+Symbol Table (by name):
+============================================================
+LOOP             $2008 RE  PUTCHAR          $0000 XU  START            $2000 RE  

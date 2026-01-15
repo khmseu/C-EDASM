@@ -49,6 +49,10 @@ class Assembler {
     int current_line_{0};
     Options options_;
     
+    // REL file state (from ASM3.S RelCodeF)
+    bool rel_mode_{false};  // True when REL directive is used
+    uint8_t file_type_{0x06};  // Default BIN ($06), REL is $FE
+    
     // Assembly passes (from ASM2.S and ASM3.S)
     bool pass1(const std::vector<SourceLine>& lines, Result& result);
     bool pass2(const std::vector<SourceLine>& lines, Result& result, ListingGenerator* listing);

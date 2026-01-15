@@ -64,6 +64,8 @@ void Assembler::reset() {
     symbols_.reset();
     program_counter_ = org_address_;
     current_line_ = 0;
+    rel_mode_ = false;
+    file_type_ = 0x06;  // Default to BIN type
 }
 
 // =========================================
@@ -134,6 +136,49 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
             symbols_.define(line.label, expr_result.value, flags, line.line_number);
         } else {
             add_error(result, "EQU: " + expr_result.error_message, line.line_number);
+        }
+    } else if (mnem == "REL") {
+        // REL directive - enable relocatable mode (from ASM3.S L9126)
+        // Sets RelCodeF flag and changes file type to REL ($FE)
+        rel_mode_ = true;
+        file_type_ = 0xFE;  // REL file type
+    } else if (mnem == "ENT" || mnem == "ENTRY") {
+        // ENT/ENTRY directive - mark symbol as entry point (from ASM3.S L9144)
+        // Entry points are symbols that can be referenced by other modules
+        if (line.operand.empty()) {
+            add_error(result, "ENT requires a symbol name", line.line_number);
+            return;
+        }
+        
+        // Look up or define the symbol
+        Symbol* sym = symbols_.lookup(line.operand);
+        if (sym) {
+            // Symbol exists - add ENTRY flag
+            sym->flags |= SYM_ENTRY;
+            if (rel_mode_) {
+                sym->flags |= SYM_RELATIVE;
+            }
+        } else {
+            // Symbol doesn't exist yet - define it with ENTRY flag
+            // It will be resolved when the label is encountered
+            symbols_.define(line.operand, 0, SYM_ENTRY | SYM_UNDEFINED, line.line_number);
+        }
+    } else if (mnem == "EXT" || mnem == "EXTRN") {
+        // EXT/EXTRN directive - mark symbol as external (from ASM3.S L91A8)
+        // External symbols are defined in other modules
+        if (line.operand.empty()) {
+            add_error(result, "EXT requires a symbol name", line.line_number);
+            return;
+        }
+        
+        // Define symbol as external
+        Symbol* sym = symbols_.lookup(line.operand);
+        if (sym) {
+            // Symbol already exists - add EXTERNAL flag
+            sym->flags |= SYM_EXTERNAL;
+        } else {
+            // Define as external with undefined value
+            symbols_.define(line.operand, 0, SYM_EXTERNAL | SYM_UNDEFINED, line.line_number);
         }
     } else if (mnem == "DS") {
         // Define Storage - advance PC (from ASM3.S L8C0E)
@@ -347,6 +392,15 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
     } else if (mnem == "EQU") {
         // EQU - symbol definition, already handled in pass 1
         // Nothing to do in pass 2
+    } else if (mnem == "REL") {
+        // REL - relocatable mode, already set in pass 1
+        // Nothing to emit in pass 2
+    } else if (mnem == "ENT" || mnem == "ENTRY") {
+        // ENT/ENTRY - entry point declaration, already handled in pass 1
+        // Nothing to emit in pass 2
+    } else if (mnem == "EXT" || mnem == "EXTRN") {
+        // EXT/EXTRN - external reference, already handled in pass 1
+        // Nothing to emit in pass 2
     } else if (mnem == "DS") {
         // DS - define storage (from ASM3.S L8C0E)
         auto expr_result = eval.evaluate(line.operand, 2);

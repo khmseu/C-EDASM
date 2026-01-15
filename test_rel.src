@@ -1,0 +1,22 @@
+; Test REL, ENT, and EXT directives
+; This tests relocatable code generation
+
+        REL             ; Enable relocatable mode
+        ORG $2000       ; Set origin
+
+; Define an entry point
+START   ENT START       ; START is an entry point
+        LDA #$00
+        STA $0400
+
+; Use external symbol
+        EXT PUTCHAR     ; PUTCHAR is external
+        JSR PUTCHAR
+
+; Define another entry
+LOOP    ENT LOOP
+        DEX
+        BNE LOOP
+        RTS
+
+        END
