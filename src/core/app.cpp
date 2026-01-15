@@ -45,6 +45,12 @@ App::App()
     commands_["QUIT"] = [this](const auto& args) { cmd_bye(args); };
     commands_["HELP"] = [this](const auto& args) { cmd_help(args); };
     commands_["?"] = [this](const auto& args) { cmd_help(args); };
+    
+    // File operations (from EDITOR1.S)
+    commands_["RENAME"] = [this](const auto& args) { cmd_rename(args); };
+    commands_["LOCK"] = [this](const auto& args) { cmd_lock(args); };
+    commands_["UNLOCK"] = [this](const auto& args) { cmd_unlock(args); };
+    commands_["DELETEFILE"] = [this](const auto& args) { cmd_delete_file(args); };
 }
 
 App::~App() {
@@ -480,6 +486,10 @@ void App::cmd_help(const std::vector<std::string>& args) {
     screen_->write_line(row++, "  SPLIT <line> <pos> - Split line");
     screen_->write_line(row++, "  CATALOG [path]    - List directory");
     screen_->write_line(row++, "  PREFIX [path]     - Set/show directory");
+    screen_->write_line(row++, "  RENAME <old> <new> - Rename file");
+    screen_->write_line(row++, "  LOCK <file>       - Make file read-only");
+    screen_->write_line(row++, "  UNLOCK <file>     - Remove read-only");
+    screen_->write_line(row++, "  DELETEFILE <file> - Delete a file");
     screen_->write_line(row++, "  ASM [opts]        - Assemble buffer");
     screen_->write_line(row++, "  BYE/QUIT          - Exit EDASM");
     screen_->write_line(row++, "  HELP/?            - Show this help");
@@ -496,6 +506,181 @@ void App::print_help() const {
     std::cout << std::endl;
     std::cout << "Port of Apple II EDASM to modern C++/ncurses" << std::endl;
     std::cout << "Based on EDASM.SRC from markpmlim/EdAsm" << std::endl;
+}
+
+// =========================================
+// File Operations (from EDITOR1.S)
+// =========================================
+
+void App::cmd_rename(const std::vector<std::string>& args) {
+    // RENAME <old> <new> - Rename a file
+    // From EDITOR1.S LD308
+    if (args.size() < 2) {
+        print_error("RENAME requires old and new filenames");
+        return;
+    }
+    
+    std::string old_path = args[0];
+    std::string new_path = args[1];
+    
+    // Add default extension if none provided
+    if (old_path.find('.') == std::string::npos) {
+        old_path += ".src";
+    }
+    if (new_path.find('.') == std::string::npos) {
+        new_path += ".src";
+    }
+    
+    try {
+        #if __has_include(<filesystem>)
+        namespace fs = std::filesystem;
+        if (!fs::exists(old_path)) {
+            print_error("File not found: " + old_path);
+            return;
+        }
+        
+        // Check if destination already exists
+        if (fs::exists(new_path)) {
+            print_error("Destination already exists: " + new_path);
+            return;
+        }
+        
+        // Rename the file
+        fs::rename(old_path, new_path);
+        screen_->write_line(1, "Renamed: " + old_path + " -> " + new_path);
+        screen_->refresh();
+        #else
+        print_error("RENAME not available (no filesystem support)");
+        #endif
+    } catch (const std::exception& e) {
+        print_error(std::string("RENAME error: ") + e.what());
+    }
+}
+
+void App::cmd_lock(const std::vector<std::string>& args) {
+    // LOCK <file> - Set file to read-only
+    // From EDITOR1.S LD287
+    if (args.empty()) {
+        print_error("LOCK requires a filename");
+        return;
+    }
+    
+    std::string path = args[0];
+    if (path.find('.') == std::string::npos) {
+        path += ".src";
+    }
+    
+    try {
+        #if __has_include(<filesystem>)
+        namespace fs = std::filesystem;
+        if (!fs::exists(path)) {
+            print_error("File not found: " + path);
+            return;
+        }
+        
+        // Set file to read-only (remove write permissions)
+        auto perms = fs::status(path).permissions();
+        fs::permissions(path, 
+                       perms & ~fs::perms::owner_write 
+                             & ~fs::perms::group_write 
+                             & ~fs::perms::others_write,
+                       fs::perm_options::replace);
+        
+        screen_->write_line(1, "Locked: " + path);
+        screen_->refresh();
+        #else
+        print_error("LOCK not available (no filesystem support)");
+        #endif
+    } catch (const std::exception& e) {
+        print_error(std::string("LOCK error: ") + e.what());
+    }
+}
+
+void App::cmd_unlock(const std::vector<std::string>& args) {
+    // UNLOCK <file> - Remove read-only attribute
+    // From EDITOR1.S LD282
+    if (args.empty()) {
+        print_error("UNLOCK requires a filename");
+        return;
+    }
+    
+    std::string path = args[0];
+    if (path.find('.') == std::string::npos) {
+        path += ".src";
+    }
+    
+    try {
+        #if __has_include(<filesystem>)
+        namespace fs = std::filesystem;
+        if (!fs::exists(path)) {
+            print_error("File not found: " + path);
+            return;
+        }
+        
+        // Restore write permissions
+        auto perms = fs::status(path).permissions();
+        fs::permissions(path, 
+                       perms | fs::perms::owner_write,
+                       fs::perm_options::replace);
+        
+        screen_->write_line(1, "Unlocked: " + path);
+        screen_->refresh();
+        #else
+        print_error("UNLOCK not available (no filesystem support)");
+        #endif
+    } catch (const std::exception& e) {
+        print_error(std::string("UNLOCK error: ") + e.what());
+    }
+}
+
+void App::cmd_delete_file(const std::vector<std::string>& args) {
+    // DELETEFILE <file> - Delete a file
+    // From EDITOR1.S LD2C4
+    // Note: Named DELETEFILE to avoid confusion with DELETE line command
+    if (args.empty()) {
+        print_error("DELETEFILE requires a filename");
+        return;
+    }
+    
+    std::string path = args[0];
+    if (path.find('.') == std::string::npos) {
+        path += ".src";
+    }
+    
+    try {
+        #if __has_include(<filesystem>)
+        namespace fs = std::filesystem;
+        if (!fs::exists(path)) {
+            print_error("File not found: " + path);
+            return;
+        }
+        
+        // Check if file is locked (read-only)
+        auto perms = fs::status(path).permissions();
+        bool is_readonly = (perms & fs::perms::owner_write) == fs::perms::none;
+        
+        if (is_readonly) {
+            // Ask for confirmation (from EDITOR1.S LD2C4-LD2F4)
+            screen_->write_line(1, "File is locked. Delete anyway? (Y/N)");
+            screen_->refresh();
+            int key = screen_->get_key();
+            if (key != 'Y' && key != 'y') {
+                screen_->write_line(1, "Delete cancelled");
+                screen_->refresh();
+                return;
+            }
+        }
+        
+        // Delete the file
+        fs::remove(path);
+        screen_->write_line(1, "Deleted: " + path);
+        screen_->refresh();
+        #else
+        print_error("DELETEFILE not available (no filesystem support)");
+        #endif
+    } catch (const std::exception& e) {
+        print_error(std::string("DELETEFILE error: ") + e.what());
+    }
 }
 
 } // namespace edasm

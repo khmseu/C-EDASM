@@ -47,6 +47,12 @@ class App {
     void cmd_bye(const std::vector<std::string>& args);
     void cmd_help(const std::vector<std::string>& args);
     
+    // File operations (from EDITOR1.S)
+    void cmd_rename(const std::vector<std::string>& args);
+    void cmd_lock(const std::vector<std::string>& args);
+    void cmd_unlock(const std::vector<std::string>& args);
+    void cmd_delete_file(const std::vector<std::string>& args);
+    
     // Helper functions
     void display_prompt();
     std::string read_command_line();
