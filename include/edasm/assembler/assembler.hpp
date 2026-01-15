@@ -68,6 +68,10 @@ class Assembler {
     bool in_include_file_{false};  // IDskSrcF - true when reading from INCLUDE file
     std::string base_path_;  // Base path for resolving relative include paths
     
+    // Conditional assembly state (from ASM3.S CondAsmF at $BA)
+    // Values: 0x00=assemble, 0x40=skip(false), 0x80=in ELSE, 0xC0=skip in ELSE
+    uint8_t cond_asm_flag_{0x00};  // CondAsmF
+    
     // Assembly passes (from ASM2.S and ASM3.S)
     bool pass1(const std::vector<SourceLine>& lines, Result& result);
     bool pass2(const std::vector<SourceLine>& lines, Result& result, ListingGenerator* listing);
@@ -98,6 +102,11 @@ class Assembler {
                                                   Result& result, 
                                                   int nesting_level = 0);
     std::string resolve_include_path(const std::string& include_path) const;
+    
+    // Conditional assembly (from ASM3.S L90B7-L9122)
+    bool should_assemble_line() const;  // Check if current line should be assembled
+    bool process_conditional_directive_pass1(const SourceLine& line, Result& result);
+    bool process_conditional_directive_pass2(const SourceLine& line, Result& result);
 };
 
 } // namespace edasm
