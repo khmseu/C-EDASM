@@ -188,13 +188,25 @@ bool Assembler::encode_instruction(const SourceLine& line, Result& result) {
     emit_byte(opcode->code, result);
     
     // Emit operand bytes based on addressing mode
-    if (mode == AddressingMode::Immediate ||
-        mode == AddressingMode::ZeroPage ||
-        mode == AddressingMode::ZeroPageX ||
-        mode == AddressingMode::ZeroPageY ||
-        mode == AddressingMode::IndexedIndirect ||
-        mode == AddressingMode::IndirectIndexed ||
-        mode == AddressingMode::Relative) {
+    if (mode == AddressingMode::Relative) {
+        // Branch instructions: calculate PC-relative offset
+        uint16_t target = evaluate_operand(line.operand);
+        // PC after this instruction (PC + 2 since branch is 2 bytes)
+        uint16_t next_pc = program_counter_ + 1;  // PC is already incremented by opcode
+        int16_t offset = static_cast<int16_t>(target - next_pc);
+        
+        // Check range
+        if (offset < -128 || offset > 127) {
+            add_error(result, "Branch out of range: " + std::to_string(offset), line.line_number);
+        }
+        
+        emit_byte(static_cast<uint8_t>(offset & 0xFF), result);
+    } else if (mode == AddressingMode::Immediate ||
+               mode == AddressingMode::ZeroPage ||
+               mode == AddressingMode::ZeroPageX ||
+               mode == AddressingMode::ZeroPageY ||
+               mode == AddressingMode::IndexedIndirect ||
+               mode == AddressingMode::IndirectIndexed) {
         // 1-byte operand
         uint16_t value = evaluate_operand(line.operand);
         emit_byte(static_cast<uint8_t>(value & 0xFF), result);

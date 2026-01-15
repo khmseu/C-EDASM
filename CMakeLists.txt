@@ -30,5 +30,9 @@ target_compile_features(edasm PUBLIC cxx_std_20)
 add_executable(edasm_cli src/main.cpp)
 target_link_libraries(edasm_cli PRIVATE edasm)
 
+# Test assembler program
+add_executable(test_asm src/test_asm.cpp)
+target_link_libraries(test_asm PRIVATE edasm)
+
 enable_testing()
 add_subdirectory(tests)
