@@ -64,6 +64,10 @@ class Assembler {
     bool listing_enabled_{true};  // LST ON/OFF
     bool msb_on_{false};  // MSB ON/OFF - sets high bit on chars
     
+    // Include file tracking (from ASM3.S)
+    bool in_include_file_{false};  // IDskSrcF - true when reading from INCLUDE file
+    std::string base_path_;  // Base path for resolving relative include paths
+    
     // Assembly passes (from ASM2.S and ASM3.S)
     bool pass1(const std::vector<SourceLine>& lines, Result& result);
     bool pass2(const std::vector<SourceLine>& lines, Result& result, ListingGenerator* listing);
@@ -88,6 +92,12 @@ class Assembler {
     void add_warning(Result& result, const std::string& msg, int line_num = -1);
     bool is_directive(const std::string& mnemonic) const;
     uint16_t evaluate_operand(const std::string& operand);
+    
+    // Include file preprocessing (from ASM3.S L9348)
+    std::vector<SourceLine> preprocess_includes(const std::vector<SourceLine>& lines, 
+                                                  Result& result, 
+                                                  int nesting_level = 0);
+    std::string resolve_include_path(const std::string& include_path) const;
 };
 
 } // namespace edasm

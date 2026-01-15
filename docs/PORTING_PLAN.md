@@ -294,6 +294,13 @@ Full 6502 instruction set with all addressing modes:
   - [x] Relocate code segments
   - [x] Generate BIN/REL/SYS output
   - [x] Load map generation
+- [x] **INCLUDE directive support** ✨ NEW!
+  - [x] File inclusion during assembly
+  - [x] Path resolution (relative/absolute)
+  - [x] Nesting prevention (INCLUDE/CHN NESTING error)
+  - [x] Error handling (file not found, invalid from include)
+  - [x] Line number tracking across includes
+- [ ] Conditional assembly (DO/ELSE/FIN/IF* directives)
 - [ ] Macro support (if needed)
 - [ ] Include file support
 

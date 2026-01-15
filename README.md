@@ -11,15 +11,23 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - ✅ **Phase 3 Complete**: Assembler tokenizer and symbol table
 - ✅ **Phase 4 Complete**: Assembler Pass 2 with expression evaluation and code generation
 - ✅ **Phase 5 (95%)**: Listing file generation, symbol table printing, and control directives
-- ✅ **Phase 6 (85%)**: EXEC command, REL file support, ENT/EXT directives, **Linker implemented!**
+- ✅ **Phase 6 (90%)**: EXEC command, REL file support, ENT/EXT directives, **Linker implemented**, **INCLUDE directive support!**
 - ✅ Comprehensive unit tests (100% passing)
 - ✅ EdAsm submodule initialized from [markpmlim/EdAsm](https://github.com/markpmlim/EdAsm)
 - ✅ EDASM.SRC (~19,000 lines of 6502 assembly) analyzed and documented
 - ✅ Porting plan with 14-week roadmap actively being followed
-- ⏳ **Phase 6 Next**: Macro support, Include files
+- ⏳ **Phase 6 Next**: Macro support, Conditional assembly (DO/ELSE/FIN)
 - ⏳ **Phase 7**: Testing & Polish
 
 ## Recent Additions (2026-01-15)
+
+### INCLUDE Directive (NEW!) ✨
+- **File inclusion**: Include external source files during assembly
+- **Path resolution**: Supports relative and absolute paths, quoted filenames
+- **Nesting prevention**: Prevents nested INCLUDE directives (matches original EDASM behavior)
+- **Error handling**: Clear error messages for missing files and nesting violations
+- **Line tracking**: Maintains proper line number tracking across included files
+- **Listing integration**: Included files appear in assembly listings with line numbers
 
 ### Linker (NEW!) ✨
 - **Complete 6-phase linker** for REL (relocatable) object files
@@ -141,7 +149,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - **Expression evaluation**: Arithmetic (+, -, *, /), bitwise (&, |, ^), byte extraction (<, >)
 - **Directives**: ORG, EQU, DA, DW, DB, DFB, ASC, DCI, DS, END
 - **REL support**: REL, ENT/ENTRY, EXT/EXTRN directives for relocatable code
-- **Control directives**: LST (listing control), MSB (high bit), SBTL (subtitle)
+- **Control directives**: LST (listing control), MSB (high bit), SBTL (subtitle), **INCLUDE** (file inclusion)
 - **Binary output**: Generate machine code with header
 - **REL file output**: Complete REL format with RLD/ESD for linking
 - **Listing generation**: Complete assembly listings with hex dump and symbol table
