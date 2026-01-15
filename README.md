@@ -4,13 +4,15 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 ## Status
 
-**Phase: Planning & Documentation Complete**
+**Phase: Core Infrastructure & Editor Complete - Assembler In Progress**
 
-- ✅ Workspace scaffolded with CMake, ncurses dependency, and module structure
+- ✅ **Phase 1 Complete**: Core infrastructure with command dispatch, screen handling, and constants
+- ✅ **Phase 2 (85%)**: Editor module with all major commands (LOAD, SAVE, LIST, FIND, CHANGE, MOVE, COPY, JOIN, SPLIT, CATALOG)
+- ✅ Comprehensive unit tests (100% passing)
 - ✅ EdAsm submodule initialized from [markpmlim/EdAsm](https://github.com/markpmlim/EdAsm)
 - ✅ EDASM.SRC (~19,000 lines of 6502 assembly) analyzed and documented
-- ✅ Comprehensive porting plan created with 14-week implementation roadmap
-- ⏳ Core logic to be ported from `EDASM.SRC` 6502 assembly
+- ✅ Porting plan with 14-week roadmap actively being followed
+- ⏳ **Phase 3 Next**: Assembler tokenizer and symbol table completion
 
 ## Documentation
 
@@ -28,10 +30,10 @@ This project includes detailed documentation for the porting effort:
 sudo apt-get install cmake g++ libncurses5-dev
 
 # Build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
+./scripts/configure.sh
+./scripts/build.sh
 
-# Run (currently placeholder)
+# Run (currently text-mode editor with basic assembler)
 ./build/edasm_cli
 
 # Run tests
@@ -71,13 +73,35 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 | SYS | $FF | `.sys` | System file |
 | - | - | `.lst` | Listing output |
 
+## Implemented Features
+
+### Editor Commands (Phase 2 - Complete)
+- **File Operations**: LOAD, SAVE, CATALOG (directory listing)
+- **Text Editing**: LIST, INSERT, DELETE (line ranges)
+- **Search & Replace**: FIND, CHANGE (with pattern matching)
+- **Buffer Manipulation**: MOVE, COPY, JOIN, SPLIT
+- **Navigation**: Goto line, line range specifications
+- **Utility**: PREFIX (set working directory), HELP
+
+### System Features (Phase 1 - Complete)
+- Command-line interface with dispatch table
+- ProDOS file type mapping (TXT, BIN, REL, SYS)
+- Line-based text buffer (std::vector<string>)
+- Comprehensive constants from COMMONEQUS.S
+- ncurses screen wrapper
+
+### Testing
+- Comprehensive unit tests for all editor operations
+- Test coverage: LineRange parsing, FIND, CHANGE, MOVE, COPY, JOIN, SPLIT
+- All tests passing (100%)
+
 ## Implementation Roadmap
 
 See [PORTING_PLAN.md](docs/PORTING_PLAN.md) for the complete 14-week implementation plan:
 
-1. **Weeks 1-2**: Core infrastructure (command parser, file I/O)
-2. **Weeks 3-4**: Editor module (text buffer, commands)
-3. **Weeks 5-6**: Assembler Pass 1 (tokenizer, symbol table)
+1. ✅ **Weeks 1-2**: Core infrastructure (command parser, file I/O) - **COMPLETE**
+2. ✅ **Weeks 3-4**: Editor module (text buffer, commands) - **85% COMPLETE**
+3. ⏳ **Weeks 5-6**: Assembler Pass 1 (tokenizer, symbol table) - **IN PROGRESS**
 4. **Weeks 7-8**: Assembler Pass 2 (code generation, expressions)
 5. **Weeks 9-10**: Directives & listing generation
 6. **Weeks 11-12**: Advanced features (REL format, linker)
