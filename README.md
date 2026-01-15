@@ -11,17 +11,30 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - ✅ **Phase 3 Complete**: Assembler tokenizer and symbol table
 - ✅ **Phase 4 Complete**: Assembler Pass 2 with expression evaluation and code generation
 - ✅ **Phase 5 (95%)**: Listing file generation, symbol table printing, and control directives
-- ✅ **Phase 6 (90%)**: EXEC command, REL file support, ENT/EXT directives, **Linker implemented**, **INCLUDE directive support!**
+- ✅ **Phase 6 (95%)**: EXEC command, REL file support, ENT/EXT directives, **Linker implemented**, **INCLUDE directive support**, **Conditional assembly!**
 - ✅ Comprehensive unit tests (100% passing)
 - ✅ EdAsm submodule initialized from [markpmlim/EdAsm](https://github.com/markpmlim/EdAsm)
 - ✅ EDASM.SRC (~19,000 lines of 6502 assembly) analyzed and documented
 - ✅ Porting plan with 14-week roadmap actively being followed
-- ⏳ **Phase 6 Next**: Macro support, Conditional assembly (DO/ELSE/FIN)
+- ⏳ **Phase 6 Next**: Macro support
 - ⏳ **Phase 7**: Testing & Polish
 
 ## Recent Additions (2026-01-15)
 
-### INCLUDE Directive (NEW!) ✨
+### Conditional Assembly (NEW!) ✨
+- **DO/IFNE directive**: Start conditional block, assemble if expression ≠ 0
+- **ELSE directive**: Alternate block (assemble if DO condition was false)
+- **FIN directive**: End conditional block
+- **IFEQ directive**: Assemble if expression = 0
+- **IFGT directive**: Assemble if expression > 0 (signed comparison)
+- **IFGE directive**: Assemble if expression ≥ 0
+- **IFLT directive**: Assemble if expression < 0
+- **IFLE directive**: Assemble if expression ≤ 0
+- Lines in false blocks are skipped during assembly
+- Full expression evaluation support for conditions
+- Matches EDASM.SRC behavior from ASM3.S L90B7-L9122
+
+### INCLUDE Directive ✨
 - **File inclusion**: Include external source files during assembly
 - **Path resolution**: Supports relative and absolute paths, quoted filenames
 - **Nesting prevention**: Prevents nested INCLUDE directives (matches original EDASM behavior)
@@ -150,6 +163,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - **Directives**: ORG, EQU, DA, DW, DB, DFB, ASC, DCI, DS, END
 - **REL support**: REL, ENT/ENTRY, EXT/EXTRN directives for relocatable code
 - **Control directives**: LST (listing control), MSB (high bit), SBTL (subtitle), **INCLUDE** (file inclusion)
+- **Conditional assembly**: DO, ELSE, FIN, IFEQ, IFNE, IFGT, IFGE, IFLT, IFLE directives
 - **Binary output**: Generate machine code with header
 - **REL file output**: Complete REL format with RLD/ESD for linking
 - **Listing generation**: Complete assembly listings with hex dump and symbol table
