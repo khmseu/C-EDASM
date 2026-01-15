@@ -5,4 +5,5 @@ Testing/
 *.swp
 *.tmp
 *.log
-third_party/.git/
+third_party/EdAsm/.git/
+.cache/
