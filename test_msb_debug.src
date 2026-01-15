@@ -1,0 +1,5 @@
+; Simple MSB test
+        ORG $2000
+        MSB ON
+        ASC "AB"
+        END

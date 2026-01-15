@@ -64,6 +64,10 @@ void Assembler::reset() {
     symbols_.reset();
     program_counter_ = org_address_;
     current_line_ = 0;
+    rel_mode_ = false;
+    file_type_ = 0x06;  // Default to BIN type
+    listing_enabled_ = true;  // Default LST ON
+    msb_on_ = false;  // Default MSB OFF
 }
 
 // =========================================
@@ -135,6 +139,91 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
         } else {
             add_error(result, "EQU: " + expr_result.error_message, line.line_number);
         }
+    } else if (mnem == "REL") {
+        // REL directive - enable relocatable mode (from ASM3.S L9126)
+        // Sets RelCodeF flag and changes file type to REL ($FE)
+        rel_mode_ = true;
+        file_type_ = 0xFE;  // REL file type
+    } else if (mnem == "ENT" || mnem == "ENTRY") {
+        // ENT/ENTRY directive - mark symbol as entry point (from ASM3.S L9144)
+        // Entry points are symbols that can be referenced by other modules
+        if (line.operand.empty()) {
+            add_error(result, "ENT requires a symbol name", line.line_number);
+            return;
+        }
+        
+        // Look up or define the symbol
+        Symbol* sym = symbols_.lookup(line.operand);
+        if (sym) {
+            // Symbol exists - add ENTRY flag
+            sym->flags |= SYM_ENTRY;
+            if (rel_mode_) {
+                sym->flags |= SYM_RELATIVE;
+            }
+        } else {
+            // Symbol doesn't exist yet - define it with ENTRY flag
+            // It will be resolved when the label is encountered
+            uint8_t flags = SYM_ENTRY | SYM_UNDEFINED;
+            if (rel_mode_) {
+                flags |= SYM_RELATIVE;
+            }
+            symbols_.define(line.operand, 0, flags, line.line_number);
+        }
+    } else if (mnem == "EXT" || mnem == "EXTRN") {
+        // EXT/EXTRN directive - mark symbol as external (from ASM3.S L91A8)
+        // External symbols are defined in other modules
+        if (line.operand.empty()) {
+            add_error(result, "EXT requires a symbol name", line.line_number);
+            return;
+        }
+        
+        // Define symbol as external
+        Symbol* sym = symbols_.lookup(line.operand);
+        if (sym) {
+            // Symbol already exists - add EXTERNAL flag
+            sym->flags |= SYM_EXTERNAL;
+            // In REL mode, external symbols are also relative
+            if (rel_mode_) {
+                sym->flags |= SYM_RELATIVE;
+            }
+        } else {
+            // Define as external with undefined value
+            uint8_t flags = SYM_EXTERNAL | SYM_UNDEFINED;
+            if (rel_mode_) {
+                flags |= SYM_RELATIVE;
+            }
+            symbols_.define(line.operand, 0, flags, line.line_number);
+        }
+    } else if (mnem == "LST") {
+        // LST directive - control listing output (from ASM3.S L8ECA)
+        // LST ON or LST OFF
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            listing_enabled_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            listing_enabled_ = false;
+        } else {
+            add_error(result, "LST requires ON or OFF", line.line_number);
+        }
+    } else if (mnem == "MSB") {
+        // MSB directive - control high bit on ASCII chars (from ASM3.S L8E66)
+        // MSB ON or MSB OFF
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            msb_on_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            msb_on_ = false;
+        } else {
+            add_error(result, "MSB requires ON or OFF", line.line_number);
+        }
+    } else if (mnem == "SBTL") {
+        // SBTL directive - subtitle for listing (from ASM3.S)
+        // Note: Currently not stored; could be used by listing generator for section headers
+        // in future enhancement. For now, accepted but ignored in pass 1.
     } else if (mnem == "DS") {
         // Define Storage - advance PC (from ASM3.S L8C0E)
         auto expr_result = eval.evaluate(line.operand, 1);
@@ -347,6 +436,47 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
     } else if (mnem == "EQU") {
         // EQU - symbol definition, already handled in pass 1
         // Nothing to do in pass 2
+    } else if (mnem == "REL") {
+        // REL - relocatable mode, already set in pass 1
+        // Nothing to emit in pass 2
+    } else if (mnem == "ENT" || mnem == "ENTRY") {
+        // ENT/ENTRY - entry point declaration, already handled in pass 1
+        // Nothing to emit in pass 2
+    } else if (mnem == "EXT" || mnem == "EXTRN") {
+        // EXT/EXTRN - external reference, already handled in pass 1
+        // Nothing to emit in pass 2
+    } else if (mnem == "LST") {
+        // LST - listing control (from ASM3.S L8ECA)
+        // LST ON or LST OFF
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            listing_enabled_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            listing_enabled_ = false;
+        } else {
+            add_error(result, "LST requires ON or OFF", line.line_number);
+            return false;
+        }
+    } else if (mnem == "MSB") {
+        // MSB - high bit control (from ASM3.S L8E66)
+        // MSB ON or MSB OFF - must be processed in pass2 for code generation
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            msb_on_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            msb_on_ = false;
+        } else {
+            add_error(result, "MSB requires ON or OFF", line.line_number);
+            return false;
+        }
+    } else if (mnem == "SBTL") {
+        // SBTL directive - subtitle for listing (from ASM3.S)
+        // Note: Currently not stored; could be used by listing generator for section headers
+        // in future enhancement. For now, accepted but ignored in pass 2.
     } else if (mnem == "DS") {
         // DS - define storage (from ASM3.S L8C0E)
         auto expr_result = eval.evaluate(line.operand, 2);
@@ -420,13 +550,18 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
     } else if (mnem == "ASC") {
         // ASC - ASCII string (from ASM3.S)
         // Extract string from quotes
+        // If MSB ON, set high bit on all characters
         std::string str = line.operand;
         bool in_string = false;
         for (char c : str) {
             if (c == '"' || c == '\'') {
                 in_string = !in_string;
             } else if (in_string) {
-                emit_byte(static_cast<uint8_t>(c), result);
+                uint8_t byte = static_cast<uint8_t>(c);
+                if (msb_on_) {
+                    byte |= HIGH_BIT_MASK;  // Set high bit if MSB ON
+                }
+                emit_byte(byte, result);
             }
         }
     } else if (mnem == "DCI") {
@@ -445,7 +580,7 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
         for (size_t i = 0; i < chars.size(); ++i) {
             if (i == chars.size() - 1) {
                 // Last character - invert high bit
-                emit_byte(chars[i] ^ 0x80, result);
+                emit_byte(chars[i] ^ HIGH_BIT_MASK, result);
             } else {
                 emit_byte(chars[i], result);
             }
