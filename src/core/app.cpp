@@ -6,6 +6,10 @@
 #include <algorithm>
 #include <cctype>
 
+#if __has_include(<filesystem>)
+#include <filesystem>
+#endif
+
 #include "edasm/assembler/assembler.hpp"
 #include "edasm/editor/editor.hpp"
 #include "edasm/screen.hpp"
@@ -258,8 +262,52 @@ void App::cmd_delete(const std::vector<std::string>& args) {
 }
 
 void App::cmd_catalog(const std::vector<std::string>& args) {
-    // TODO: Implement directory listing
-    print_error("CATALOG not yet implemented");
+    // CATALOG command: list directory contents (from EDASMINT.S)
+    std::string path = args.empty() ? current_prefix_ : args[0];
+    
+    // Use std::filesystem to list directory
+    try {
+        screen_->clear();
+        int row = 0;
+        screen_->write_line(row++, "Directory: " + path);
+        screen_->write_line(row++, "");
+        
+        #if __has_include(<filesystem>)
+        namespace fs = std::filesystem;
+        if (!fs::exists(path)) {
+            print_error("Path not found: " + path);
+            return;
+        }
+        
+        if (!fs::is_directory(path)) {
+            print_error("Not a directory: " + path);
+            return;
+        }
+        
+        // List directory entries
+        for (const auto& entry : fs::directory_iterator(path)) {
+            if (row >= screen_->rows() - 1) {
+                screen_->write_line(row++, "Press any key for more...");
+                screen_->refresh();
+                screen_->get_key();
+                screen_->clear();
+                row = 0;
+            }
+            
+            std::string name = entry.path().filename().string();
+            if (entry.is_directory()) {
+                name = "<DIR> " + name;
+            }
+            screen_->write_line(row++, name);
+        }
+        #else
+        screen_->write_line(row++, "CATALOG not available (no filesystem support)");
+        #endif
+        
+        screen_->refresh();
+    } catch (const std::exception& e) {
+        print_error(std::string("CATALOG error: ") + e.what());
+    }
 }
 
 void App::cmd_prefix(const std::vector<std::string>& args) {
