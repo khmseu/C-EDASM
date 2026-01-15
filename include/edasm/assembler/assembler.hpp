@@ -2,8 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "edasm/assembler/symbol_table.hpp"
+#include "edasm/assembler/tokenizer.hpp"
 
 namespace edasm {
 
@@ -12,14 +14,42 @@ class Assembler {
     struct Result {
         bool success{false};
         std::vector<std::string> errors;
+        std::vector<std::string> warnings;
+        std::vector<uint8_t> code;  // Generated machine code
+        uint16_t org_address{0x0800};  // ORG address (default $0800)
+        uint16_t code_length{0};
     };
 
     Assembler();
     Result assemble(const std::string &source);
     void reset();
+    
+    // Access to symbol table for debugging/listing
+    const SymbolTable& symbols() const { return symbols_; }
 
   private:
     SymbolTable symbols_;
+    uint16_t program_counter_{0x0800};  // PC tracking
+    uint16_t org_address_{0x0800};      // ORG directive value
+    int current_line_{0};
+    
+    // Assembly passes (from ASM2.S and ASM3.S)
+    bool pass1(const std::vector<SourceLine>& lines, Result& result);
+    bool pass2(const std::vector<SourceLine>& lines, Result& result);
+    
+    // Pass 1: Build symbol table
+    void process_label_pass1(const SourceLine& line);
+    void process_directive_pass1(const SourceLine& line, Result& result);
+    void update_pc_pass1(const SourceLine& line);
+    
+    // Pass 2: Generate code
+    bool process_line_pass2(const SourceLine& line, Result& result);
+    bool process_directive_pass2(const SourceLine& line, Result& result);
+    
+    // Helpers
+    void add_error(Result& result, const std::string& msg, int line_num = -1);
+    void add_warning(Result& result, const std::string& msg, int line_num = -1);
+    bool is_directive(const std::string& mnemonic) const;
 };
 
 } // namespace edasm
