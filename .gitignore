@@ -8,3 +8,9 @@ Testing/
 third_party/EdAsm/.git/
 .cache/
 test_expr_eval*
+*.lst
+*.bin
+*.rel
+*.obj
+test_*.src
+test_*.txt

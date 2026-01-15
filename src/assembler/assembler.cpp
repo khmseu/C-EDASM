@@ -1,6 +1,7 @@
 #include "edasm/assembler/assembler.hpp"
 
 #include <sstream>
+#include <fstream>
 #include <algorithm>
 #include <memory>
 
@@ -25,6 +26,13 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
     while (std::getline(ss, line)) {
         auto parsed = Tokenizer::parse_line(line, line_num++);
         lines.push_back(parsed);
+    }
+    
+    // Preprocess INCLUDE directives (from ASM3.S L9348)
+    lines = preprocess_includes(lines, result, 0);
+    if (!result.errors.empty()) {
+        result.success = false;
+        return result;
     }
     
     // Pass 1: Build symbol table, track PC
@@ -101,6 +109,8 @@ void Assembler::reset() {
     file_type_ = 0x06;  // Default to BIN type
     listing_enabled_ = true;  // Default LST ON
     msb_on_ = false;  // Default MSB OFF
+    in_include_file_ = false;  // Not in include file
+    base_path_ = ".";  // Default to current directory
     rel_builder_.reset();
     next_extern_symbol_num_ = 0;
 }
@@ -701,10 +711,107 @@ bool Assembler::is_directive(const std::string& mnemonic) const {
     // List of assembler directives (from ASM3.S)
     static const std::vector<std::string> directives = {
         "ORG", "EQU", "DA", "DW", "DB", "DFB", "ASC", "DCI", "DS",
-        "REL", "ENT", "EXT", "END", "LST", "SBTL", "MSB"
+        "REL", "ENT", "EXT", "END", "LST", "SBTL", "MSB", "INCLUDE"
     };
     
     return std::find(directives.begin(), directives.end(), mnemonic) != directives.end();
+}
+
+// =========================================
+// Include File Preprocessing (from ASM3.S L9348)
+// =========================================
+
+std::string Assembler::resolve_include_path(const std::string& include_path) const {
+    // Remove quotes from include path
+    std::string path = include_path;
+    if (!path.empty() && (path.front() == '"' || path.front() == '\'')) {
+        path = path.substr(1);
+    }
+    if (!path.empty() && (path.back() == '"' || path.back() == '\'')) {
+        path = path.substr(0, path.size() - 1);
+    }
+    
+    // If path is relative and we have a base path, resolve relative to base
+    if (!path.empty() && path[0] != '/' && !base_path_.empty()) {
+        return base_path_ + "/" + path;
+    }
+    
+    return path;
+}
+
+std::vector<SourceLine> Assembler::preprocess_includes(const std::vector<SourceLine>& lines,
+                                                         Result& result,
+                                                         int nesting_level) {
+    std::vector<SourceLine> expanded;
+    
+    // Check for nesting limit (original EDASM doesn't allow nested INCLUDEs)
+    if (nesting_level > 0) {
+        add_error(result, "INCLUDE/CHN NESTING", -1);
+        return expanded;
+    }
+    
+    for (const auto& line : lines) {
+        // Check if this is an INCLUDE directive
+        if (line.has_mnemonic() && line.mnemonic == "INCLUDE") {
+            // Validate that INCLUDE is not called from within an include file
+            if (in_include_file_) {
+                add_error(result, "INCLUDE/CHN NESTING", line.line_number);
+                continue;
+            }
+            
+            // Get the include file path
+            std::string include_path = resolve_include_path(line.operand);
+            
+            // Try to read the include file
+            std::ifstream include_file(include_path);
+            if (!include_file.is_open()) {
+                add_error(result, "INCLUDE FILE NOT FOUND: " + include_path, line.line_number);
+                continue;
+            }
+            
+            // Read all lines from include file
+            std::vector<SourceLine> include_lines;
+            std::string include_line;
+            int include_line_num = 1;
+            
+            // Set flag that we're in an include file
+            bool saved_include_state = in_include_file_;
+            const_cast<Assembler*>(this)->in_include_file_ = true;
+            
+            while (std::getline(include_file, include_line)) {
+                auto parsed = Tokenizer::parse_line(include_line, include_line_num++);
+                
+                // Check for directives that are invalid from include files
+                if (parsed.has_mnemonic()) {
+                    if (parsed.mnemonic == "INCLUDE") {
+                        add_error(result, "INCLUDE/CHN NESTING", parsed.line_number);
+                        continue;
+                    }
+                    // According to EDASM.SRC, CHN is also invalid from INCLUDE
+                    if (parsed.mnemonic == "CHN") {
+                        add_error(result, "INVALID FROM INCLUDE", parsed.line_number);
+                        continue;
+                    }
+                }
+                
+                include_lines.push_back(parsed);
+            }
+            
+            // Restore include state
+            const_cast<Assembler*>(this)->in_include_file_ = saved_include_state;
+            
+            include_file.close();
+            
+            // Add all lines from include file to expanded lines
+            expanded.insert(expanded.end(), include_lines.begin(), include_lines.end());
+            
+        } else {
+            // Not an INCLUDE directive, just copy the line
+            expanded.push_back(line);
+        }
+    }
+    
+    return expanded;
 }
 
 } // namespace edasm
