@@ -61,9 +61,12 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
     // Generate REL file format if in REL mode
     if (rel_mode_) {
         // Build ESD entries from symbol table
+        int entry_count = 0;
+        int external_count = 0;
         for (const auto& [name, symbol] : symbols_.get_all()) {
             // Add ENTRY symbols (defined in this module)
             if (symbol.flags & SYM_ENTRY) {
+                entry_count++;
                 uint8_t esd_flags = ESDEntry::FLAG_ENTRY;
                 if (symbol.flags & SYM_RELATIVE) {
                     esd_flags |= ESDEntry::FLAG_RELATIVE;
@@ -73,6 +76,7 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
             
             // Add EXTERNAL symbols (referenced but not defined)
             if (symbol.flags & SYM_EXTERNAL) {
+                external_count++;
                 uint8_t esd_flags = ESDEntry::FLAG_EXTERNAL;
                 if (symbol.flags & SYM_UNDEFINED) {
                     esd_flags |= ESDEntry::FLAG_UNDEFINED;
@@ -148,9 +152,21 @@ bool Assembler::pass1(const std::vector<SourceLine>& lines, Result& result) {
 }
 
 void Assembler::process_label_pass1(const SourceLine& line) {
-    // Define label with current PC value
-    // Mark as relative (code label) by default
-    symbols_.define(line.label, program_counter_, SYM_RELATIVE, line.line_number);
+    // Check if label already exists (e.g., from ENT/EXT directive)
+    Symbol* existing = symbols_.lookup(line.label);
+    if (existing) {
+        // Label was already defined (e.g., by ENT directive)
+        // Update its value but preserve flags
+        existing->value = program_counter_;
+        // Clear undefined flag since we now have a value
+        existing->flags &= ~SYM_UNDEFINED;
+        // Ensure it has relative flag for code labels
+        existing->flags |= SYM_RELATIVE;
+    } else {
+        // Define new label with current PC value
+        // Mark as relative (code label) by default
+        symbols_.define(line.label, program_counter_, SYM_RELATIVE, line.line_number);
+    }
 }
 
 void Assembler::process_directive_pass1(const SourceLine& line, Result& result) {
