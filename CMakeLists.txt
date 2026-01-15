@@ -16,6 +16,7 @@ add_library(edasm
   src/assembler/opcode_table.cpp
   src/assembler/expression.cpp
   src/assembler/listing.cpp
+  src/assembler/linker.cpp
   src/editor/editor.cpp
   src/files/prodos_file.cpp
 )
@@ -39,6 +40,14 @@ target_link_libraries(test_asm PRIVATE edasm)
 # Test assembler with listing generation
 add_executable(test_asm_listing src/test_asm_listing.cpp)
 target_link_libraries(test_asm_listing PRIVATE edasm)
+
+# Test linker program
+add_executable(test_linker src/test_linker.cpp)
+target_link_libraries(test_linker PRIVATE edasm)
+
+# Test assembler with REL output
+add_executable(test_asm_rel src/test_asm_rel.cpp)
+target_link_libraries(test_asm_rel PRIVATE edasm)
 
 enable_testing()
 add_subdirectory(tests)

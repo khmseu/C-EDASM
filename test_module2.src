@@ -1,0 +1,10 @@
+; Module 2 - Defines HELPER
+        REL             ; Relocatable mode
+        ORG $2000
+
+HELPER  ENT HELPER      ; Entry point
+        LDA #$02
+        STA $0400
+        RTS
+
+        END

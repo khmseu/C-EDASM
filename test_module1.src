@@ -1,0 +1,11 @@
+; Module 1 - Defines MAIN and calls external HELPER
+        REL             ; Relocatable mode
+        ORG $2000
+
+MAIN    ENT MAIN        ; Entry point
+        LDA #$01
+        JSR HELPER      ; Call external function
+        RTS
+
+        EXT HELPER      ; External reference
+        END
