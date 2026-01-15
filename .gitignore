@@ -5,3 +5,4 @@ Testing/
 *.swp
 *.tmp
 *.log
+third_party/.git/
