@@ -234,18 +234,21 @@ Full 6502 instruction set with all addressing modes:
 ### Phase 1: Core Infrastructure (Week 1-2)
 - [x] Project scaffolding with CMake
 - [x] ncurses Screen wrapper
-- [ ] Create `include/edasm/constants.hpp` from `COMMONEQUS.S`
-- [ ] Implement `App` main loop and command dispatcher
-- [ ] Basic command parser (tokenize on space/comma)
-- [ ] File type mapping in `ProDOSFile` class
+- [x] Create `include/edasm/constants.hpp` from `COMMONEQUS.S`
+- [x] Implement `App` main loop and command dispatcher
+- [x] Basic command parser (tokenize on space/comma)
+- [x] File type mapping in `ProDOSFile` class
 
 ### Phase 2: Editor Module (Week 3-4)
-- [ ] Implement text buffer as `std::vector<std::string>`
-- [ ] Line-based commands: LIST, INSERT, DELETE
-- [ ] File I/O: LOAD, SAVE
-- [ ] Search: FIND, CHANGE
-- [ ] Buffer manipulation: MOVE, COPY, JOIN, SPLIT
+- [x] Implement text buffer as `std::vector<std::string>`
+- [x] Line-based commands: LIST, INSERT, DELETE
+- [x] File I/O: LOAD, SAVE
+- [x] Search: FIND, CHANGE
+- [x] Buffer manipulation: MOVE, COPY, JOIN, SPLIT
+- [x] CATALOG command (directory listing)
 - [ ] Split buffer mode (two buffers)
+- [ ] INSERT mode (interactive line entry from EDITOR3.S)
+- [ ] RENAME, LOCK, UNLOCK, DELETE file commands (from EDITOR1.S)
 
 ### Phase 3: Assembler Pass 1 (Week 5-6)
 - [ ] Tokenizer (split labels, mnemonics, operands)
