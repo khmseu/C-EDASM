@@ -15,6 +15,7 @@ struct Symbol {
     uint16_t value{0};
     uint8_t flags{0};  // SYM_* flags from constants.hpp
     int line_defined{0};  // For error reporting
+    uint8_t symbol_number{0};  // Symbol number for REL file EXTERN refs
     
     bool is_undefined() const { return (flags & SYM_UNDEFINED) != 0; }
     bool is_relative() const { return (flags & SYM_RELATIVE) != 0; }
@@ -42,6 +43,9 @@ class SymbolTable {
     std::vector<Symbol> all_symbols() const;
     std::vector<Symbol> sorted_by_name() const;
     std::vector<Symbol> sorted_by_value() const;
+    
+    // Get all symbols as map (for iteration in REL generation)
+    const std::unordered_map<std::string, Symbol>& get_all() const { return table_; }
     
     size_t size() const { return table_.size(); }
 

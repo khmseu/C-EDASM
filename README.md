@@ -4,34 +4,47 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 ## Status
 
-**Phase: Core Complete, Editor Complete, Assembler Functional with REL Support**
+**Phase: Core Complete, Editor Complete, Assembler Complete, Linker Complete**
 
 - ✅ **Phase 1 Complete**: Core infrastructure with command dispatch, screen handling, and constants
 - ✅ **Phase 2 (95%)**: Editor module with all major commands including INSERT mode
 - ✅ **Phase 3 Complete**: Assembler tokenizer and symbol table
 - ✅ **Phase 4 Complete**: Assembler Pass 2 with expression evaluation and code generation
 - ✅ **Phase 5 (95%)**: Listing file generation, symbol table printing, and control directives
-- ✅ **Phase 6 (50%)**: EXEC command, REL file support, ENT/EXT directives
+- ✅ **Phase 6 (85%)**: EXEC command, REL file support, ENT/EXT directives, **Linker implemented!**
 - ✅ Comprehensive unit tests (100% passing)
 - ✅ EdAsm submodule initialized from [markpmlim/EdAsm](https://github.com/markpmlim/EdAsm)
 - ✅ EDASM.SRC (~19,000 lines of 6502 assembly) analyzed and documented
 - ✅ Porting plan with 14-week roadmap actively being followed
-- ⏳ **Phase 6 Next**: Linker implementation, Macro support
+- ⏳ **Phase 6 Next**: Macro support, Include files
+- ⏳ **Phase 7**: Testing & Polish
 
 ## Recent Additions (2026-01-15)
+
+### Linker (NEW!) ✨
+- **Complete 6-phase linker** for REL (relocatable) object files
+- Links multiple REL files into BIN, REL, or SYS output
+- **External reference resolution**: Resolves EXTERN symbols across modules
+- **Code relocation**: Adjusts addresses using RLD (Relocation Dictionary)
+- **Entry point management**: Handles ENT symbols from multiple modules
+- **Load map generation**: Optional detailed linking report
+- Successfully tested with multi-module programs
+
+### REL File Support ✨
+- **REL directive**: Enable relocatable code mode
+- **ENT/ENTRY directive**: Mark symbols as entry points
+- **EXT/EXTRN directive**: Declare external symbols
+- **RLD Generation**: Relocation Dictionary for address fixups
+- **ESD Generation**: External Symbol Dictionary for inter-module linking
+- Complete REL file format (code + RLD + ESD)
+- Symbol table displays proper flags (R=relative, E=entry, X=external)
+- Foundation for multi-module linking
 
 ### EXEC Command ✨
 - Execute commands from text files
 - Commands displayed with "+" prefix during execution
 - Automatic return to keyboard mode on EOF
 - Nested EXEC support (closes previous file before opening new)
-
-### REL File Support ✨
-- **REL directive**: Enable relocatable code mode
-- **ENT/ENTRY directive**: Mark symbols as entry points
-- **EXT/EXTRN directive**: Declare external symbols
-- Symbol table displays proper flags (R=relative, E=entry, X=external)
-- Foundation for multi-module linking
 
 ### Control Directives ✨
 - **LST directive**: Control listing output (ON/OFF)
@@ -130,8 +143,18 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - **REL support**: REL, ENT/ENTRY, EXT/EXTRN directives for relocatable code
 - **Control directives**: LST (listing control), MSB (high bit), SBTL (subtitle)
 - **Binary output**: Generate machine code with header
+- **REL file output**: Complete REL format with RLD/ESD for linking
 - **Listing generation**: Complete assembly listings with hex dump and symbol table
 - **Symbol table**: Multi-column format (2/4/6 columns), sort by name or value, flag display
+
+### Linker (Phase 6 - Complete!)
+- **Multi-module linking**: Link REL files into executable binaries
+- **Symbol resolution**: Resolve EXTERN references across modules
+- **Code relocation**: Apply RLD entries to relocate addresses
+- **Load address assignment**: Assign contiguous memory for modules
+- **Multiple output formats**: BIN (binary), REL (relocatable), SYS (system)
+- **Load map generation**: Detailed report of modules, symbols, and addresses
+- Successfully links multi-module 6502 programs
 
 ### System Features (Phase 1 - Complete)
 - Command-line interface with dispatch table
@@ -181,8 +204,8 @@ See [PORTING_PLAN.md](docs/PORTING_PLAN.md) for the complete 14-week implementat
 3. ✅ **Weeks 5-6**: Assembler Pass 1 (tokenizer, symbol table) - **COMPLETE**
 4. ✅ **Weeks 7-8**: Assembler Pass 2 (code generation, expressions) - **COMPLETE**
 5. ✅ **Weeks 9-10**: Directives & listing generation - **95% COMPLETE**
-6. ⏳ **Weeks 11-12**: Advanced features (REL format, linker, EXEC) - **50% COMPLETE**
-7. **Weeks 13-14**: Testing & polish
+6. ✅ **Weeks 11-12**: Advanced features (REL format, linker, EXEC) - **85% COMPLETE**
+7. **Weeks 13-14**: Testing & polish - **IN PROGRESS**
 
 ## Original EDASM Structure
 
