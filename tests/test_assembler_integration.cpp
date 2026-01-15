@@ -15,6 +15,15 @@ Assembler::Result assemble_source(const std::string& source) {
     return assembler.assemble(source, opts);
 }
 
+// Helper to print errors
+void print_errors(const Assembler::Result& result) {
+    if (!result.errors.empty()) {
+        for (const auto& err : result.errors) {
+            std::cerr << "Error: " << err << std::endl;
+        }
+    }
+}
+
 void test_basic_instructions() {
     std::cout << "Testing basic 6502 instructions..." << std::endl;
     
@@ -84,11 +93,7 @@ BASE    EQU $1000
     auto result = assemble_source(source);
     
     assert(result.success);
-    if (!result.errors.empty()) {
-        for (const auto& err : result.errors) {
-            std::cerr << "Error: " << err << std::endl;
-        }
-    }
+    print_errors(result);
     
     const auto& data = result.code;
     assert(data.size() >= 20); // Should have all instruction bytes
@@ -258,7 +263,7 @@ CONST   EQU $42
     assert(data[idx] == ('K' | 0x80)); idx++;
     
     // DS 5 - 5 zero bytes
-    for (int i = 0; i < 5; i++) {
+    for (int zero_byte_idx = 0; zero_byte_idx < 5; zero_byte_idx++) {
         assert(data[idx] == 0x00); idx++;
     }
     
