@@ -7,3 +7,4 @@ Testing/
 *.log
 third_party/EdAsm/.git/
 .cache/
+test_expr_eval*

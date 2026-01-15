@@ -246,9 +246,9 @@ Full 6502 instruction set with all addressing modes:
 - [x] Search: FIND, CHANGE
 - [x] Buffer manipulation: MOVE, COPY, JOIN, SPLIT
 - [x] CATALOG command (directory listing)
+- [x] RENAME, LOCK, UNLOCK, DELETE file commands (from EDITOR1.S)
 - [ ] Split buffer mode (two buffers)
 - [ ] INSERT mode (interactive line entry from EDITOR3.S)
-- [ ] RENAME, LOCK, UNLOCK, DELETE file commands (from EDITOR1.S)
 
 ### Phase 3: Assembler Pass 1 (Week 5-6)
 - [ ] Tokenizer (split labels, mnemonics, operands)
@@ -259,12 +259,16 @@ Full 6502 instruction set with all addressing modes:
 - [ ] Program counter tracking
 
 ### Phase 4: Assembler Pass 2 (Week 7-8)
-- [ ] Opcode table for 6502 instructions
-- [ ] Addressing mode detection
-- [ ] Expression evaluator (arithmetic, symbols, operators)
-- [ ] Code generation (emit bytes)
-- [ ] Binary output (BIN format with header)
-- [ ] Error reporting with line numbers
+- [x] Opcode table for 6502 instructions
+- [x] Addressing mode detection
+- [x] Expression evaluator (basic literals and symbols)
+- [x] **Expression operators (NEW!)**: +, -, *, /, &, |, ^ (XOR)
+- [x] **Byte extraction operators (NEW!)**: < (low byte), > (high byte)
+- [x] **Unary operators (NEW!)**: +, -
+- [x] Code generation (emit bytes)
+- [x] Binary output (basic with header)
+- [ ] Enhanced directive handling (DB/DW with multiple comma-separated values)
+- [ ] Error reporting improvements (line context, better messages)
 
 ### Phase 5: Directives & Listing (Week 9-10)
 - [ ] Directive handlers (ORG, EQU, DA, DB, ASC, DCI, DS, END)
