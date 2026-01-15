@@ -53,6 +53,9 @@ class App {
     void cmd_unlock(const std::vector<std::string>& args);
     void cmd_delete_file(const std::vector<std::string>& args);
     
+    // Command file execution (from EDASMINT.S LB9B0)
+    void cmd_exec(const std::vector<std::string>& args);
+    
     // Helper functions
     void display_prompt();
     std::string read_command_line();
@@ -70,6 +73,10 @@ class App {
     bool running_{true};
     std::string current_prefix_;  // Current directory (PREFIX command)
     std::string last_list_range_; // For Ctrl-R repeat
+    
+    // EXEC command state (from EDASMINT.S ExecMode, RdExeRN)
+    std::unique_ptr<std::ifstream> exec_file_;  // File handle for EXEC file
+    bool exec_mode_{false};  // True when reading commands from file
 };
 
 } // namespace edasm

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <string_view>
 #include <algorithm>
 #include <cctype>
@@ -51,6 +52,9 @@ App::App()
     commands_["LOCK"] = [this](const auto& args) { cmd_lock(args); };
     commands_["UNLOCK"] = [this](const auto& args) { cmd_unlock(args); };
     commands_["DELETEFILE"] = [this](const auto& args) { cmd_delete_file(args); };
+    
+    // Command file execution (from EDASMINT.S)
+    commands_["EXEC"] = [this](const auto& args) { cmd_exec(args); };
 }
 
 App::~App() {
@@ -98,7 +102,40 @@ void App::display_prompt() {
 }
 
 std::string App::read_command_line() {
-    // Read command line from user
+    // Read command line from user or EXEC file
+    // In EXEC mode, read from file (from EDASMINT.S LB2BD-LB2FA)
+    // Otherwise read from keyboard
+    
+    if (exec_mode_ && exec_file_ && exec_file_->is_open()) {
+        std::string line;
+        if (std::getline(*exec_file_, line)) {
+            // Display the command with "+" prefix (from EDASMINT.S LB2D4)
+            if (screen_ && screen_->is_initialized()) {
+                screen_->write_line(1, "+" + line);
+                screen_->refresh();
+            } else {
+                std::cout << "+" << line << std::endl;
+            }
+            return line;
+        } else {
+            // EOF or error - close file and exit EXEC mode
+            // (from EDASMINT.S LB2E5)
+            exec_file_->close();
+            exec_file_.reset();
+            exec_mode_ = false;
+            
+            if (screen_ && screen_->is_initialized()) {
+                screen_->write_line(1, "EXEC complete");
+                screen_->refresh();
+            } else {
+                std::cout << "EXEC complete" << std::endl;
+            }
+            
+            // Fall through to read from keyboard
+        }
+    }
+    
+    // Read from keyboard (standard input)
     // In actual implementation, this would use ncurses line input
     // For now, use simple console input
     std::string line;
@@ -538,6 +575,7 @@ void App::cmd_help(const std::vector<std::string>& args) {
     screen_->write_line(row++, "  LOCK <file>       - Make file read-only");
     screen_->write_line(row++, "  UNLOCK <file>     - Remove read-only");
     screen_->write_line(row++, "  DELETEFILE <file> - Delete a file");
+    screen_->write_line(row++, "  EXEC <file>       - Execute commands from file");
     screen_->write_line(row++, "  ASM [opts]        - Assemble buffer");
     screen_->write_line(row++, "  BYE/QUIT          - Exit EDASM");
     screen_->write_line(row++, "  HELP/?            - Show this help");
@@ -728,6 +766,58 @@ void App::cmd_delete_file(const std::vector<std::string>& args) {
         #endif
     } catch (const std::exception& e) {
         print_error(std::string("DELETEFILE error: ") + e.what());
+    }
+}
+
+void App::cmd_exec(const std::vector<std::string>& args) {
+    // EXEC <pathname> - Execute commands from a text file
+    // From EDASMINT.S LB9B0-LB9E9
+    // Opens a text file and reads commands line-by-line
+    // Commands are displayed with "+" prefix as they execute
+    
+    if (args.empty()) {
+        print_error("EXEC requires a filename");
+        return;
+    }
+    
+    std::string filename = args[0];
+    // Add default extension if none provided (TXT type from EDASMINT.S)
+    if (filename.find('.') == std::string::npos) {
+        filename += ".txt";
+    }
+    
+    // If already in EXEC mode, close the current file first
+    // (from EDASMINT.S LB9B4)
+    if (exec_mode_ && exec_file_) {
+        exec_file_->close();
+        exec_file_.reset();
+        exec_mode_ = false;
+    }
+    
+    // Try to open the file
+    try {
+        exec_file_ = std::make_unique<std::ifstream>(filename);
+        
+        if (!exec_file_->is_open() || !exec_file_->good()) {
+            print_error("Cannot open EXEC file: " + filename);
+            exec_file_.reset();
+            return;
+        }
+        
+        // Set EXEC mode flag (from EDASMINT.S LB9EA: LDA #$80 / STA ExecMode)
+        exec_mode_ = true;
+        
+        if (screen_ && screen_->is_initialized()) {
+            screen_->write_line(1, "Executing: " + filename);
+            screen_->refresh();
+        } else {
+            std::cout << "Executing: " << filename << std::endl;
+        }
+        
+    } catch (const std::exception& e) {
+        print_error(std::string("EXEC error: ") + e.what());
+        exec_file_.reset();
+        exec_mode_ = false;
     }
 }
 
