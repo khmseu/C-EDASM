@@ -191,8 +191,9 @@ bool Assembler::encode_instruction(const SourceLine& line, Result& result) {
     if (mode == AddressingMode::Relative) {
         // Branch instructions: calculate PC-relative offset
         uint16_t target = evaluate_operand(line.operand);
-        // PC after this instruction (PC + 2 since branch is 2 bytes)
-        uint16_t next_pc = program_counter_ + 1;  // PC is already incremented by opcode
+        // PC after this instruction (PC + 2 since branch is 2 bytes: opcode + offset)
+        // Note: program_counter_ has been incremented by 1 from emit_byte above
+        uint16_t next_pc = program_counter_ + 1;  // +1 for the offset byte we're about to emit
         int16_t offset = static_cast<int16_t>(target - next_pc);
         
         // Check range
@@ -266,7 +267,7 @@ uint16_t Assembler::evaluate_operand(const std::string& operand) {
     }
     
     // Try to parse as decimal
-    if (!op.empty() && std::isdigit(op[0])) {
+    if (!op.empty() && std::isdigit(static_cast<unsigned char>(op[0]))) {
         return static_cast<uint16_t>(std::stoul(op, nullptr, 10));
     }
     

@@ -1,6 +1,7 @@
 #include "edasm/editor/editor.hpp"
 
 #include <sstream>
+#include <iomanip>
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
@@ -148,9 +149,9 @@ void Editor::list_lines(const LineRange& range) {
     
     for (int line_num = start; line_num <= end && screen_row < max_screen_rows; ++line_num) {
         // Format with line number like EDASM: "0010  LDA #$00"
-        char line_num_str[16];
-        snprintf(line_num_str, sizeof(line_num_str), "%04d  ", line_num);
-        screen_.write_line(screen_row++, std::string(line_num_str) + lines_[line_num]);
+        std::stringstream line_str;
+        line_str << std::setw(4) << std::setfill('0') << line_num << "  " << lines_[line_num];
+        screen_.write_line(screen_row++, line_str.str());
     }
     
     screen_.refresh();

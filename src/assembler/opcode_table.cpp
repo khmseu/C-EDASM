@@ -4,13 +4,6 @@
 
 namespace edasm {
 
-// Hash function for AddressingMode enum to use in unordered_map
-struct AddressingModeHash {
-    std::size_t operator()(AddressingMode mode) const {
-        return static_cast<std::size_t>(mode);
-    }
-};
-
 OpcodeTable::OpcodeTable() {
     // Initialize all 6502 opcodes from 6502_INSTRUCTION_SET.md
     init_load_store();

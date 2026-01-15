@@ -102,7 +102,8 @@ void App::parse_and_execute_command(const std::string& cmd_line) {
                    [](unsigned char c) { return std::toupper(c); });
     
     // Check if it's a line number (go to line command)
-    if (std::all_of(cmd.begin(), cmd.end(), ::isdigit)) {
+    if (std::all_of(cmd.begin(), cmd.end(), 
+                    [](unsigned char c) { return ::isdigit(c); })) {
         // TODO: Implement go-to-line
         print_error("Go to line not yet implemented");
         return;
