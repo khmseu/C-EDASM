@@ -50,6 +50,39 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
         return result;
     }
     
+    // Generate REL file format if in REL mode
+    if (rel_mode_) {
+        // Build ESD entries from symbol table
+        for (const auto& [name, symbol] : symbols_.get_all()) {
+            // Add ENTRY symbols (defined in this module)
+            if (symbol.flags & SYM_ENTRY) {
+                uint8_t esd_flags = ESDEntry::FLAG_ENTRY;
+                if (symbol.flags & SYM_RELATIVE) {
+                    esd_flags |= ESDEntry::FLAG_RELATIVE;
+                }
+                rel_builder_.add_esd_entry(name, symbol.value, esd_flags);
+            }
+            
+            // Add EXTERNAL symbols (referenced but not defined)
+            if (symbol.flags & SYM_EXTERNAL) {
+                uint8_t esd_flags = ESDEntry::FLAG_EXTERNAL;
+                if (symbol.flags & SYM_UNDEFINED) {
+                    esd_flags |= ESDEntry::FLAG_UNDEFINED;
+                }
+                if (symbol.flags & SYM_RELATIVE) {
+                    esd_flags |= ESDEntry::FLAG_RELATIVE;
+                }
+                // Use the symbol number assigned during pass 2
+                uint8_t sym_num = symbol.symbol_number;
+                rel_builder_.add_esd_entry(name, symbol.value, esd_flags, sym_num);
+            }
+        }
+        
+        // Build complete REL file format
+        result.rel_file_data = rel_builder_.build(result.code);
+        result.is_rel_file = true;
+    }
+    
     // Generate listing if requested
     if (listing) {
         result.listing = listing->to_string();
@@ -68,6 +101,8 @@ void Assembler::reset() {
     file_type_ = 0x06;  // Default to BIN type
     listing_enabled_ = true;  // Default LST ON
     msb_on_ = false;  // Default MSB OFF
+    rel_builder_.reset();
+    next_extern_symbol_num_ = 0;
 }
 
 // =========================================
@@ -186,6 +221,10 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
             if (rel_mode_) {
                 sym->flags |= SYM_RELATIVE;
             }
+            // Assign symbol number if not already assigned
+            if (sym->symbol_number == 0) {
+                sym->symbol_number = ++next_extern_symbol_num_;
+            }
         } else {
             // Define as external with undefined value
             uint8_t flags = SYM_EXTERNAL | SYM_UNDEFINED;
@@ -193,6 +232,11 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
                 flags |= SYM_RELATIVE;
             }
             symbols_.define(line.operand, 0, flags, line.line_number);
+            // Assign symbol number to newly created external symbol
+            Symbol* new_sym = symbols_.lookup(line.operand);
+            if (new_sym) {
+                new_sym->symbol_number = ++next_extern_symbol_num_;
+            }
         }
     } else if (mnem == "LST") {
         // LST directive - control listing output (from ASM3.S L8ECA)
@@ -387,7 +431,7 @@ bool Assembler::encode_instruction(const SourceLine& line, Result& result, Listi
                mode == AddressingMode::Indirect) {
         // 2-byte operand (little-endian)
         uint16_t value = evaluate_operand(line.operand);
-        emit_word(value, result);
+        emit_word_with_relocation(value, line.operand, result);
     }
     // Implied and Accumulator modes have no operand bytes
     
@@ -403,6 +447,45 @@ void Assembler::emit_word(uint16_t word, Result& result) {
     // Little-endian
     emit_byte(static_cast<uint8_t>(word & 0xFF), result);
     emit_byte(static_cast<uint8_t>((word >> 8) & 0xFF), result);
+}
+
+// Emit word with relocation tracking for REL mode
+void Assembler::emit_word_with_relocation(uint16_t word, const std::string& operand, Result& result) {
+    if (rel_mode_) {
+        // Evaluate to get relocation info
+        ExpressionEvaluator eval(symbols_);
+        auto expr_result = eval.evaluate(operand, 2);
+        
+        if (expr_result.success) {
+            // Check if this address needs relocation
+            if (expr_result.is_relative || expr_result.is_external) {
+                // Add RLD entry at current code position
+                uint16_t rld_address = static_cast<uint16_t>(result.code.size());
+                uint8_t rld_flags = RLDEntry::TYPE_RELATIVE;
+                
+                uint8_t symbol_num = 0;
+                if (expr_result.is_external) {
+                    // Find the external symbol to get its symbol number
+                    // Extract symbol name from operand (simplified - may need better parsing)
+                    std::string sym_name = operand;
+                    // Remove addressing mode prefixes
+                    if (!sym_name.empty() && sym_name[0] == '#') sym_name = sym_name.substr(1);
+                    if (!sym_name.empty() && sym_name[0] == '<') sym_name = sym_name.substr(1);
+                    if (!sym_name.empty() && sym_name[0] == '>') sym_name = sym_name.substr(1);
+                    
+                    Symbol* sym = symbols_.lookup(sym_name);
+                    if (sym && sym->is_external()) {
+                        symbol_num = sym->symbol_number;
+                        rld_flags = RLDEntry::TYPE_EXTERNAL;
+                    }
+                }
+                
+                rel_builder_.add_rld_entry(rld_address, rld_flags, symbol_num);
+            }
+        }
+    }
+    
+    emit_word(word, result);
 }
 
 uint16_t Assembler::evaluate_operand(const std::string& operand) {

@@ -9,6 +9,7 @@
 #include "edasm/assembler/opcode_table.hpp"
 #include "edasm/assembler/expression.hpp"
 #include "edasm/assembler/listing.hpp"
+#include "edasm/assembler/rel_file.hpp"
 
 namespace edasm {
 
@@ -22,6 +23,10 @@ class Assembler {
         uint16_t org_address{0x0800};  // ORG address (default $0800)
         uint16_t code_length{0};
         std::string listing;  // Listing output (if enabled)
+        
+        // REL file format data (only populated if rel_mode is true)
+        bool is_rel_file{false};
+        std::vector<uint8_t> rel_file_data;  // Complete REL format with RLD/ESD
     };
     
     struct Options {
@@ -52,6 +57,8 @@ class Assembler {
     // REL file state (from ASM3.S RelCodeF)
     bool rel_mode_{false};  // True when REL directive is used
     uint8_t file_type_{0x06};  // Default BIN ($06), REL is $FE
+    RELFileBuilder rel_builder_;  // RLD/ESD builder for REL files
+    uint8_t next_extern_symbol_num_{0};  // Counter for external symbol numbers
     
     // Listing control (from ASM3.S ListingF, msbF)
     bool listing_enabled_{true};  // LST ON/OFF
@@ -74,6 +81,7 @@ class Assembler {
     // Code emission
     void emit_byte(uint8_t byte, Result& result);
     void emit_word(uint16_t word, Result& result);
+    void emit_word_with_relocation(uint16_t word, const std::string& operand, Result& result);
     
     // Helpers
     void add_error(Result& result, const std::string& msg, int line_num = -1);
