@@ -15,6 +15,7 @@ add_library(edasm
   src/assembler/tokenizer.cpp
   src/assembler/opcode_table.cpp
   src/assembler/expression.cpp
+  src/assembler/listing.cpp
   src/editor/editor.cpp
   src/files/prodos_file.cpp
 )
@@ -34,6 +35,10 @@ target_link_libraries(edasm_cli PRIVATE edasm)
 # Test assembler program
 add_executable(test_asm src/test_asm.cpp)
 target_link_libraries(test_asm PRIVATE edasm)
+
+# Test assembler with listing generation
+add_executable(test_asm_listing src/test_asm_listing.cpp)
+target_link_libraries(test_asm_listing PRIVATE edasm)
 
 enable_testing()
 add_subdirectory(tests)
