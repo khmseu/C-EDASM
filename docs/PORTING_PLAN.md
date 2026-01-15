@@ -277,12 +277,16 @@ Full 6502 instruction set with all addressing modes:
 - [x] **Code/data hex dump in listing** ✨ NEW!
 - [x] **Symbol table printing (Pass 3)** ✨ NEW!
 - [x] **Multi-column symbol table (2/4/6 columns)** ✨ NEW!
+- [x] **LST directive (listing control ON/OFF)** ✨ NEW!
+- [x] **MSB directive (high bit control for ASCII)** ✨ NEW!
+- [x] **SBTL directive (listing subtitle)** ✨ NEW!
 - [ ] BCD line number format option
 
 ### Phase 6: Advanced Features (Week 11-12)
-- [ ] REL file format support (relocatable object)
+- [x] **EXEC command (read commands from file)** ✨ NEW!
+- [x] **REL file format support (relocatable object)** ✨ NEW!
+- [x] **ENT/EXT directive support for REL files)** ✨ NEW!
 - [ ] Linker implementation (merge REL files)
-- [ ] EXEC command (read commands from file)
 - [ ] Macro support (if needed)
 - [ ] Include file support
 
