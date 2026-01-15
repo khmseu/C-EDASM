@@ -163,7 +163,11 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
         } else {
             // Symbol doesn't exist yet - define it with ENTRY flag
             // It will be resolved when the label is encountered
-            symbols_.define(line.operand, 0, SYM_ENTRY | SYM_UNDEFINED, line.line_number);
+            uint8_t flags = SYM_ENTRY | SYM_UNDEFINED;
+            if (rel_mode_) {
+                flags |= SYM_RELATIVE;
+            }
+            symbols_.define(line.operand, 0, flags, line.line_number);
         }
     } else if (mnem == "EXT" || mnem == "EXTRN") {
         // EXT/EXTRN directive - mark symbol as external (from ASM3.S L91A8)
@@ -218,7 +222,8 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
         }
     } else if (mnem == "SBTL") {
         // SBTL directive - subtitle for listing (from ASM3.S)
-        // Just a comment for the listing, no action needed in pass 1
+        // Note: Currently not stored; could be used by listing generator for section headers
+        // in future enhancement. For now, accepted but ignored in pass 1.
     } else if (mnem == "DS") {
         // Define Storage - advance PC (from ASM3.S L8C0E)
         auto expr_result = eval.evaluate(line.operand, 1);
@@ -469,8 +474,9 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
             return false;
         }
     } else if (mnem == "SBTL") {
-        // SBTL - subtitle, no code to emit
-        // Could be used by listing generator for section headers
+        // SBTL directive - subtitle for listing (from ASM3.S)
+        // Note: Currently not stored; could be used by listing generator for section headers
+        // in future enhancement. For now, accepted but ignored in pass 2.
     } else if (mnem == "DS") {
         // DS - define storage (from ASM3.S L8C0E)
         auto expr_result = eval.evaluate(line.operand, 2);
