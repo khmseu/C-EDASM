@@ -8,6 +8,7 @@
 #include "edasm/assembler/tokenizer.hpp"
 #include "edasm/assembler/opcode_table.hpp"
 #include "edasm/assembler/expression.hpp"
+#include "edasm/assembler/listing.hpp"
 
 namespace edasm {
 
@@ -20,10 +21,21 @@ class Assembler {
         std::vector<uint8_t> code;  // Generated machine code
         uint16_t org_address{0x0800};  // ORG address (default $0800)
         uint16_t code_length{0};
+        std::string listing;  // Listing output (if enabled)
+    };
+    
+    struct Options {
+        bool generate_listing = false;
+        bool list_symbols = true;
+        bool sort_symbols_by_value = false;
+        int symbol_columns = 4;  // 2, 4, or 6
     };
 
     Assembler();
-    Result assemble(const std::string &source);
+    Result assemble(const std::string &source) {
+        return assemble(source, Options{});
+    }
+    Result assemble(const std::string &source, const Options& opts);
     void reset();
     
     // Access to symbol table for debugging/listing
@@ -35,10 +47,11 @@ class Assembler {
     uint16_t program_counter_{0x0800};  // PC tracking
     uint16_t org_address_{0x0800};      // ORG directive value
     int current_line_{0};
+    Options options_;
     
     // Assembly passes (from ASM2.S and ASM3.S)
     bool pass1(const std::vector<SourceLine>& lines, Result& result);
-    bool pass2(const std::vector<SourceLine>& lines, Result& result);
+    bool pass2(const std::vector<SourceLine>& lines, Result& result, ListingGenerator* listing);
     
     // Pass 1: Build symbol table
     void process_label_pass1(const SourceLine& line);
@@ -46,9 +59,9 @@ class Assembler {
     void update_pc_pass1(const SourceLine& line);
     
     // Pass 2: Generate code
-    bool process_line_pass2(const SourceLine& line, Result& result);
-    bool process_directive_pass2(const SourceLine& line, Result& result);
-    bool encode_instruction(const SourceLine& line, Result& result);
+    bool process_line_pass2(const SourceLine& line, Result& result, ListingGenerator* listing);
+    bool process_directive_pass2(const SourceLine& line, Result& result, ListingGenerator* listing);
+    bool encode_instruction(const SourceLine& line, Result& result, ListingGenerator* listing);
     
     // Code emission
     void emit_byte(uint8_t byte, Result& result);

@@ -240,10 +240,58 @@ void App::cmd_list(const std::vector<std::string>& args) {
 }
 
 void App::cmd_insert(const std::vector<std::string>& args) {
-    // TODO: Implement INSERT mode
-    // This would enter an interactive mode where user types lines
-    // until an empty line is entered
-    print_error("INSERT not yet implemented");
+    // INSERT mode (from EDITOR1.S LD657)
+    // Reads lines interactively and inserts them at current position
+    // Empty line (just RETURN) exits INSERT mode
+    
+    int insert_line = editor_->line_count(); // Default: append at end
+    
+    // If line number specified, insert at that position
+    if (!args.empty()) {
+        try {
+            insert_line = std::stoi(args[0]);
+            if (insert_line < 0 || insert_line > editor_->line_count()) {
+                print_error("Invalid line number");
+                return;
+            }
+        } catch (...) {
+            print_error("Invalid line number");
+            return;
+        }
+    }
+    
+    screen_->clear();
+    screen_->write_line(0, "INSERT mode - Empty line to exit");
+    screen_->refresh();
+    
+    int current_line = insert_line;
+    bool inserting = true;
+    
+    while (inserting && running_) {
+        // Display line number prompt (like EDASM does)
+        std::string prompt = std::to_string(current_line) + ": ";
+        screen_->write_line(2, prompt);
+        screen_->refresh();
+        
+        // Read line from user
+        std::string line;
+        std::getline(std::cin, line);
+        
+        // Empty line exits INSERT mode
+        if (line.empty()) {
+            inserting = false;
+            break;
+        }
+        
+        // Insert the line at current position
+        editor_->insert_line(current_line, line);
+        current_line++;
+    }
+    
+    screen_->clear();
+    std::string msg = "Inserted " + std::to_string(current_line - insert_line) + " line(s)";
+    screen_->write_line(0, msg);
+    screen_->refresh();
 }
 
 void App::cmd_delete(const std::vector<std::string>& args) {
