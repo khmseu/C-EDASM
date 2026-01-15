@@ -137,14 +137,9 @@ bool Assembler::pass1(const std::vector<SourceLine>& lines, Result& result) {
         }
         
         // Check if this is a conditional directive (these are ALWAYS processed)
-        if (line.has_mnemonic() && is_directive(line.mnemonic)) {
-            const std::string& mnem = line.mnemonic;
-            if (mnem == "DO" || mnem == "ELSE" || mnem == "FIN" ||
-                mnem == "IFEQ" || mnem == "IFNE" || mnem == "IFGT" ||
-                mnem == "IFGE" || mnem == "IFLT" || mnem == "IFLE") {
-                process_conditional_directive_pass1(line, result);
-                continue;  // Don't process further
-            }
+        if (line.has_mnemonic() && is_conditional_directive(line.mnemonic)) {
+            process_conditional_directive_pass1(line, result);
+            continue;  // Don't process further
         }
         
         // Check if we should assemble this line (based on conditional state)
@@ -394,24 +389,19 @@ bool Assembler::pass2(const std::vector<SourceLine>& lines, Result& result, List
         
         // Check if this is a conditional directive (these are ALWAYS processed)
         bool is_cond_directive = false;
-        if (line.has_mnemonic() && is_directive(line.mnemonic)) {
-            const std::string& mnem = line.mnemonic;
-            if (mnem == "DO" || mnem == "ELSE" || mnem == "FIN" ||
-                mnem == "IFEQ" || mnem == "IFNE" || mnem == "IFGT" ||
-                mnem == "IFGE" || mnem == "IFLT" || mnem == "IFLE") {
-                is_cond_directive = true;
-                process_conditional_directive_pass2(line, result);
-                
-                // Add to listing if enabled (mark as unassembled if skipped)
-                if (listing) {
-                    ListingGenerator::ListingLine list_line;
-                    list_line.line_number = line.line_number;
-                    list_line.source_line = line.raw_line;
-                    list_line.has_address = false;
-                    listing->add_line(list_line);
-                }
-                continue;  // Don't process further
+        if (line.has_mnemonic() && is_conditional_directive(line.mnemonic)) {
+            is_cond_directive = true;
+            process_conditional_directive_pass2(line, result);
+            
+            // Add to listing if enabled (mark as unassembled if skipped)
+            if (listing) {
+                ListingGenerator::ListingLine list_line;
+                list_line.line_number = line.line_number;
+                list_line.source_line = line.raw_line;
+                list_line.has_address = false;
+                listing->add_line(list_line);
             }
+            continue;  // Don't process further
         }
         
         // Check if we should assemble this line (based on conditional state)
@@ -893,19 +883,47 @@ std::vector<SourceLine> Assembler::preprocess_includes(const std::vector<SourceL
 bool Assembler::should_assemble_line() const {
     // CondAsmF values:
     // $00 - assemble (condition true or normal assembly)
-    // $40 - skip (condition false, in skipped DO block)
-    // $80 - skip (after ASL in EDASM, looking for FIN/ELSE)
-    
+    // $40 - skip (condition false)
     // Simple rule: assemble if flag is $00, skip otherwise
     return cond_asm_flag_ == 0x00;
+}
+
+bool Assembler::is_conditional_directive(const std::string& mnemonic) const {
+    // List of conditional assembly directives (from ASM3.S)
+    static const std::vector<std::string> conditionals = {
+        "DO", "ELSE", "FIN", "IFEQ", "IFNE", "IFGT", "IFGE", "IFLT", "IFLE"
+    };
+    return std::find(conditionals.begin(), conditionals.end(), mnemonic) != conditionals.end();
 }
 
 bool Assembler::process_conditional_directive_pass1(const SourceLine& line, Result& result) {
     const std::string& mnem = line.mnemonic;
     
-    // DO and IFNE directives - marks beginning of conditional block (from ASM3.S L90B7)
+    // DO directive - marks beginning of conditional block (from ASM3.S L90B7)
     // Evaluates operand: if non-zero, assemble block; if zero, skip
-    if (mnem == "DO" || mnem == "IFNE") {
+    // Note: DO is functionally identical to IFNE
+    if (mnem == "DO") {
+        if (line.operand.empty()) {
+            add_error(result, "DO requires an expression", line.line_number);
+            return false;
+        }
+        
+        ExpressionEvaluator evaluator(symbols_);
+        auto eval_result = evaluator.evaluate(line.operand, program_counter_);
+        
+        if (!eval_result.success) {
+            add_error(result, "Invalid expression in DO: " + eval_result.error_message, line.line_number);
+            return false;
+        }
+        
+        // If value is zero, set false flag (0x40); otherwise keep 0x00
+        cond_asm_flag_ = (eval_result.value == 0) ? 0x40 : 0x00;
+        return true;
+    }
+    
+    // IFNE directive - if not equal to zero (from ASM3.S L90B7)
+    // Functionally identical to DO
+    if (mnem == "IFNE") {
         if (line.operand.empty()) {
             add_error(result, mnem + " requires an expression", line.line_number);
             return false;
@@ -1056,8 +1074,11 @@ bool Assembler::process_conditional_directive_pass1(const SourceLine& line, Resu
 }
 
 bool Assembler::process_conditional_directive_pass2(const SourceLine& line, Result& result) {
-    // In pass 2, we just need to update the flag state - no code generation
-    // The logic is the same as pass 1
+    // In pass 2, conditional directives work identically to pass 1:
+    // - They update the cond_asm_flag_ state
+    // - They don't generate any code
+    // - Expression evaluation gives same results (all symbols are defined by pass 2)
+    // So we can reuse the pass1 implementation
     return process_conditional_directive_pass1(line, result);
 }
 

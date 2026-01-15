@@ -69,7 +69,9 @@ class Assembler {
     std::string base_path_;  // Base path for resolving relative include paths
     
     // Conditional assembly state (from ASM3.S CondAsmF at $BA)
-    // Values: 0x00=assemble, 0x40=skip(false), 0x80=in ELSE, 0xC0=skip in ELSE
+    // Values: 0x00=assemble (normal or condition true), 0x40=skip (condition false)
+    // Note: Original EDASM also uses 0x80 via ASL for internal state, but we
+    // don't need it since we always process conditional directives immediately
     uint8_t cond_asm_flag_{0x00};  // CondAsmF
     
     // Assembly passes (from ASM2.S and ASM3.S)
@@ -105,6 +107,7 @@ class Assembler {
     
     // Conditional assembly (from ASM3.S L90B7-L9122)
     bool should_assemble_line() const;  // Check if current line should be assembled
+    bool is_conditional_directive(const std::string& mnemonic) const;  // Check if mnemonic is conditional
     bool process_conditional_directive_pass1(const SourceLine& line, Result& result);
     bool process_conditional_directive_pass2(const SourceLine& line, Result& result);
 };
