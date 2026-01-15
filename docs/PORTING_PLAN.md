@@ -248,15 +248,15 @@ Full 6502 instruction set with all addressing modes:
 - [x] CATALOG command (directory listing)
 - [x] RENAME, LOCK, UNLOCK, DELETE file commands (from EDITOR1.S)
 - [ ] Split buffer mode (two buffers)
-- [ ] INSERT mode (interactive line entry from EDITOR3.S)
+- [x] **INSERT mode (interactive line entry from EDITOR3.S)** ✨ NEW!
 
 ### Phase 3: Assembler Pass 1 (Week 5-6)
-- [ ] Tokenizer (split labels, mnemonics, operands)
-- [ ] Symbol table with hash map
-- [ ] Label definition tracking
-- [ ] Forward reference marking
-- [ ] Expression parser (no evaluation yet)
-- [ ] Program counter tracking
+- [x] Tokenizer (split labels, mnemonics, operands)
+- [x] Symbol table with hash map
+- [x] Label definition tracking
+- [x] Forward reference marking
+- [x] Expression parser (no evaluation yet)
+- [x] Program counter tracking
 
 ### Phase 4: Assembler Pass 2 (Week 7-8)
 - [x] Opcode table for 6502 instructions
@@ -267,15 +267,17 @@ Full 6502 instruction set with all addressing modes:
 - [x] **Unary operators (NEW!)**: +, -
 - [x] Code generation (emit bytes)
 - [x] Binary output (basic with header)
-- [ ] Enhanced directive handling (DB/DW with multiple comma-separated values)
-- [ ] Error reporting improvements (line context, better messages)
+- [x] Enhanced directive handling (DB/DW with multiple comma-separated values)
+- [x] Error reporting improvements (line context, better messages)
 
 ### Phase 5: Directives & Listing (Week 9-10)
-- [ ] Directive handlers (ORG, EQU, DA, DB, ASC, DCI, DS, END)
-- [ ] Listing file generation
-- [ ] Line number formatting (BCD or decimal)
-- [ ] Code/data hex dump in listing
-- [ ] Symbol table printing (Pass 3)
+- [x] Directive handlers (ORG, EQU, DA, DB, ASC, DCI, DS, END)
+- [x] **Listing file generation** ✨ NEW!
+- [x] **Line number formatting (decimal)** ✨ NEW!
+- [x] **Code/data hex dump in listing** ✨ NEW!
+- [x] **Symbol table printing (Pass 3)** ✨ NEW!
+- [x] **Multi-column symbol table (2/4/6 columns)** ✨ NEW!
+- [ ] BCD line number format option
 
 ### Phase 6: Advanced Features (Week 11-12)
 - [ ] REL file format support (relocatable object)
