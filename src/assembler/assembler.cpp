@@ -87,31 +87,67 @@ void Assembler::process_label_pass1(const SourceLine& line) {
 void Assembler::process_directive_pass1(const SourceLine& line, Result& result) {
     const auto& mnem = line.mnemonic;
     
+    // Create expression evaluator for this pass
+    ExpressionEvaluator eval(symbols_);
+    
     if (mnem == "ORG") {
-        // TODO: Parse ORG address from operand
-        // For now, just note that it's a directive
-    } else if (mnem == "EQU") {
-        // TODO: Parse EQU value and define symbol
-        // For now, just note that it's a directive
-    } else if (mnem == "DS") {
-        // Define Storage - advance PC
-        // TODO: Parse operand for count
-        // program_counter_ += count;
-    } else if (mnem == "DB" || mnem == "DFB") {
-        // Define Byte - estimate size
-        // TODO: Parse operand and count bytes
-        program_counter_ += 1;  // Minimum 1 byte
-    } else if (mnem == "DW" || mnem == "DA") {
-        // Define Word - estimate size
-        // TODO: Parse operand and count words
-        program_counter_ += 2;  // Minimum 2 bytes
-    } else if (mnem == "ASC" || mnem == "DCI") {
-        // ASCII string
-        // TODO: Parse string length
-        // For now, assume operand length
-        if (!line.operand.empty()) {
-            program_counter_ += static_cast<uint16_t>(line.operand.length());
+        // ORG directive - set program counter (from ASM3.S L8A82)
+        auto expr_result = eval.evaluate(line.operand, 1);
+        if (expr_result.success) {
+            org_address_ = expr_result.value;
+            program_counter_ = expr_result.value;
+        } else {
+            add_error(result, "ORG: " + expr_result.error_message, line.line_number);
         }
+    } else if (mnem == "EQU") {
+        // EQU directive - define symbol with value (from ASM3.S L8A31)
+        if (!line.has_label()) {
+            add_error(result, "EQU requires a label", line.line_number);
+            return;
+        }
+        auto expr_result = eval.evaluate(line.operand, 1);
+        if (expr_result.success) {
+            // Define symbol with evaluated value
+            uint8_t flags = 0;
+            if (expr_result.is_relative) flags |= SYM_RELATIVE;
+            if (expr_result.is_external) flags |= SYM_EXTERNAL;
+            symbols_.define(line.label, expr_result.value, flags, line.line_number);
+        } else {
+            add_error(result, "EQU: " + expr_result.error_message, line.line_number);
+        }
+    } else if (mnem == "DS") {
+        // Define Storage - advance PC (from ASM3.S L8C0E)
+        auto expr_result = eval.evaluate(line.operand, 1);
+        if (expr_result.success) {
+            program_counter_ += expr_result.value;
+        } else {
+            add_error(result, "DS: " + expr_result.error_message, line.line_number);
+        }
+    } else if (mnem == "DB" || mnem == "DFB") {
+        // Define Byte - count bytes in operand
+        // For now, simple count (TODO: handle expressions in operand list)
+        program_counter_ += 1;
+    } else if (mnem == "DW" || mnem == "DA") {
+        // Define Word - count words in operand
+        program_counter_ += 2;
+    } else if (mnem == "ASC" || mnem == "DCI") {
+        // ASCII string - estimate length
+        if (!line.operand.empty()) {
+            // Count characters in string (between quotes)
+            size_t len = 0;
+            bool in_string = false;
+            for (char c : line.operand) {
+                if (c == '"' || c == '\'') {
+                    in_string = !in_string;
+                } else if (in_string) {
+                    len++;
+                }
+            }
+            program_counter_ += static_cast<uint16_t>(len);
+        }
+    } else if (mnem == "END") {
+        // END directive - stop assembly
+        // Nothing to do in pass 1
     }
 }
 
@@ -282,8 +318,132 @@ uint16_t Assembler::evaluate_operand(const std::string& operand) {
 }
 
 bool Assembler::process_directive_pass2(const SourceLine& line, Result& result) {
-    // TODO: Implement directive processing
-    // For now, just skip
+    const auto& mnem = line.mnemonic;
+    ExpressionEvaluator eval(symbols_);
+    
+    if (mnem == "ORG") {
+        // ORG - set program counter (from ASM3.S L8A82)
+        auto expr_result = eval.evaluate(line.operand, 2);
+        if (expr_result.success) {
+            program_counter_ = expr_result.value;
+        } else {
+            add_error(result, "ORG: " + expr_result.error_message, line.line_number);
+            return false;
+        }
+    } else if (mnem == "EQU") {
+        // EQU - symbol definition, already handled in pass 1
+        // Nothing to do in pass 2
+    } else if (mnem == "DS") {
+        // DS - define storage (from ASM3.S L8C0E)
+        auto expr_result = eval.evaluate(line.operand, 2);
+        if (expr_result.success) {
+            // Emit zeros for defined storage
+            for (uint16_t i = 0; i < expr_result.value; ++i) {
+                emit_byte(0, result);
+            }
+        } else {
+            add_error(result, "DS: " + expr_result.error_message, line.line_number);
+            return false;
+        }
+    } else if (mnem == "DB" || mnem == "DFB") {
+        // DB/DFB - define byte(s)
+        // Parse operand list: $12,$34,$56 or LABEL,#$00
+        // Split on commas
+        std::string operand = line.operand;
+        size_t pos = 0;
+        while (pos < operand.length()) {
+            // Find next comma or end
+            size_t comma = operand.find(',', pos);
+            if (comma == std::string::npos) {
+                comma = operand.length();
+            }
+            
+            // Extract this value
+            std::string value_str = operand.substr(pos, comma - pos);
+            // Trim whitespace
+            value_str.erase(0, value_str.find_first_not_of(" \t"));
+            value_str.erase(value_str.find_last_not_of(" \t") + 1);
+            
+            if (!value_str.empty()) {
+                auto expr_result = eval.evaluate(value_str, 2);
+                if (expr_result.success) {
+                    emit_byte(static_cast<uint8_t>(expr_result.value & 0xFF), result);
+                } else {
+                    add_error(result, "DB: " + expr_result.error_message, line.line_number);
+                    return false;
+                }
+            }
+            
+            pos = comma + 1;
+        }
+    } else if (mnem == "DW" || mnem == "DA") {
+        // DW/DA - define word(s)
+        // Parse operand list similar to DB
+        std::string operand = line.operand;
+        size_t pos = 0;
+        while (pos < operand.length()) {
+            size_t comma = operand.find(',', pos);
+            if (comma == std::string::npos) {
+                comma = operand.length();
+            }
+            
+            std::string value_str = operand.substr(pos, comma - pos);
+            value_str.erase(0, value_str.find_first_not_of(" \t"));
+            value_str.erase(value_str.find_last_not_of(" \t") + 1);
+            
+            if (!value_str.empty()) {
+                auto expr_result = eval.evaluate(value_str, 2);
+                if (expr_result.success) {
+                    emit_word(expr_result.value, result);
+                } else {
+                    add_error(result, "DW: " + expr_result.error_message, line.line_number);
+                    return false;
+                }
+            }
+            
+            pos = comma + 1;
+        }
+    } else if (mnem == "ASC") {
+        // ASC - ASCII string (from ASM3.S)
+        // Extract string from quotes
+        std::string str = line.operand;
+        bool in_string = false;
+        for (char c : str) {
+            if (c == '"' || c == '\'') {
+                in_string = !in_string;
+            } else if (in_string) {
+                emit_byte(static_cast<uint8_t>(c), result);
+            }
+        }
+    } else if (mnem == "DCI") {
+        // DCI - DCI string (last char inverted/high bit set)
+        std::string str = line.operand;
+        std::vector<uint8_t> chars;
+        bool in_string = false;
+        for (char c : str) {
+            if (c == '"' || c == '\'') {
+                in_string = !in_string;
+            } else if (in_string) {
+                chars.push_back(static_cast<uint8_t>(c));
+            }
+        }
+        // Emit all but last with high bit clear
+        for (size_t i = 0; i < chars.size(); ++i) {
+            if (i == chars.size() - 1) {
+                // Last character - invert high bit
+                emit_byte(chars[i] ^ 0x80, result);
+            } else {
+                emit_byte(chars[i], result);
+            }
+        }
+    } else if (mnem == "END") {
+        // END - stop assembly
+        // Nothing to emit, but could set a flag to stop
+    } else {
+        add_error(result, "Unknown directive: " + mnem, line.line_number);
+        return false;
+    }
+    
     return true;
 }
 

@@ -327,9 +327,9 @@ AddressingMode AddressingModeDetector::detect(const std::string& operand, const 
     
     // Indirect modes - check for parentheses
     if (operand.find('(') != std::string::npos) {
-        if (operand.find(",X)") != std::string::npos) {
+        if (operand.find(",X)") != std::string::npos || operand.find(",x)") != std::string::npos) {
             return AddressingMode::IndexedIndirect;  // ($nn,X)
-        } else if (operand.find("),Y") != std::string::npos) {
+        } else if (operand.find("),Y") != std::string::npos || operand.find("),y") != std::string::npos) {
             return AddressingMode::IndirectIndexed;  // ($nn),Y
         } else {
             return AddressingMode::Indirect;  // ($nnnn) - JMP only
@@ -340,16 +340,37 @@ AddressingMode AddressingModeDetector::detect(const std::string& operand, const 
     bool has_x = operand.find(",X") != std::string::npos || operand.find(",x") != std::string::npos;
     bool has_y = operand.find(",Y") != std::string::npos || operand.find(",y") != std::string::npos;
     
-    // TODO: Determine if value fits in zero page
-    // For now, assume absolute addressing
-    // A proper implementation would evaluate the expression first
+    // Extract the address part (before ,X or ,Y if present)
+    std::string addr_part = operand;
+    size_t comma_pos = operand.find(',');
+    if (comma_pos != std::string::npos) {
+        addr_part = operand.substr(0, comma_pos);
+    }
     
+    // Trim whitespace
+    addr_part.erase(0, addr_part.find_first_not_of(" \t"));
+    addr_part.erase(addr_part.find_last_not_of(" \t") + 1);
+    
+    // Detect zero page vs absolute based on value
+    // Zero page is $00-$FF (values 0-255)
+    bool is_zero_page = false;
+    
+    // Check if it's a hex literal we can evaluate immediately
+    if (!addr_part.empty() && addr_part[0] == '$') {
+        std::string hex_str = addr_part.substr(1);
+        // If it's 1 or 2 hex digits, it's zero page
+        if (hex_str.length() <= 2) {
+            is_zero_page = true;
+        }
+    }
+    
+    // Return appropriate mode
     if (has_x) {
-        return AddressingMode::AbsoluteX;  // Could be ZeroPageX
+        return is_zero_page ? AddressingMode::ZeroPageX : AddressingMode::AbsoluteX;
     } else if (has_y) {
-        return AddressingMode::AbsoluteY;  // Could be ZeroPageY
+        return is_zero_page ? AddressingMode::ZeroPageY : AddressingMode::AbsoluteY;
     } else {
-        return AddressingMode::Absolute;   // Could be ZeroPage
+        return is_zero_page ? AddressingMode::ZeroPage : AddressingMode::Absolute;
     }
 }
 

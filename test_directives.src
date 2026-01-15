@@ -1,0 +1,18 @@
+; Test file with directives
+; Testing ORG, EQU, DB, DW, ASC, DS
+
+        ORG $1000
+
+CONST   EQU $42
+
+START   LDA #CONST      ; Load constant
+        STA $20         ; Store to zero page
+        
+MSG     ASC "HELLO"     ; ASCII string
+        
+DATA    DB $01,$02      ; Define bytes
+ADDR    DW $1234        ; Define word
+        
+BUFFER  DS 10           ; Reserve 10 bytes
+        
+        RTS             ; Return
