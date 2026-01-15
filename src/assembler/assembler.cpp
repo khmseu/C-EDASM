@@ -66,6 +66,8 @@ void Assembler::reset() {
     current_line_ = 0;
     rel_mode_ = false;
     file_type_ = 0x06;  // Default to BIN type
+    listing_enabled_ = true;  // Default LST ON
+    msb_on_ = false;  // Default MSB OFF
 }
 
 // =========================================
@@ -180,6 +182,35 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
             // Define as external with undefined value
             symbols_.define(line.operand, 0, SYM_EXTERNAL | SYM_UNDEFINED, line.line_number);
         }
+    } else if (mnem == "LST") {
+        // LST directive - control listing output (from ASM3.S L8ECA)
+        // LST ON or LST OFF
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            listing_enabled_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            listing_enabled_ = false;
+        } else {
+            add_error(result, "LST requires ON or OFF", line.line_number);
+        }
+    } else if (mnem == "MSB") {
+        // MSB directive - control high bit on ASCII chars (from ASM3.S L8E66)
+        // MSB ON or MSB OFF
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            msb_on_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            msb_on_ = false;
+        } else {
+            add_error(result, "MSB requires ON or OFF", line.line_number);
+        }
+    } else if (mnem == "SBTL") {
+        // SBTL directive - subtitle for listing (from ASM3.S)
+        // Just a comment for the listing, no action needed in pass 1
     } else if (mnem == "DS") {
         // Define Storage - advance PC (from ASM3.S L8C0E)
         auto expr_result = eval.evaluate(line.operand, 1);
@@ -401,6 +432,37 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
     } else if (mnem == "EXT" || mnem == "EXTRN") {
         // EXT/EXTRN - external reference, already handled in pass 1
         // Nothing to emit in pass 2
+    } else if (mnem == "LST") {
+        // LST - listing control (from ASM3.S L8ECA)
+        // LST ON or LST OFF
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            listing_enabled_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            listing_enabled_ = false;
+        } else {
+            add_error(result, "LST requires ON or OFF", line.line_number);
+            return false;
+        }
+    } else if (mnem == "MSB") {
+        // MSB - high bit control (from ASM3.S L8E66)
+        // MSB ON or MSB OFF - must be processed in pass2 for code generation
+        std::string operand = line.operand;
+        std::transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+        
+        if (operand.find("ON") != std::string::npos) {
+            msb_on_ = true;
+        } else if (operand.find("OFF") != std::string::npos) {
+            msb_on_ = false;
+        } else {
+            add_error(result, "MSB requires ON or OFF", line.line_number);
+            return false;
+        }
+    } else if (mnem == "SBTL") {
+        // SBTL - subtitle, no code to emit
+        // Could be used by listing generator for section headers
     } else if (mnem == "DS") {
         // DS - define storage (from ASM3.S L8C0E)
         auto expr_result = eval.evaluate(line.operand, 2);
@@ -474,13 +536,18 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
     } else if (mnem == "ASC") {
         // ASC - ASCII string (from ASM3.S)
         // Extract string from quotes
+        // If MSB ON, set high bit on all characters
         std::string str = line.operand;
         bool in_string = false;
         for (char c : str) {
             if (c == '"' || c == '\'') {
                 in_string = !in_string;
             } else if (in_string) {
-                emit_byte(static_cast<uint8_t>(c), result);
+                uint8_t byte = static_cast<uint8_t>(c);
+                if (msb_on_) {
+                    byte |= 0x80;  // Set high bit if MSB ON
+                }
+                emit_byte(byte, result);
             }
         }
     } else if (mnem == "DCI") {

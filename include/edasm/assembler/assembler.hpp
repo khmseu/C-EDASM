@@ -53,6 +53,10 @@ class Assembler {
     bool rel_mode_{false};  // True when REL directive is used
     uint8_t file_type_{0x06};  // Default BIN ($06), REL is $FE
     
+    // Listing control (from ASM3.S ListingF, msbF)
+    bool listing_enabled_{true};  // LST ON/OFF
+    bool msb_on_{false};  // MSB ON/OFF - sets high bit on chars
+    
     // Assembly passes (from ASM2.S and ASM3.S)
     bool pass1(const std::vector<SourceLine>& lines, Result& result);
     bool pass2(const std::vector<SourceLine>& lines, Result& result, ListingGenerator* listing);
