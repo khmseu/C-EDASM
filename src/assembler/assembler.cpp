@@ -166,11 +166,106 @@ bool Assembler::pass2(const std::vector<SourceLine>& lines, Result& result) {
 }
 
 bool Assembler::process_line_pass2(const SourceLine& line, Result& result) {
-    // TODO: Implement instruction encoding
-    // This is a placeholder - actual implementation needs opcode table
-    add_warning(result, "Instruction encoding not yet implemented: " + line.mnemonic, 
-                line.line_number);
+    // Encode instruction using opcode table
+    return encode_instruction(line, result);
+}
+
+bool Assembler::encode_instruction(const SourceLine& line, Result& result) {
+    // Detect addressing mode from operand
+    AddressingMode mode = AddressingModeDetector::detect(line.operand, line.mnemonic);
+    
+    // Look up opcode
+    const Opcode* opcode = opcodes_.lookup(line.mnemonic, mode);
+    if (!opcode) {
+        // Try alternate addressing modes if needed
+        // For example, if we detected Absolute but ZeroPage would work
+        add_error(result, "Invalid addressing mode for " + line.mnemonic + ": " + line.operand,
+                  line.line_number);
+        return false;
+    }
+    
+    // Emit opcode byte
+    emit_byte(opcode->code, result);
+    
+    // Emit operand bytes based on addressing mode
+    if (mode == AddressingMode::Immediate ||
+        mode == AddressingMode::ZeroPage ||
+        mode == AddressingMode::ZeroPageX ||
+        mode == AddressingMode::ZeroPageY ||
+        mode == AddressingMode::IndexedIndirect ||
+        mode == AddressingMode::IndirectIndexed ||
+        mode == AddressingMode::Relative) {
+        // 1-byte operand
+        uint16_t value = evaluate_operand(line.operand);
+        emit_byte(static_cast<uint8_t>(value & 0xFF), result);
+    } else if (mode == AddressingMode::Absolute ||
+               mode == AddressingMode::AbsoluteX ||
+               mode == AddressingMode::AbsoluteY ||
+               mode == AddressingMode::Indirect) {
+        // 2-byte operand (little-endian)
+        uint16_t value = evaluate_operand(line.operand);
+        emit_word(value, result);
+    }
+    // Implied and Accumulator modes have no operand bytes
+    
     return true;
+}
+
+void Assembler::emit_byte(uint8_t byte, Result& result) {
+    result.code.push_back(byte);
+    program_counter_++;
+}
+
+void Assembler::emit_word(uint16_t word, Result& result) {
+    // Little-endian
+    emit_byte(static_cast<uint8_t>(word & 0xFF), result);
+    emit_byte(static_cast<uint8_t>((word >> 8) & 0xFF), result);
+}
+
+uint16_t Assembler::evaluate_operand(const std::string& operand) {
+    // TODO: Implement full expression evaluator
+    // For now, handle simple cases
+    
+    std::string op = operand;
+    
+    // Strip addressing mode prefixes
+    if (!op.empty() && op[0] == '#') {
+        op = op.substr(1);  // Immediate mode
+    }
+    
+    // Strip indexing suffixes
+    size_t comma = op.find(',');
+    if (comma != std::string::npos) {
+        op = op.substr(0, comma);
+    }
+    
+    // Strip parentheses for indirect modes
+    if (!op.empty() && op[0] == '(') {
+        op = op.substr(1);
+        size_t close = op.find(')');
+        if (close != std::string::npos) {
+            op = op.substr(0, close);
+        }
+    }
+    
+    // Try to parse as hex ($nnnn)
+    if (!op.empty() && op[0] == '$') {
+        return static_cast<uint16_t>(std::stoul(op.substr(1), nullptr, 16));
+    }
+    
+    // Try to parse as decimal
+    if (!op.empty() && std::isdigit(op[0])) {
+        return static_cast<uint16_t>(std::stoul(op, nullptr, 10));
+    }
+    
+    // Must be a symbol - look it up
+    auto value = symbols_.get_value(op);
+    if (value.has_value()) {
+        return value.value();
+    }
+    
+    // Undefined symbol - return 0 (error will be reported elsewhere)
+    return 0;
 }
 
 bool Assembler::process_directive_pass2(const SourceLine& line, Result& result) {

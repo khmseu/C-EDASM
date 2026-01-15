@@ -13,6 +13,7 @@ add_library(edasm
   src/assembler/assembler.cpp
   src/assembler/symbol_table.cpp
   src/assembler/tokenizer.cpp
+  src/assembler/opcode_table.cpp
   src/editor/editor.cpp
   src/files/prodos_file.cpp
 )

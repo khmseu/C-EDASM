@@ -6,6 +6,7 @@
 
 #include "edasm/assembler/symbol_table.hpp"
 #include "edasm/assembler/tokenizer.hpp"
+#include "edasm/assembler/opcode_table.hpp"
 
 namespace edasm {
 
@@ -29,6 +30,7 @@ class Assembler {
 
   private:
     SymbolTable symbols_;
+    OpcodeTable opcodes_;
     uint16_t program_counter_{0x0800};  // PC tracking
     uint16_t org_address_{0x0800};      // ORG directive value
     int current_line_{0};
@@ -45,11 +47,17 @@ class Assembler {
     // Pass 2: Generate code
     bool process_line_pass2(const SourceLine& line, Result& result);
     bool process_directive_pass2(const SourceLine& line, Result& result);
+    bool encode_instruction(const SourceLine& line, Result& result);
+    
+    // Code emission
+    void emit_byte(uint8_t byte, Result& result);
+    void emit_word(uint16_t word, Result& result);
     
     // Helpers
     void add_error(Result& result, const std::string& msg, int line_num = -1);
     void add_warning(Result& result, const std::string& msg, int line_num = -1);
     bool is_directive(const std::string& mnemonic) const;
+    uint16_t evaluate_operand(const std::string& operand);
 };
 
 } // namespace edasm
