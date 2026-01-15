@@ -286,7 +286,14 @@ Full 6502 instruction set with all addressing modes:
 - [x] **EXEC command (read commands from file)** ✨ NEW!
 - [x] **REL file format support (relocatable object)** ✨ NEW!
 - [x] **ENT/EXT directive support for REL files)** ✨ NEW!
-- [ ] Linker implementation (merge REL files)
+- [x] **REL file generation (RLD + ESD records)** ✨ NEW!
+- [x] **Linker implementation (merge REL files)** ✨ NEW!
+  - [x] Parse REL file format
+  - [x] Build ENTRY and EXTERN symbol tables
+  - [x] Resolve external references
+  - [x] Relocate code segments
+  - [x] Generate BIN/REL/SYS output
+  - [x] Load map generation
 - [ ] Macro support (if needed)
 - [ ] Include file support
 
