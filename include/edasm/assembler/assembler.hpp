@@ -7,6 +7,7 @@
 #include "edasm/assembler/symbol_table.hpp"
 #include "edasm/assembler/tokenizer.hpp"
 #include "edasm/assembler/opcode_table.hpp"
+#include "edasm/assembler/expression.hpp"
 
 namespace edasm {
 
