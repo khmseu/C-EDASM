@@ -244,9 +244,11 @@ The following EDASM features are documented but not yet implemented in C++:
 
 ### 3. Chain Files (CHN)
 - **Original**: ASM3.S `CHN` directive
-- **Status**: ⭕ Not implemented
-- **Reason**: Less critical than core functionality
-- **Future**: Could support multi-file assembly
+- **Status**: ✅ Implemented (as of 2026-01-16)
+- **Implementation**: Preprocessed alongside INCLUDE directive in `preprocess_includes()`
+- **Behavior**: Closes current source file and continues assembly from chained file
+- **Validation**: Cannot be used within INCLUDE files (proper nesting check)
+- **Testing**: Comprehensive tests verify file switching and nesting prevention
 
 ### 4. Pause for Disk Swap (PAUSE)
 - **Original**: ASM3.S `PAUSE` directive

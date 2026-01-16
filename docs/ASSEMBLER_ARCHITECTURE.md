@@ -166,7 +166,7 @@ Use `std::unordered_map<std::string, Symbol>`:
 struct Symbol {
     std::string name;
     uint16_t value;
-    uint8_t flags;
+    uint8_t flags;  // Includes SYM_UNREFERENCED (bit 6)
     int line_defined;  // For error reporting
 };
 
@@ -175,11 +175,18 @@ class SymbolTable {
 public:
     void define(const std::string& name, uint16_t value, uint8_t flags);
     Symbol* lookup(const std::string& name);
+    void mark_referenced(const std::string& name);  // Clears unreferenced bit
     bool is_defined(const std::string& name) const;
     std::vector<Symbol> sorted_by_name() const;
     std::vector<Symbol> sorted_by_value() const;
 };
 ```
+
+**Unreferenced Bit Tracking** (implemented 2026-01-16):
+- Symbols are marked with `SYM_UNREFERENCED` flag (bit 6, $40) when created
+- The bit is cleared when symbols are used during Pass 2 evaluation
+- `mark_referenced()` explicitly clears the unreferenced bit
+- This matches EDASM.SRC behavior where FindSym clears bit 6 on lookup
 
 ## Expression Evaluation
 
@@ -324,6 +331,20 @@ High bit set on last character (Apple II convention).
 ```
         SBTL "Module Name"
 ```
+
+### File Management Directives
+
+**INCLUDE** - Include source file:
+```
+        INCLUDE "macros.src"
+```
+Inserts contents of specified file at this point in assembly.
+
+**CHN** - Chain to source file (implemented 2026-01-16):
+```
+        CHN "module2.src"
+```
+Closes current source file and continues assembly from chained file. Lines after CHN are not assembled. Cannot be used within INCLUDE files.
 
 ### Conditional Assembly
 
