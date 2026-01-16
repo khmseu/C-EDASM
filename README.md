@@ -118,12 +118,21 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 ## Documentation
 
-This project includes detailed documentation for the porting effort:
+This project includes comprehensive documentation for verification and implementation:
 
-- **[PORTING_PLAN.md](docs/PORTING_PLAN.md)** - Complete porting roadmap with module mapping, architecture analysis, and 14-week implementation plan
-- **[COMMAND_REFERENCE.md](docs/COMMAND_REFERENCE.md)** - Full command set documentation (file, editor, assembler, control commands)
-- **[ASSEMBLER_ARCHITECTURE.md](docs/ASSEMBLER_ARCHITECTURE.md)** - Two-pass assembler design, symbol table structure, expression evaluation
-- **[6502_INSTRUCTION_SET.md](docs/6502_INSTRUCTION_SET.md)** - Complete 6502 opcode reference with addressing modes and C++ implementation guidance
+### 📋 Verification Documentation (Start Here!)
+- **[VERIFICATION_QUICK_REF.md](docs/VERIFICATION_QUICK_REF.md)** - ⭐ One-page quick reference card for verification work
+- **[VERIFICATION_INDEX.md](docs/VERIFICATION_INDEX.md)** - Detailed feature-by-feature lookup table with cross-references
+- **[VERIFICATION_REPORT.md](docs/VERIFICATION_REPORT.md)** - Complete cross-reference between EDASM.SRC and C++ code
+- **[MISSING_FEATURES.md](docs/MISSING_FEATURES.md)** - Explicit documentation of what's NOT ported and why
+
+### 📚 Implementation Documentation
+- **[PORTING_PLAN.md](docs/PORTING_PLAN.md)** - 14-week implementation roadmap with module mapping and status
+- **[ASSEMBLER_ARCHITECTURE.md](docs/ASSEMBLER_ARCHITECTURE.md)** - Two-pass assembler design and symbol table structure
+- **[COMMAND_REFERENCE.md](docs/COMMAND_REFERENCE.md)** - Complete command set documentation
+- **[6502_INSTRUCTION_SET.md](docs/6502_INSTRUCTION_SET.md)** - Full 6502 opcode reference
+
+📖 **See [docs/README.md](docs/README.md) for complete documentation overview and workflow guide.**
 
 ## Build & Run
 
