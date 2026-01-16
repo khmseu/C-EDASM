@@ -626,7 +626,8 @@ uint16_t Assembler::evaluate_operand(const std::string& operand) {
     
     if (result.success) {
         // Mark any symbols in the operand as referenced
-        // Simple heuristic: look for alphanumeric sequences that might be symbols
+        // The expression evaluator uses const lookup, so we need to explicitly mark symbols
+        // Reference: EDASM.SRC clears unreferenced bit during Pass 2 symbol lookups
         std::string clean_operand = operand;
         // Remove addressing mode characters
         for (auto& c : clean_operand) {
@@ -640,10 +641,8 @@ uint16_t Assembler::evaluate_operand(const std::string& operand) {
         while (iss >> token) {
             // Check if this looks like a symbol (starts with letter/underscore)
             if (!token.empty() && (std::isalpha(token[0]) || token[0] == '_' || token[0] == '@')) {
-                // Check if it's in the symbol table and mark as referenced
-                if (symbols_.lookup(token) != nullptr) {
-                    symbols_.mark_referenced(token);
-                }
+                // Mark as referenced if it exists in symbol table
+                symbols_.mark_referenced(token);
             }
         }
         return result.value;
