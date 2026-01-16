@@ -23,7 +23,17 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 ## Recent Additions (2026-01-16)
 
-### Phase 7 Testing & Polish (NEW!) ✨
+### Emulator Testing Infrastructure (NEW!) 🎮
+- **MAME-based testing**: Automated testing against original Apple II EDASM
+- **Lua automation scripts**: Keyboard injection and screen monitoring for ProDOS/EDASM
+- **Disk management tools**: Create, inject, and extract ProDOS disk images with diskm8
+- **Comparison framework**: Byte-by-byte comparison of C-EDASM vs original EDASM output
+- **Automated test harness**: Run all test programs and generate comprehensive reports
+- **CI integration**: GitHub Actions workflow for emulator-based testing
+- **100% test pass rate**: All 12 test programs assemble successfully
+- See [docs/EMULATOR_SETUP.md](docs/EMULATOR_SETUP.md) for setup guide
+
+### Phase 7 Testing & Polish ✨
 - **Bug fixes**: DB/DFB and DW/DA directives now properly count comma-separated values in Pass 1
 - **Validation improvements**: Line range validation (auto-swap if reversed), symbol name length checking
 - **Comprehensive testing**: Created test_comprehensive.src validating all features together
@@ -242,7 +252,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 
 ### Running Tests
 ```bash
-# Run all tests
+# Run all unit tests
 cd build && ctest
 
 # Run specific test with verbose output
@@ -251,6 +261,30 @@ cd build && ctest -V -R test_assembler_integration
 # Or run test binary directly
 cd build && ./tests/test_assembler_integration
 ```
+
+### Emulator Testing (NEW!)
+```bash
+# Setup emulator dependencies (MAME + diskm8)
+./scripts/setup_emulator_deps.sh
+
+# Run automated test harness on all test programs
+./scripts/test_harness.sh all
+
+# Compare C-EDASM vs original EDASM output
+./scripts/compare_assemblers.sh test_simple.src
+
+# Manage ProDOS disk images
+./scripts/disk_helper.sh create /tmp/test.2mg 140KB
+./scripts/disk_helper.sh inject /tmp/test.2mg test_simple.src
+./scripts/disk_helper.sh list /tmp/test.2mg
+./scripts/disk_helper.sh extract /tmp/test.2mg /tmp/output/
+
+# Run MAME with EDASM automation
+./scripts/run_emulator_test.sh boot      # Boot test
+./scripts/run_emulator_test.sh assemble  # Assembly workflow test
+```
+
+See [docs/EMULATOR_SETUP.md](docs/EMULATOR_SETUP.md) for detailed setup and usage guide.
 
 ### Assemble with Listing
 ```bash

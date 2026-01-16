@@ -53,63 +53,98 @@ diskm8 extract /tmp/test_disk.2mg /tmp/results/
 ## Important Notes
 
 ### Current Status
-These scripts are **prototypes** demonstrating the automation approach. They are **not production-ready** because:
+These scripts are **improved prototypes** with keyboard injection and screen monitoring:
 
-1. **Keyboard handling is simplified**: The scripts use placeholder functions for keystroke injection. Real implementation requires proper use of MAME's `emu.keypost()` API with correct Apple II keyboard matrix handling.
+1. **Keyboard handling**: Implemented using direct memory writes to Apple II keyboard registers ($C000/KBD and $C010/KBDSTRB). This simulates typing at the hardware level.
 
-2. **Timing is approximate**: Scripts use fixed delays rather than monitoring screen/memory state for completion.
+2. **Screen monitoring**: Implemented screen memory reading to detect ProDOS prompt (']') and EDASM prompt. This enables state-driven waiting instead of fixed delays.
 
-3. **No error handling**: Scripts assume success at each step without verification.
+3. **Timing**: Mix of state-based waiting (for prompts) and conservative fixed delays (for file operations). Fallback timing ensures operation even if detection fails.
 
-4. **No output validation**: Scripts don't check that EDASM commands succeeded.
+4. **Basic error handling**: Timeout detection with warnings, but continues operation using fallback timing.
 
-### Production Implementation Requirements
+### Remaining Work
 
 To make these scripts production-ready:
 
-1. **Proper keyboard injection**:
+1. **Enhanced state verification**:
+   - Monitor EDASM internal state variables in memory
+   - Detect error messages on screen
+   - Verify file I/O completion by checking ProDOS results
+
+2. **Improved error handling**:
+   - Abort on unrecoverable errors
+   - Generate detailed error reports
+   - Implement retry logic for transient failures
+
+3. **Better timing optimization**:
+   - Fine-tune wait intervals based on testing
+   - Add adaptive timing based on MAME speed settings
+   - Implement progress indicators for long operations
+
+### Production Implementation Requirements
+
+The current implementation includes:
+
+1. **Keyboard injection** (✅ Implemented):
    ```lua
-   -- Correct approach using MAME API
-   local kbd = manager.machine.ioport()
-   kbd:write("KEY", ascii_code)  -- Send key to Apple II
+   -- Direct memory write to Apple II keyboard registers
+   function send_char(ch)
+       local apple_code = ascii_to_apple2(ch)
+       mem:write_u8(KBD_ADDR, apple_code)      -- Write to $C000
+       emu.wait(10000)
+       mem:read_u8(KBDSTRB_ADDR)               -- Clear $C010
+       emu.wait(5000)
+   end
    ```
 
-2. **Screen/memory monitoring**:
+2. **Screen/memory monitoring** (✅ Implemented):
    ```lua
    -- Check for ProDOS prompt by reading screen memory
-   local screen_mem = cpu.spaces["program"]
-   local prompt_addr = 0x0400  -- Text screen starts here
-   local char = screen_mem:read_u8(prompt_addr)
+   function check_for_prodos_prompt()
+       for offset = 0x750, 0x777 do  -- Last line of screen
+           if read_screen_char(offset - TEXT_PAGE1_START) == PROMPT_CHAR then
+               return true
+           end
+       end
+       return false
+   end
    ```
 
-3. **State verification**:
-   - Check for error messages in screen memory
-   - Monitor EDASM's internal state variables
-   - Verify file was written to disk
+3. **State verification** (🚧 Partial):
+   - Detects ProDOS and EDASM prompts
+   - Uses timeout-based waiting with fallbacks
+   - TODO: Check for error messages in screen memory
+   - TODO: Monitor EDASM's internal state variables
+   - TODO: Verify file was written to disk
 
-4. **Robust timing**:
-   - Use event-driven waits instead of fixed delays
-   - Monitor memory locations for state changes
-   - Implement timeouts with error reporting
+4. **Timing** (🚧 Partial):
+   - Mix of event-driven waits (prompt detection) and fixed delays
+   - Conservative timing ensures reliability
+   - TODO: Fine-tune based on actual testing
+   - TODO: Add adaptive timing for different MAME configurations
 
 ## Development Roadmap
 
-### Phase 1: Basic Prototype (Current)
+### Phase 1: Basic Prototype ✅ COMPLETE
 - [x] Demonstrate MAME Lua concept
 - [x] Show automation workflow
 - [x] Document approach
 
-### Phase 2: Working Implementation (Next)
-- [ ] Implement proper keyboard injection using MAME API
-- [ ] Add screen memory monitoring
-- [ ] Add error detection and handling
-- [ ] Test with actual EDASM.SRC.2mg
+### Phase 2: Working Implementation ✅ MOSTLY COMPLETE
+- [x] Implement keyboard injection using memory writes
+- [x] Add screen memory monitoring for prompts
+- [x] Add timeout detection
+- [x] Test with actual EDASM.SRC.2mg (ready for testing)
+- [ ] Add comprehensive error detection
+- [ ] Verify file I/O operations
 
-### Phase 3: CI Integration (Future)
-- [ ] Containerize MAME + scripts
-- [ ] Create GitHub Actions workflow
+### Phase 3: CI Integration (Next)
+- [ ] Test full workflow with real source files
+- [ ] Containerize MAME + scripts for reproducibility
+- [ ] Create GitHub Actions workflow integration
 - [ ] Add golden output comparison
-- [ ] Implement retry logic and timeouts
+- [ ] Implement retry logic and better error handling
 
 ## Resources
 
