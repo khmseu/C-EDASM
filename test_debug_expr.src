@@ -1,7 +1,0 @@
-        ORG $1000
-
-; Test with different sized hex numbers
-START   LDA #$FF+$01        ; Should be $100, but we get low byte $00
-        LDA #$10+$10        ; Should be $20
-        LDA #$1000+$10      ; Should be $1010
-        RTS
