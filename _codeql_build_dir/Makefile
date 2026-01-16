@@ -220,6 +220,19 @@ test_editor/fast:
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_editor.dir/build.make tests/CMakeFiles/test_editor.dir/build
 .PHONY : test_editor/fast
 
+#=============================================================================
+# Target rules for targets named test_assembler_integration
+
+# Build rule for target.
+test_assembler_integration: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_assembler_integration
+.PHONY : test_assembler_integration
+
+# fast build rule for target.
+test_assembler_integration/fast:
+	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_assembler_integration.dir/build.make tests/CMakeFiles/test_assembler_integration.dir/build
+.PHONY : test_assembler_integration/fast
+
 src/assembler/assembler.o: src/assembler/assembler.cpp.o
 .PHONY : src/assembler/assembler.o
 
@@ -618,6 +631,7 @@ help:
 	@echo "... test_asm"
 	@echo "... test_asm_listing"
 	@echo "... test_asm_rel"
+	@echo "... test_assembler_integration"
 	@echo "... test_editor"
 	@echo "... test_linker"
 	@echo "... src/assembler/assembler.o"

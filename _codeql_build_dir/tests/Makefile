@@ -143,6 +143,44 @@ test_editor/fast:
 	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_editor.dir/build.make tests/CMakeFiles/test_editor.dir/build
 .PHONY : test_editor/fast
 
+# Convenience name for target.
+tests/CMakeFiles/test_assembler_integration.dir/rule:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/test_assembler_integration.dir/rule
+.PHONY : tests/CMakeFiles/test_assembler_integration.dir/rule
+
+# Convenience name for target.
+test_assembler_integration: tests/CMakeFiles/test_assembler_integration.dir/rule
+.PHONY : test_assembler_integration
+
+# fast build rule for target.
+test_assembler_integration/fast:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_assembler_integration.dir/build.make tests/CMakeFiles/test_assembler_integration.dir/build
+.PHONY : test_assembler_integration/fast
+
+test_assembler_integration.o: test_assembler_integration.cpp.o
+.PHONY : test_assembler_integration.o
+
+# target to build an object file
+test_assembler_integration.cpp.o:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_assembler_integration.dir/build.make tests/CMakeFiles/test_assembler_integration.dir/test_assembler_integration.cpp.o
+.PHONY : test_assembler_integration.cpp.o
+
+test_assembler_integration.i: test_assembler_integration.cpp.i
+.PHONY : test_assembler_integration.i
+
+# target to preprocess a source file
+test_assembler_integration.cpp.i:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_assembler_integration.dir/build.make tests/CMakeFiles/test_assembler_integration.dir/test_assembler_integration.cpp.i
+.PHONY : test_assembler_integration.cpp.i
+
+test_assembler_integration.s: test_assembler_integration.cpp.s
+.PHONY : test_assembler_integration.s
+
+# target to generate assembly for a file
+test_assembler_integration.cpp.s:
+	cd /home/runner/work/C-EDASM/C-EDASM/_codeql_build_dir && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test_assembler_integration.dir/build.make tests/CMakeFiles/test_assembler_integration.dir/test_assembler_integration.cpp.s
+.PHONY : test_assembler_integration.cpp.s
+
 test_editor.o: test_editor.cpp.o
 .PHONY : test_editor.o
 
@@ -176,7 +214,11 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
+	@echo "... test_assembler_integration"
 	@echo "... test_editor"
+	@echo "... test_assembler_integration.o"
+	@echo "... test_assembler_integration.i"
+	@echo "... test_assembler_integration.s"
 	@echo "... test_editor.o"
 	@echo "... test_editor.i"
 	@echo "... test_editor.s"
