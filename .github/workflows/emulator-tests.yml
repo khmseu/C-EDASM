@@ -1,0 +1,73 @@
+name: Emulator Tests
+
+on:
+  push:
+    branches: [ main, develop, 'copilot/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  emulator-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libncurses5-dev golang-go
+    
+    - name: Install MAME
+      run: |
+        sudo apt-get install -y mame
+        mame -version
+    
+    - name: Install diskm8
+      run: |
+        go install github.com/paleotronic/diskm8/cmd/diskm8@latest
+        echo "$HOME/go/bin" >> $GITHUB_PATH
+    
+    - name: Verify diskm8 installation
+      run: |
+        export PATH="$PATH:$HOME/go/bin"
+        diskm8 version || echo "diskm8 installed (version command may not be available)"
+        ls -la $HOME/go/bin/diskm8
+    
+    - name: Configure C-EDASM
+      run: ./scripts/configure.sh
+    
+    - name: Build C-EDASM
+      run: ./scripts/build.sh
+    
+    - name: Run C-EDASM tests
+      run: |
+        cd build
+        ctest --output-on-failure
+    
+    - name: Test emulator setup (boot test)
+      run: |
+        export PATH="$PATH:$HOME/go/bin"
+        ./scripts/run_emulator_test.sh boot
+      continue-on-error: true  # Prototype phase - expected to fail
+    
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: emulator-test-logs
+        path: /tmp/edasm-emulator-test/
+        retention-days: 7
+    
+    - name: Summary
+      if: always()
+      run: |
+        echo "## Emulator Test Status" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "⚠️ Emulator tests are in prototype phase." >> $GITHUB_STEP_SUMMARY
+        echo "Keyboard injection is not yet implemented." >> $GITHUB_STEP_SUMMARY
+        echo "See \`tests/emulator/README.md\` for details." >> $GITHUB_STEP_SUMMARY
