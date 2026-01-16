@@ -187,6 +187,8 @@ To test these scripts:
 
 2. **Install Apple II ROM files** (REQUIRED):
    
+   **See [ROM_SETUP.md](ROM_SETUP.md) for comprehensive ROM installation guide.**
+   
    MAME requires Apple II ROM/BIOS files to run emulation. These files are copyrighted by Apple and cannot be distributed with this project.
    
    **Legal notice**: Apple II ROM files are copyrighted. You should only use ROM files dumped from hardware you own, or obtain them from sources that have proper authorization.
