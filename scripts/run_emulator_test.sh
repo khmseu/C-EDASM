@@ -63,6 +63,50 @@ check_submodule() {
     return 0
 }
 
+# Check for Apple II ROM files
+check_roms() {
+    echo ""
+    echo "Checking for Apple II ROM files..."
+    
+    # Try to verify ROMs with MAME
+    if mame -verifyroms "$MAME_SYSTEM" &>/dev/null; then
+        echo -e "${GREEN}✓ $MAME_SYSTEM ROM files available${NC}"
+        return 0
+    fi
+    
+    # Check common ROM paths
+    local rom_paths=(
+        "$HOME/mame/roms"
+        "/usr/local/share/games/mame/roms"
+        "/usr/share/games/mame/roms"
+    )
+    
+    local rom_files=(
+        "apple2e.zip"
+        "apple2gs.zip"
+    )
+    
+    for rom_path in "${rom_paths[@]}"; do
+        for rom_file in "${rom_files[@]}"; do
+            if [[ -f "$rom_path/$rom_file" ]]; then
+                echo -e "${YELLOW}⚠ ROM files found at $rom_path/$rom_file but MAME verification failed${NC}"
+                echo "  This may be due to incorrect ROM versions or incomplete ROM sets."
+                return 1
+            fi
+        done
+    done
+    
+    echo -e "${RED}✗ Apple II ROM files not found${NC}"
+    echo ""
+    echo "MAME requires Apple II ROM/BIOS files to run emulation."
+    echo "These files are copyrighted and cannot be distributed with this project."
+    echo ""
+    echo "To obtain ROM files, see: tests/emulator/README.md"
+    echo "Or run: ./scripts/setup_emulator_deps.sh (for detailed instructions)"
+    echo ""
+    return 1
+}
+
 # Create test work directory
 setup_work_dir() {
     echo ""
@@ -170,6 +214,7 @@ main() {
     # Pre-flight checks
     check_dependencies || exit 1
     check_submodule || exit 1
+    check_roms || exit 1
 
     # Setup
     setup_work_dir

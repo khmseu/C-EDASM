@@ -166,23 +166,70 @@ The current implementation includes:
 
 To test these scripts:
 
-1. Install MAME:
+1. Install MAME and diskm8 (automated):
+   ```bash
+   ./scripts/setup_emulator_deps.sh
+   ```
+   
+   Or manually:
    ```bash
    # On Ubuntu/Debian
    sudo apt-get install mame
    
-   # Or build from source
+   # Install diskm8 (requires Go >= 1.22.3)
+   go install github.com/paleotronic/diskm8@latest
+   
+   # Or build MAME from source
    git clone https://github.com/mamedev/mame.git
    cd mame
    make
    ```
 
-2. Initialize submodule (if not done):
+2. **Install Apple II ROM files** (REQUIRED):
+   
+   MAME requires Apple II ROM/BIOS files to run emulation. These files are copyrighted by Apple and cannot be distributed with this project.
+   
+   **Legal notice**: Apple II ROM files are copyrighted. You should only use ROM files dumped from hardware you own, or obtain them from sources that have proper authorization.
+   
+   **Where to obtain ROMs:**
+   - If you own Apple II hardware, dump the ROMs yourself
+   - ROM files may be available from preservation archives:
+     - Internet Archive (TOSEC collection): https://archive.org/details/Apple_2_TOSEC_2012_04_23
+     - apple2.org.za mirrors: https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/
+   
+   **Required ROM sets:**
+   - `apple2e.zip` - For Apple IIe emulation
+   - `apple2gs.zip` - For Apple IIGS emulation (default system)
+   
+   **Installation:**
+   ```bash
+   # Create ROM directory
+   mkdir -p $HOME/mame/roms
+   
+   # Copy ROM files (after obtaining them legally)
+   cp apple2e.zip $HOME/mame/roms/
+   cp apple2gs.zip $HOME/mame/roms/
+   
+   # Verify ROM installation
+   mame -verifyroms apple2e
+   mame -verifyroms apple2gs
+   ```
+
+3. Initialize submodule (if not done):
    ```bash
    git submodule update --init --recursive
    ```
 
-3. Run boot test:
+4. Run emulator tests:
+   ```bash
+   # Boot test (demonstrates MAME + ProDOS + EDASM)
+   ./scripts/run_emulator_test.sh boot
+   
+   # Assembly test (full workflow)
+   ./scripts/run_emulator_test.sh assemble
+   ```
+
+5. Manual test (advanced):
    ```bash
    cd /home/runner/work/C-EDASM/C-EDASM
    mame apple2e \
@@ -190,6 +237,35 @@ To test these scripts:
      -video none -sound none \
      -autoboot_script tests/emulator/boot_test.lua
    ```
+
+## Troubleshooting
+
+### "Required files are missing" error
+
+If you see an error like:
+```
+341s0632-2.bin NOT FOUND (tried in apple2gs)
+Fatal error: Required files are missing, the machine cannot be run.
+```
+
+This means Apple II ROM files are not installed. Follow step 2 above to install ROM files.
+
+### ROM verification fails
+
+If `mame -verifyroms` reports errors:
+- Ensure you have the complete ROM set
+- Check that ROM files are in ZIP format (not extracted)
+- Verify ROM files are not corrupted
+- Some ROM archives may have incorrect file names or versions
+
+### diskm8 not found
+
+If diskm8 is installed but not in PATH:
+```bash
+export PATH="$PATH:$HOME/go/bin"
+```
+
+Add this to your `~/.bashrc` or `~/.zshrc` to make it permanent.
 
 ## Contributing
 

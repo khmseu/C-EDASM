@@ -178,6 +178,56 @@ install_diskm8() {
     fi
 }
 
+# Check for Apple II ROM files
+check_apple2_roms() {
+    echo ""
+    echo "Checking for Apple II ROM files..."
+    
+    local rom_paths=(
+        "$HOME/mame/roms"
+        "/usr/local/share/games/mame/roms"
+        "/usr/share/games/mame/roms"
+    )
+    
+    local rom_found=0
+    for rom_path in "${rom_paths[@]}"; do
+        if [[ -f "$rom_path/apple2e.zip" ]] || [[ -f "$rom_path/apple2gs.zip" ]]; then
+            rom_found=1
+            echo "✓ Apple II ROM files found in: $rom_path"
+            break
+        fi
+    done
+    
+    if [[ $rom_found -eq 0 ]]; then
+        echo "⚠ Apple II ROM files not found"
+        echo ""
+        echo "IMPORTANT: MAME requires Apple II ROM/BIOS files to run emulation."
+        echo "These files are copyrighted and cannot be distributed with this project."
+        echo ""
+        echo "To obtain ROM files:"
+        echo "  1. If you own Apple II hardware, you can dump the ROMs yourself"
+        echo "  2. ROM files may be available from preservation archives (check legal status)"
+        echo "  3. Common sources include:"
+        echo "     - Internet Archive: https://archive.org/details/Apple_2_TOSEC_2012_04_23"
+        echo "     - apple2.org.za: https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/"
+        echo ""
+        echo "Required ROM sets:"
+        echo "  - apple2e.zip (for Apple IIe emulation)"
+        echo "  - apple2gs.zip (for Apple IIGS emulation)"
+        echo ""
+        echo "Install location: \$HOME/mame/roms/ (or other paths in MAME's rompath)"
+        echo ""
+        echo "After obtaining ROM files:"
+        echo "  mkdir -p \$HOME/mame/roms"
+        echo "  cp apple2e.zip \$HOME/mame/roms/"
+        echo "  mame -verifyroms apple2e  # Verify installation"
+        echo ""
+        return 1
+    fi
+    
+    return 0
+}
+
 # Main installation
 main() {
     install_mame
@@ -201,15 +251,29 @@ main() {
         echo "✗ diskm8: Not available (may need to add to PATH)"
     fi
 
+    # Check for ROM files
+    check_apple2_roms
+    ROM_OK=$?
+
     echo ""
 
     if [[ $MAME_OK -eq 0 && $DISKM8_OK -eq 0 ]]; then
-        echo "All dependencies installed successfully!"
+        echo "All software dependencies installed successfully!"
         echo ""
+        if [[ $ROM_OK -ne 0 ]]; then
+            echo "⚠ Apple II ROM files are still required for emulation."
+            echo "See the instructions above for obtaining ROM files."
+            echo ""
+        fi
         echo "Next steps:"
         echo "  1. Ensure EdAsm submodule is initialized: git submodule update --init --recursive"
-        echo "  2. Run emulator tests: ./scripts/run_emulator_test.sh"
-        echo "  3. See tests/emulator/README.md for more details"
+        if [[ $ROM_OK -eq 0 ]]; then
+            echo "  2. Run emulator tests: ./scripts/run_emulator_test.sh"
+        else
+            echo "  2. Install Apple II ROM files (see instructions above)"
+            echo "  3. Run emulator tests: ./scripts/run_emulator_test.sh"
+        fi
+        echo "  4. See tests/emulator/README.md for more details"
         return 0
     else
         echo "Some dependencies could not be installed."
