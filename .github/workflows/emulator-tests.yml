@@ -63,7 +63,7 @@ jobs:
               run: |
                   export PATH="$PATH:$HOME/go/bin"
                   ./scripts/run_emulator_test.sh boot
-              continue-on-error: true # Requires MAME hardware support in CI
+              continue-on-error: true # Expected to skip in CI without display/GPU
 
             - name: Upload test artifacts
               if: always()
@@ -78,6 +78,9 @@ jobs:
               run: |
                   echo "## Emulator Test Status" >> $GITHUB_STEP_SUMMARY
                   echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "ℹ️ Emulator tests require hardware GPU support." >> $GITHUB_STEP_SUMMARY
-                  echo "Tests may not run in standard CI runners without display." >> $GITHUB_STEP_SUMMARY
-                  echo "See \`tests/emulator/README.md\` for details." >> $GITHUB_STEP_SUMMARY
+                  echo "ℹ️ **Note**: Emulator tests require display/GPU hardware support." >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "MAME-based tests are expected to be skipped in standard GitHub Actions runners." >> $GITHUB_STEP_SUMMARY
+                  echo "Tests will run successfully on systems with proper graphics support." >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "For details and manual testing instructions, see \`tests/emulator/README.md\`." >> $GITHUB_STEP_SUMMARY
