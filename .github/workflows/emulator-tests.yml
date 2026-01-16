@@ -53,7 +53,7 @@ jobs:
       run: |
         export PATH="$PATH:$HOME/go/bin"
         ./scripts/run_emulator_test.sh boot
-      continue-on-error: true  # Prototype phase - expected to fail
+      continue-on-error: true  # Requires MAME hardware support in CI
     
     - name: Upload test artifacts
       if: always()
@@ -68,6 +68,6 @@ jobs:
       run: |
         echo "## Emulator Test Status" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "⚠️ Emulator tests are in prototype phase." >> $GITHUB_STEP_SUMMARY
-        echo "Keyboard injection is not yet implemented." >> $GITHUB_STEP_SUMMARY
+        echo "ℹ️ Emulator tests require hardware GPU support." >> $GITHUB_STEP_SUMMARY
+        echo "Tests may not run in standard CI runners without display." >> $GITHUB_STEP_SUMMARY
         echo "See \`tests/emulator/README.md\` for details." >> $GITHUB_STEP_SUMMARY

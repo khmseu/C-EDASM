@@ -23,7 +23,14 @@ function ascii_to_apple2(ch)
     if code >= 97 and code <= 122 then  -- lowercase a-z
         code = code - 32  -- Convert to uppercase
     end
-    return bit32.bor(code, 0x80)  -- Set high bit
+    -- Use bitwise OR to set high bit (Lua 5.3+ or bit32 library)
+    -- bit32 is available in MAME's Lua environment
+    if bit32 then
+        return bit32.bor(code, 0x80)
+    else
+        -- Fallback for Lua 5.3+ with native bitwise ops
+        return code | 0x80
+    end
 end
 
 -- Send a single character to Apple II keyboard

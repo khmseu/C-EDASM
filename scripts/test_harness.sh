@@ -48,6 +48,16 @@ find_test_files() {
     echo "${test_files[@]}"
 }
 
+# Portable file size function
+get_file_size() {
+    local file="$1"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        stat -f%z "$file" 2>/dev/null
+    else
+        stat -c%s "$file" 2>/dev/null
+    fi
+}
+
 # Test a single source file
 test_single_file() {
     local src_file="$1"
@@ -63,7 +73,7 @@ test_single_file() {
         echo -e "${GREEN}  ✓ Assembly successful${NC}"
         
         # Get size
-        local size=$(stat -f%z "$output_file" 2>/dev/null || stat -c%s "$output_file" 2>/dev/null)
+        local size=$(get_file_size "$output_file")
         echo "  Size: ${size} bytes"
         
         PASSED_TESTS+=("$basename")
@@ -171,7 +181,7 @@ save_detailed_report() {
             echo "  • $test" >> "$report_file"
             local bin_file="$TEST_RESULTS_DIR/${test}.bin"
             if [[ -f "$bin_file" ]]; then
-                local size=$(stat -f%z "$bin_file" 2>/dev/null || stat -c%s "$bin_file" 2>/dev/null)
+                local size=$(get_file_size "$bin_file")
                 echo "    Size: ${size} bytes" >> "$report_file"
             fi
         done
@@ -220,7 +230,7 @@ list_binaries() {
         echo "  (none)"
     else
         for bin_file in "${bin_files[@]}"; do
-            local size=$(stat -f%z "$bin_file" 2>/dev/null || stat -c%s "$bin_file" 2>/dev/null)
+            local size=$(get_file_size "$bin_file")
             local basename=$(basename "$bin_file")
             echo "  • $basename ($size bytes)"
         done

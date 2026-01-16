@@ -35,8 +35,9 @@ def assemble_and_save(src_file, output_file):
         return False
     
     # Parse hex dump
-    # Format: "800: a9 00 8d 00 04 ..."
-    hex_pattern = re.compile(r'^[0-9a-f]+:\s+((?:[0-9a-f]{2}\s*)+)', re.MULTILINE | re.IGNORECASE)
+    # Format: "800: a9 00 8d 00 04 ..." or "800: A9 00 8D 00 04 ..."
+    # Handle both lowercase and uppercase hex digits
+    hex_pattern = re.compile(r'^[0-9a-fA-F]+:\s+((?:[0-9a-fA-F]{2}\s*)+)', re.MULTILINE)
     matches = hex_pattern.findall(result.stdout)
     
     if not matches:

@@ -23,7 +23,13 @@ function ascii_to_apple2(ch)
     if code >= 97 and code <= 122 then  -- lowercase to uppercase
         code = code - 32
     end
-    return bit32.bor(code, 0x80)  -- Set high bit
+    -- Use bitwise OR to set high bit
+    if bit32 then
+        return bit32.bor(code, 0x80)
+    else
+        -- Fallback for Lua 5.3+ with native bitwise ops
+        return code | 0x80
+    end
 end
 
 -- Send a single character
@@ -78,8 +84,10 @@ end
 function check_for_edasm_prompt()
     -- EDASM shows "CMD:" or a '*' prompt
     -- Scan multiple lines for these patterns
+    -- Apple II text screen: 40 chars per line, 24 lines
+    -- Line offset = line * 0x28 (40 decimal, 0x28 hex)
     for line = 0, 23 do
-        local line_offset = line * 0x80
+        local line_offset = line * 0x28
         for col = 0, 39 do
             local ch = read_screen_char(line_offset + col)
             -- Check for '*' prompt (0xAA in Apple II)
