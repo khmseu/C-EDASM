@@ -47,8 +47,9 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
         lines.push_back(parsed);
     }
     
-    // Preprocess INCLUDE directives
+    // Preprocess INCLUDE and CHN directives
     // Reference: ASM3.S L9348-L93C0 - INCLUDE directive handler
+    // Reference: ASM3.S L928C-L92B9 - CHN directive handler
     lines = preprocess_includes(lines, result, 0);
     if (!result.errors.empty()) {
         result.success = false;
@@ -226,6 +227,13 @@ void Assembler::process_label_pass1(const SourceLine& line) {
 // Reference: ASM3.S - various directive handlers
 void Assembler::process_directive_pass1(const SourceLine& line, Result& result) {
     const auto& mnem = line.mnemonic;
+    
+    // CHN and INCLUDE are handled in preprocessing, should not reach here
+    if (mnem == "CHN" || mnem == "INCLUDE") {
+        // These should have been handled in preprocess_includes()
+        add_error(result, "Internal error: " + mnem + " not preprocessed", line.line_number);
+        return;
+    }
     
     // Create expression evaluator for this pass
     ExpressionEvaluator eval(symbols_);
@@ -649,6 +657,13 @@ bool Assembler::process_directive_pass2(const SourceLine& line, Result& result, 
     const auto& mnem = line.mnemonic;
     ExpressionEvaluator eval(symbols_);
     
+    // CHN and INCLUDE are handled in preprocessing, should not reach here
+    if (mnem == "CHN" || mnem == "INCLUDE") {
+        // These should have been handled in preprocess_includes()
+        add_error(result, "Internal error: " + mnem + " not preprocessed", line.line_number);
+        return false;
+    }
+    
     if (mnem == "ORG") {
         // ORG - set program counter (from ASM3.S L8A82)
         auto expr_result = eval.evaluate(line.operand, 2);
@@ -843,7 +858,7 @@ bool Assembler::is_directive(const std::string& mnemonic) const {
     // List of assembler directives (from ASM3.S)
     static const std::vector<std::string> directives = {
         "ORG", "EQU", "DA", "DW", "DB", "DFB", "ASC", "DCI", "DS",
-        "REL", "ENT", "EXT", "END", "LST", "SBTL", "MSB", "INCLUDE",
+        "REL", "ENT", "EXT", "END", "LST", "SBTL", "MSB", "INCLUDE", "CHN",
         "DO", "ELSE", "FIN", "IFEQ", "IFNE", "IFGT", "IFGE", "IFLT", "IFLE"
     };
     
@@ -938,8 +953,45 @@ std::vector<SourceLine> Assembler::preprocess_includes(const std::vector<SourceL
             // Add all lines from include file to expanded lines
             expanded.insert(expanded.end(), include_lines.begin(), include_lines.end());
             
+        } else if (line.has_mnemonic() && line.mnemonic == "CHN") {
+            // CHN directive - chain to another source file
+            // Reference: ASM3.S L928C - CHN directive handler
+            
+            // Validate that CHN is not called from within an include file
+            // Reference: ASM3.S L928C CPX #MacFile check
+            if (in_include_file_) {
+                add_error(result, "INVALID FROM INCLUDE", line.line_number);
+                continue;
+            }
+            
+            // Get the chain file path
+            std::string chain_path = resolve_include_path(line.operand);
+            
+            // Try to read the chain file
+            std::ifstream chain_file(chain_path);
+            if (!chain_file.is_open()) {
+                add_error(result, "CHN FILE NOT FOUND: " + chain_path, line.line_number);
+                continue;
+            }
+            
+            // Read all lines from chain file
+            // Reference: ASM3.S L929C - Opens new file and continues assembly
+            std::string chain_line;
+            int chain_line_num = 1;
+            
+            while (std::getline(chain_file, chain_line)) {
+                auto parsed = Tokenizer::parse_line(chain_line, chain_line_num++);
+                expanded.push_back(parsed);
+            }
+            
+            chain_file.close();
+            
+            // CHN means we switch files - don't process any more lines from current file
+            // All remaining lines after CHN are ignored (file is "closed")
+            break;
+            
         } else {
-            // Not an INCLUDE directive, just copy the line
+            // Not an INCLUDE or CHN directive, just copy the line
             expanded.push_back(line);
         }
     }

@@ -406,6 +406,79 @@ UNUSED  EQU $20
     std::cout << "  ✓ Symbol referenced bit test passed" << std::endl;
 }
 
+void test_chn_directive() {
+    std::cout << "Testing CHN directive..." << std::endl;
+    
+    // Create temporary chain file
+    std::ofstream chain_file("/tmp/test_chn_chain.src");
+    chain_file << "        ; This is the chained file\n";
+    chain_file << "        LDX #$10\n";
+    chain_file << "        RTS\n";
+    chain_file << "        END\n";
+    chain_file.close();
+    
+    // Test basic CHN functionality
+    std::string source = R"(
+        ORG $1000
+START   LDA #$01
+        CHN "/tmp/test_chn_chain.src"
+        BRK
+)";
+    
+    Assembler assembler;
+    Assembler::Options opts;
+    auto result = assembler.assemble(source, opts);
+    
+    assert(result.success);
+    print_errors(result);
+    
+    // Should have assembled: LDA #$01 (2 bytes), LDX #$10 (2 bytes), RTS (1 byte)
+    // BRK after CHN should NOT be assembled
+    const auto& data = result.code;
+    assert(data.size() == 5); // Should be 5 bytes total
+    
+    assert(data[0] == 0xA9); // LDA #
+    assert(data[1] == 0x01); // $01
+    assert(data[2] == 0xA2); // LDX #
+    assert(data[3] == 0x10); // $10
+    assert(data[4] == 0x60); // RTS
+    
+    std::cout << "  ✓ CHN directive test passed" << std::endl;
+}
+
+void test_chn_from_include_error() {
+    std::cout << "Testing CHN from INCLUDE error..." << std::endl;
+    
+    // Create a temporary include file with CHN (which should fail)
+    std::ofstream temp_include("/tmp/test_include_with_chn.src");
+    temp_include << "        LDA #$01\n";
+    temp_include << "        CHN \"test_chn_chain.src\"\n";
+    temp_include.close();
+    
+    std::string source = R"(
+        ORG $1000
+        INCLUDE "/tmp/test_include_with_chn.src"
+        END
+)";
+    
+    Assembler assembler;
+    Assembler::Options opts;
+    auto result = assembler.assemble(source, opts);
+    
+    // Should fail with error about CHN from INCLUDE
+    assert(!result.errors.empty());
+    bool found_error = false;
+    for (const auto& err : result.errors) {
+        if (err.find("INVALID FROM INCLUDE") != std::string::npos) {
+            found_error = true;
+            break;
+        }
+    }
+    assert(found_error);
+    
+    std::cout << "  ✓ CHN from INCLUDE error test passed" << std::endl;
+}
+
 int main() {
     std::cout << "Running Assembler Integration Tests\n";
     std::cout << "====================================\n\n";
@@ -419,6 +492,8 @@ int main() {
         test_conditional_assembly();
         test_msb_directive();
         test_symbol_referenced_bit();
+        test_chn_directive();
+        test_chn_from_include_error();
         
         std::cout << "\n====================================\n";
         std::cout << "All tests PASSED! ✓\n";
