@@ -372,6 +372,40 @@ void test_msb_directive() {
     std::cout << "  ✓ MSB directive test passed" << std::endl;
 }
 
+void test_symbol_referenced_bit() {
+    std::cout << "Testing symbol referenced bit tracking..." << std::endl;
+    
+    std::string source = R"(
+        ORG $1000
+USED    EQU $10
+UNUSED  EQU $20
+        LDA USED    ; USED gets referenced
+        END
+)";
+    
+    Assembler assembler;
+    Assembler::Options opts;
+    auto result = assembler.assemble(source, opts);
+    
+    assert(result.success);
+    print_errors(result);
+    
+    // Check symbol flags
+    const auto& symbols = assembler.symbols();
+    
+    // USED should be referenced (unreferenced bit cleared)
+    auto used_sym = symbols.lookup("USED");
+    assert(used_sym != nullptr);
+    assert(!used_sym->is_unreferenced());  // Should be referenced
+    
+    // UNUSED should still be unreferenced
+    auto unused_sym = symbols.lookup("UNUSED");
+    assert(unused_sym != nullptr);
+    assert(unused_sym->is_unreferenced());  // Should be unreferenced
+    
+    std::cout << "  ✓ Symbol referenced bit test passed" << std::endl;
+}
+
 int main() {
     std::cout << "Running Assembler Integration Tests\n";
     std::cout << "====================================\n\n";
@@ -384,6 +418,7 @@ int main() {
         test_all_directives();
         test_conditional_assembly();
         test_msb_directive();
+        test_symbol_referenced_bit();
         
         std::cout << "\n====================================\n";
         std::cout << "All tests PASSED! ✓\n";

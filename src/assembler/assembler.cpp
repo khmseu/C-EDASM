@@ -17,6 +17,7 @@
 #include <fstream>
 #include <algorithm>
 #include <memory>
+#include <cctype>
 
 namespace edasm {
 
@@ -616,6 +617,27 @@ uint16_t Assembler::evaluate_operand(const std::string& operand) {
     auto result = eval.evaluate(operand, 2);
     
     if (result.success) {
+        // Mark any symbols in the operand as referenced
+        // Simple heuristic: look for alphanumeric sequences that might be symbols
+        std::string clean_operand = operand;
+        // Remove addressing mode characters
+        for (auto& c : clean_operand) {
+            if (c == '#' || c == '(' || c == ')' || c == ',' || c == '<' || c == '>') {
+                c = ' ';
+            }
+        }
+        // Extract potential symbol names
+        std::istringstream iss(clean_operand);
+        std::string token;
+        while (iss >> token) {
+            // Check if this looks like a symbol (starts with letter/underscore)
+            if (!token.empty() && (std::isalpha(token[0]) || token[0] == '_' || token[0] == '@')) {
+                // Check if it's in the symbol table and mark as referenced
+                if (symbols_.lookup(token) != nullptr) {
+                    symbols_.mark_referenced(token);
+                }
+            }
+        }
         return result.value;
     }
     
