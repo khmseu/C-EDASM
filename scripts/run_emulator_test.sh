@@ -13,6 +13,7 @@ TEST_WORK_DIR="${TEST_WORK_DIR:-/tmp/edasm-emulator-test}"
 EDASM_DISK="$PROJECT_ROOT/third_party/EdAsm/EDASM_SRC.2mg"
 MAME_SYSTEM="${MAME_SYSTEM:-apple2gs}"
 MAME_SECONDS="${MAME_SECONDS:-30}"
+ROM_DIR="${MAME_ROM_PATH:-$HOME/mame/roms}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -31,13 +32,23 @@ check_dependencies() {
         missing+=("mame")
     fi
 
+    if ! command -v curl &>/dev/null; then
+        missing+=("curl")
+    fi
+
     if ! command -v diskm8 &>/dev/null; then
-        # Check if diskm8 is in GOPATH
-        GOPATH="${GOPATH:-$HOME/go}"
-        if [[ ! -f "$GOPATH/bin/diskm8" ]]; then
-            missing+=("diskm8")
+        # Try common Go install locations
+        local go_bin
+        go_bin="$(go env GOBIN 2>/dev/null || true)"
+        local go_path
+        go_path="$(go env GOPATH 2>/dev/null || echo "$HOME/go")"
+
+        if [[ -n $go_bin && -f "$go_bin/diskm8" ]]; then
+            export PATH="$PATH:$go_bin"
+        elif [[ -f "$go_path/bin/diskm8" ]]; then
+            export PATH="$PATH:$go_path/bin"
         else
-            export PATH="$PATH:$GOPATH/bin"
+            missing+=("diskm8")
         fi
     fi
 
@@ -67,25 +78,33 @@ check_submodule() {
 check_roms() {
     echo ""
     echo "Checking for Apple II ROM files..."
-    
+
     # Try to verify ROMs with MAME
-    if mame -verifyroms "$MAME_SYSTEM" &>/dev/null; then
+    if mame -rompath "$ROM_DIR" -verifyroms "$MAME_SYSTEM" &>/dev/null || mame -verifyroms "$MAME_SYSTEM" &>/dev/null; then
         echo -e "${GREEN}✓ $MAME_SYSTEM ROM files available${NC}"
         return 0
     fi
-    
+
+    echo "ROM verification failed; attempting to fetch emularity BIOS ROMs..."
+    fetch_roms || return 1
+
+    if mame -rompath "$ROM_DIR" -verifyroms "$MAME_SYSTEM" &>/dev/null || mame -verifyroms "$MAME_SYSTEM" &>/dev/null; then
+        echo -e "${GREEN}✓ $MAME_SYSTEM ROM files available after fetch${NC}"
+        return 0
+    fi
+
     # Check common ROM paths
     local rom_paths=(
         "$HOME/mame/roms"
         "/usr/local/share/games/mame/roms"
         "/usr/share/games/mame/roms"
     )
-    
+
     local rom_files=(
         "apple2e.zip"
         "apple2gs.zip"
     )
-    
+
     for rom_path in "${rom_paths[@]}"; do
         for rom_file in "${rom_files[@]}"; do
             if [[ -f "$rom_path/$rom_file" ]]; then
@@ -95,7 +114,7 @@ check_roms() {
             fi
         done
     done
-    
+
     echo -e "${RED}✗ Apple II ROM files not found${NC}"
     echo ""
     echo "MAME requires Apple II ROM/BIOS files to run emulation."
@@ -105,6 +124,25 @@ check_roms() {
     echo "Or run: ./scripts/setup_emulator_deps.sh (for detailed instructions)"
     echo ""
     return 1
+}
+
+# Download Apple II ROMs from emularity-bios if missing
+fetch_roms() {
+    mkdir -p "$ROM_DIR"
+    mkdir -p "$HOME/.mame"
+
+    local apple2e_zip="$ROM_DIR/apple2e.zip"
+    local apple2gs_zip="$ROM_DIR/apple2gs.zip"
+
+    if [[ ! -f $apple2e_zip ]]; then
+        curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o "$apple2e_zip"
+    fi
+
+    if [[ ! -f $apple2gs_zip ]]; then
+        curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2gs.zip -o "$apple2gs_zip"
+    fi
+
+    ln -s "$ROM_DIR" "$HOME/.mame/roms" 2>/dev/null || true
 }
 
 # Create test work directory
@@ -179,6 +217,7 @@ run_mame_test() {
         "${flop3_args[@]}" \
         "${flop4_args[@]}" \
         "${seconds_args[@]}" \
+        -rompath "$ROM_DIR" \
         -video none \
         -sound none \
         -nothrottle \
