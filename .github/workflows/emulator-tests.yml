@@ -39,7 +39,7 @@ jobs:
 
             - name: Install diskm8
               run: |
-                  go install github.com/paleotronic/diskm8/cmd/diskm8@latest
+                  go install github.com/paleotronic/diskm8@latest
                   echo "$HOME/go/bin" >> $GITHUB_PATH
 
             - name: Verify diskm8 installation
