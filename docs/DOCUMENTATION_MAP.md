@@ -119,6 +119,45 @@ HERE          LOOKUP                  DOCS            GUIDES
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  🖥️ DEBUGGER_EMULATOR_PLAN.md                                  │
+│  │  Emulator integration planning                              │
+│  │  • Goal: Host original EDASM for comparison tests           │
+│  │  • Emulator options overview                                │
+│  │  • Automation strategies                                    │
+│  │                                                              │
+│  └──→ Background on emulator requirements                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  📊 EMULATOR_INVESTIGATION_REPORT.md                            │
+│  │  Detailed emulator research findings                        │
+│  │  • MAME (recommended): Lua automation, high fidelity        │
+│  │  • GSPlus: Good debugger, moderate fidelity                 │
+│  │  • LinApple: Lightweight, quick setup                       │
+│  │  • Custom emulator: High effort, not recommended            │
+│  │  • ProDOS disk tools: DiskM8, AppleCommander                │
+│  │                                                              │
+│  └──→ Complete analysis with recommendations                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  🎯 EMULATOR_DECISION_MATRIX.md                                 │
+│  │  Quick reference for emulator selection                     │
+│  │  • Decision tree for choosing emulator                      │
+│  │  • Effort estimates for each option                         │
+│  │  • Risk assessment                                          │
+│  │  • Useful commands                                          │
+│  │                                                              │
+│  └──→ Quick lookup for emulator decisions                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
 
   NAVIGATION GUIDE
   ════════════════
@@ -134,6 +173,12 @@ HERE          LOOKUP                  DOCS            GUIDES
   2. ASSEMBLER_ARCHITECTURE.md  → Learn design
   3. COMMAND_REFERENCE.md       → Command syntax
   4. 6502_INSTRUCTION_SET.md    → Opcode reference
+  
+  For Emulator Integration:
+  1. DEBUGGER_EMULATOR_PLAN.md       → Initial requirements
+  2. EMULATOR_INVESTIGATION_REPORT.md → Detailed research
+  3. EMULATOR_DECISION_MATRIX.md     → Quick reference
+  4. tests/emulator/README.md        → Implementation guide
 
   For Users:
   1. README.md (main)           → Project overview
@@ -164,25 +209,36 @@ HERE          LOOKUP                  DOCS            GUIDES
   DOCUMENTATION METRICS
   ════════════════════
 
-  Total Documents:       9 (including this map)
-  Total Lines:          ~3,400
-  Total Size:           ~110 KB
-  Cross-References:     ~100+
-  Code Samples:         ~50+
-  Tables:               ~30+
+  Total Documents:       13 (including this map)
+  Total Lines:          ~5,000+
+  Total Size:           ~180 KB
+  Cross-References:     ~120+
+  Code Samples:         ~60+
+  Tables:               ~40+
 
 
   QUICK LINKS
   ═══════════
 
+  Verification:
   • Verification Quick Start: VERIFICATION_QUICK_REF.md
   • Feature Lookup:          VERIFICATION_INDEX.md
   • Complete Analysis:       VERIFICATION_REPORT.md
   • Missing Features:        MISSING_FEATURES.md
+  
+  Implementation:
   • Implementation Plan:     PORTING_PLAN.md
   • Assembler Design:        ASSEMBLER_ARCHITECTURE.md
   • Command Reference:       COMMAND_REFERENCE.md
   • Opcode Reference:        6502_INSTRUCTION_SET.md
+  
+  Testing & Emulation:
+  • Emulator Planning:       DEBUGGER_EMULATOR_PLAN.md
+  • Emulator Research:       EMULATOR_INVESTIGATION_REPORT.md
+  • Emulator Decision:       EMULATOR_DECISION_MATRIX.md
+  • Emulator Scripts:        tests/emulator/README.md
+  
+  General:
   • Documentation Guide:     README.md (this folder)
 
 
@@ -252,7 +308,7 @@ HERE          LOOKUP                  DOCS            GUIDES
   Date:           2026-01-16
   Version:        C-EDASM main branch
   EDASM.SRC:      Commit 05a19d8
-  Documentation:  Complete verification suite
+  Documentation:  Complete verification suite + emulator investigation
 
 
 ────────────────────────────────────────────────────────────────────
