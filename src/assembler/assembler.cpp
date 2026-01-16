@@ -1,3 +1,16 @@
+// Assembler implementation for EDASM 6502 assembler
+// 
+// This file implements the two-pass assembler logic from EDASM.SRC/ASM/
+// Primary source reference: ASM2.S (Pass 1 & 2 logic)
+// Secondary references: ASM3.S (directives, expression evaluation)
+//
+// Key entry points from ASM2.S:
+//   - ExecAsm ($7806): Main assembly coordinator -> Assembler::assemble()
+//   - DoPass1 ($7E1E): First pass - symbol table building -> pass1()
+//   - DoPass2 ($7F69): Second pass - code generation -> pass2()
+//   - InitASM ($7DC3): Initialize assembler state -> reset()
+//
+// ASM3.S directive handlers are implemented in process_directive_pass1/pass2()
 #include "edasm/assembler/assembler.hpp"
 
 #include <sstream>
@@ -9,12 +22,17 @@ namespace edasm {
 
 Assembler::Assembler() = default;
 
+// Main assembly entry point
+// Reference: ASM2.S ExecAsm ($7806) - Main assembly coordinator
+// The original saves zero page state, sets up vectors, calls InitASM,
+// then invokes DoPass1, DoPass2, and optionally DoPass3
 Assembler::Result Assembler::assemble(const std::string &source, const Options& opts) {
     Result result;
     result.org_address = org_address_;
     options_ = opts;
     
     // Reset state
+    // Reference: ASM2.S InitASM ($7DC3) - Initialize assembler state
     reset();
     
     // Tokenize source into lines
@@ -28,7 +46,8 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
         lines.push_back(parsed);
     }
     
-    // Preprocess INCLUDE directives (from ASM3.S L9348)
+    // Preprocess INCLUDE directives
+    // Reference: ASM3.S L9348-L93C0 - INCLUDE directive handler
     lines = preprocess_includes(lines, result, 0);
     if (!result.errors.empty()) {
         result.success = false;
@@ -36,11 +55,13 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
     }
     
     // Pass 1: Build symbol table, track PC
+    // Reference: ASM2.S DoPass1 ($7E1E) - First pass lexical analysis
     if (!pass1(lines, result)) {
         return result;
     }
     
     // Pass 2: Generate code
+    // Reference: ASM2.S DoPass2 ($7F69) - Second pass code generation
     ListingGenerator* listing = nullptr;
     std::unique_ptr<ListingGenerator> listing_ptr;
     
@@ -105,59 +126,71 @@ Assembler::Result Assembler::assemble(const std::string &source, const Options& 
     return result;
 }
 
+// Reset assembler state between assemblies
+// Reference: ASM2.S InitASM ($7DC3) - Initializes zero page variables,
+// resets flags (RelCodeF, ListingF, CondAsmF), clears symbol table
 void Assembler::reset() {
     symbols_.reset();
     program_counter_ = org_address_;
     current_line_ = 0;
-    rel_mode_ = false;
-    file_type_ = 0x06;  // Default to BIN type
-    listing_enabled_ = true;  // Default LST ON
-    msb_on_ = false;  // Default MSB OFF
-    in_include_file_ = false;  // Not in include file
+    rel_mode_ = false;  // RelCodeF in ASM3.S
+    file_type_ = 0x06;  // Default to BIN type (ASM3.S FileType $51)
+    listing_enabled_ = true;  // Default LST ON (ASM3.S ListingF $68)
+    msb_on_ = false;  // Default MSB OFF (ASM3.S msbF $69)
+    in_include_file_ = false;  // Not in include file (ASM3.S IDskSrcF)
     base_path_ = ".";  // Default to current directory
-    cond_asm_flag_ = 0x00;  // Default to normal assembly
+    cond_asm_flag_ = 0x00;  // Default to normal assembly (ASM3.S CondAsmF $BA)
     rel_builder_.reset();
     next_extern_symbol_num_ = 0;
 }
 
 // =========================================
 // Pass 1: Build Symbol Table
+// Reference: ASM2.S DoPass1 ($7E1E)
 // =========================================
 
+// Pass 1 implementation - builds symbol table and validates structure
+// Reference: ASM2.S DoPass1 ($7E1E) - Scans source, creates symbols, tracks PC
 bool Assembler::pass1(const std::vector<SourceLine>& lines, Result& result) {
     program_counter_ = org_address_;
-    cond_asm_flag_ = 0x00;  // Reset conditional assembly state
+    cond_asm_flag_ = 0x00;  // Reset conditional assembly state (ASM3.S CondAsmF)
     
     for (const auto& line : lines) {
         current_line_ = line.line_number;
         
         // Skip comment-only lines
+        // Reference: ASM2.S checks first char for ';' or '*'
         if (line.is_comment_only()) {
             continue;
         }
         
         // Check if this is a conditional directive (these are ALWAYS processed)
+        // Reference: ASM3.S L90B7-L9122 - DO/ELSE/FIN conditional directives
         if (line.has_mnemonic() && is_conditional_directive(line.mnemonic)) {
             process_conditional_directive_pass1(line, result);
             continue;  // Don't process further
         }
         
         // Check if we should assemble this line (based on conditional state)
+        // Reference: ASM3.S CondAsmF ($BA) - 0x00=assemble, 0x40=skip
         if (!should_assemble_line()) {
             // Skip this line - we're in a false conditional block
             continue;
         }
         
         // Process label definition
+        // Reference: ASM2.S GLabel ($8039) - Parse and add label to symbol table
         if (line.has_label()) {
             process_label_pass1(line);
         }
         
         // Process directives that affect PC or symbol table
+        // Reference: ASM3.S - various directive handlers (ORG, EQU, DS, etc.)
         if (line.has_mnemonic() && is_directive(line.mnemonic)) {
             process_directive_pass1(line, result);
         } else if (line.has_mnemonic()) {
             // Regular instruction - update PC
+            // Reference: ASM2.S GInstLen ($8458) - Calculate instruction size
             update_pc_pass1(line);
         }
     }
@@ -165,8 +198,12 @@ bool Assembler::pass1(const std::vector<SourceLine>& lines, Result& result) {
     return result.errors.empty();
 }
 
+// Process label definition in pass 1
+// Reference: ASM2.S GLabel ($8039), AddNode ($89A9)
+// Adds label to symbol table with current PC value
 void Assembler::process_label_pass1(const SourceLine& line) {
     // Check if label already exists (e.g., from ENT/EXT directive)
+    // Reference: ASM2.S FindSym ($88C3) - Hash table lookup
     Symbol* existing = symbols_.lookup(line.label);
     if (existing) {
         // Label was already defined (e.g., by ENT directive)
@@ -179,10 +216,13 @@ void Assembler::process_label_pass1(const SourceLine& line) {
     } else {
         // Define new label with current PC value
         // Mark as relative (code label) by default
+        // Reference: ASM2.S AddNode ($89A9) - Add to hash chain
         symbols_.define(line.label, program_counter_, SYM_RELATIVE, line.line_number);
     }
 }
 
+// Process directives that affect Pass 1 (ORG, EQU, DS, etc.)
+// Reference: ASM3.S - various directive handlers
 void Assembler::process_directive_pass1(const SourceLine& line, Result& result) {
     const auto& mnem = line.mnemonic;
     

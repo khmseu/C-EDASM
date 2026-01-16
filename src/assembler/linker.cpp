@@ -1,3 +1,22 @@
+// Linker implementation for EDASM REL file format
+//
+// This file implements the linker for relocatable object files from EDASM.SRC/LINKER/
+// Primary reference: LINKER files in EDASM.SRC/LINKER directory
+//
+// Key functions:
+//   - Links multiple REL files into a single executable
+//   - Resolves external symbol references
+//   - Applies relocation dictionary (RLD) entries
+//   - Handles entry point declarations
+//
+// REL file format (from EDASM documentation):
+//   - Header with module information
+//   - RLD (Relocation Dictionary): 16-bit addresses needing relocation
+//   - ESD (External Symbol Dictionary): ENTRY and EXTERNAL symbols
+//   - Object code with unresolved references
+//
+// Original EDASM linker written in 6502 assembly. This C++ port provides
+// equivalent functionality with modern data structures and error handling.
 #include "edasm/assembler/linker.hpp"
 
 #include <fstream>

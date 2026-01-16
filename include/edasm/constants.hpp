@@ -1,3 +1,18 @@
+// Constants and shared definitions for EDASM
+//
+// This file implements shared constants from EDASM.SRC/COMMONEQUS.S
+// Reference: COMMONEQUS.S - Shared equates across all EDASM modules
+//
+// Key definitions from COMMONEQUS.S:
+//   - ASCII control codes (CTRL-A through DEL)
+//   - ProDOS file types: TXT=$04, BIN=$06, REL=$FE, SYS=$FF
+//   - Zero page locations shared across modules
+//   - Apple II monitor entry points (adapted/removed for Linux)
+//   - Sweet16 register definitions (R0-R15) - not needed in C++
+//   - ProDOS MLI parameter offsets (adapted for Linux file I/O)
+//
+// This C++ header preserves the essential constants while removing
+// Apple II-specific hardware addresses that don't apply to Linux.
 #pragma once
 
 #include <cstdint>

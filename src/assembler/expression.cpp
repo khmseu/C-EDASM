@@ -1,3 +1,21 @@
+// Expression evaluation implementation for EDASM assembler
+//
+// This file implements expression parsing and evaluation from EDASM.SRC/ASM/
+// Primary reference: ASM2.S ($8561-$8829) and ASM3.S
+//
+// Key routines from ASM2.S:
+//   - EvalExpr ($8561): Main expression evaluator -> evaluate()
+//   - EvalTerm ($8724): Parse terms (constants, identifiers) -> parse_simple()
+//   - EvalSExpr ($8662): Evaluate sub-expressions -> parse_full()
+//   - ExprADD/SUB/MUL/DIV/AND/EOR/ORA ($8787-$8829): Binary operators
+//
+// Expression operators from ASM3.S Operators table ($8829):
+//   + (addition), - (subtraction), * (multiplication), / (division)
+//   & (bitwise AND), | (bitwise OR), ^ (bitwise XOR), ! (bitwise NOT)
+//   < (low byte), > (high byte)
+//
+// Original EDASM uses recursive descent parser with operator precedence.
+// This C++ implementation follows the same approach with modern syntax.
 #include "edasm/assembler/expression.hpp"
 #include "edasm/assembler/symbol_table.hpp"
 
@@ -9,6 +27,8 @@ namespace edasm {
 ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& symbols)
     : symbols_(symbols) {}
 
+// Main expression evaluation entry point
+// Reference: ASM2.S EvalExpr ($8561) - Recursive descent parser
 ExpressionResult ExpressionEvaluator::evaluate(const std::string& expr, int pass) {
     if (expr.empty()) {
         ExpressionResult result;
@@ -17,13 +37,14 @@ ExpressionResult ExpressionEvaluator::evaluate(const std::string& expr, int pass
         return result;
     }
     
-    // Check if expression contains operators (from ASM2.S EvalExpr line 2561+)
+    // Check if expression contains operators
+    // Reference: ASM2.S EvalExpr ($8561+) - Detects operator presence
     // Need to be careful with '-' which could be unary or binary
     // If it does, use full parser, otherwise use simple parser
     bool has_operators = false;
     size_t check_pos = 0;
     
-    // Skip leading # and whitespace
+    // Skip leading # and whitespace (immediate mode indicator)
     if (expr[check_pos] == '#') {
         check_pos++;
         while (check_pos < expr.length() && (expr[check_pos] == ' ' || expr[check_pos] == '\t')) {
@@ -32,6 +53,7 @@ ExpressionResult ExpressionEvaluator::evaluate(const std::string& expr, int pass
     }
     
     // Skip < or > byte operators - these require full parser
+    // Reference: ASM3.S - < and > extract low/high bytes
     if (check_pos < expr.length() && (expr[check_pos] == '<' || expr[check_pos] == '>')) {
         has_operators = true; // Byte operators need full parser
         check_pos++;
@@ -43,6 +65,7 @@ ExpressionResult ExpressionEvaluator::evaluate(const std::string& expr, int pass
     }
     
     // Now check for binary operators
+    // Reference: ASM3.S Operators table - +, -, *, /, &, |, ^, !, (, )
     for (size_t i = check_pos; i < expr.length(); i++) {
         char c = expr[i];
         if (c == '+' || c == '*' || c == '/' || 
@@ -65,6 +88,9 @@ ExpressionResult ExpressionEvaluator::evaluate(const std::string& expr, int pass
     }
 }
 
+// Simple expression parser for constants and single symbols
+// Reference: ASM2.S EvalTerm ($8724) - Parse simple terms
+// Handles: $hex, %binary, decimal, and symbol names
 ExpressionResult ExpressionEvaluator::parse_simple(const std::string& expr, int pass) {
     ExpressionResult result;
     

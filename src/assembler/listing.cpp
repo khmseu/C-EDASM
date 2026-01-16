@@ -1,3 +1,21 @@
+// Listing generation implementation for EDASM assembler
+//
+// This file implements assembly listing output from EDASM.SRC/ASM/
+// Primary reference: ASM1.S DoPass3 ($D000) - Symbol table printing and listing
+//
+// Key routines from ASM1.S:
+//   - DoPass3 ($D000): Entry point for Pass 3 - symbol table listing
+//   - DoSort ($D1D6): Shell sort for symbol table (alphabetic or by address)
+//   - PrSymTbl ($D2D8): Print sorted symbols with addresses and references
+//
+// Listing format features from original EDASM:
+//   - Line number, address, object code bytes, source line
+//   - Symbol table with 2, 4, or 6 column layout
+//   - Optional symbol sorting by name or address
+//   - Reference markers: * (undefined), ? (unreferenced), X (external), N (entry)
+//
+// This C++ implementation preserves EDASM listing format while using modern
+// I/O streams and string formatting.
 #include "edasm/assembler/listing.hpp"
 
 #include <iomanip>
