@@ -10,3 +10,4 @@
 - Conventions: maintain 1:1 parity with EDASM commands/directives; use third_party/EdAsm/EDASM.SRC for correctness; favor RAII/stdlib while keeping logic close to 6502 flow; keep module boundaries (UI in core/editor, assembly logic in assembler, file metadata in files).
 - File semantics: ProDOS type/extension tables live in src/files and include/edasm/files/prodos_file.hpp—preserve codes and mappings.
 - Workflow: out-of-source builds in build/; work from repo root; avoid adding media/external links; only add .vscode for tasks if needed; prefer small focused PRs and add/update tests in tests/ alongside code.
+- Tooling: GitHub CLI (gh) is available with authorization—use it to query runs, PRs, issues, and artifacts instead of manual API calls when possible.
