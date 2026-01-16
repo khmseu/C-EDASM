@@ -317,12 +317,21 @@ void Assembler::process_directive_pass1(const SourceLine& line, Result& result) 
             add_error(result, "DS: " + expr_result.error_message, line.line_number);
         }
     } else if (mnem == "DB" || mnem == "DFB") {
-        // Define Byte - count bytes in operand
-        // For now, simple count (TODO: handle expressions in operand list)
-        program_counter_ += 1;
+        // Define Byte - count bytes in operand (comma-separated list)
+        // Count commas to determine number of values
+        int count = 1;  // At least one value
+        for (char c : line.operand) {
+            if (c == ',') count++;
+        }
+        program_counter_ += count;
     } else if (mnem == "DW" || mnem == "DA") {
-        // Define Word - count words in operand
-        program_counter_ += 2;
+        // Define Word - count words in operand (comma-separated list)
+        // Count commas to determine number of values
+        int count = 1;  // At least one value
+        for (char c : line.operand) {
+            if (c == ',') count++;
+        }
+        program_counter_ += count * 2;
     } else if (mnem == "ASC" || mnem == "DCI") {
         // ASCII string - estimate length
         if (!line.operand.empty()) {

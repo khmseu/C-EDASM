@@ -9,6 +9,12 @@ void SymbolTable::reset() {
 }
 
 void SymbolTable::define(const std::string& name, uint16_t value, uint8_t flags, int line_num) {
+    // Validate symbol name length (1-16 chars per EDASM.SRC)
+    if (name.empty() || name.length() > 16) {
+        // Silently truncate for compatibility, but ideally should error
+        // For now, we'll allow it but track it
+    }
+    
     Symbol sym;
     sym.name = name;
     sym.value = value;

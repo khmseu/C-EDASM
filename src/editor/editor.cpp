@@ -40,6 +40,12 @@ LineRange LineRange::parse(const std::string& range_str) {
         }
     }
     
+    // Validate that start <= end if both are specified
+    if (range.start > 0 && range.end > 0 && range.start > range.end) {
+        // Swap them to be forgiving (like original EDASM)
+        std::swap(range.start, range.end);
+    }
+    
     return range;
 }
 
