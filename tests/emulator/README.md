@@ -195,6 +195,7 @@ To test these scripts:
    
    **Where to obtain ROMs:**
    - If you own Apple II hardware, dump the ROMs yourself
+   - **For testing**: Internet Archive Emularity BIOS - https://github.com/internetarchive/emularity-bios/blob/main/apple2e.zip
    - ROM files may be available from preservation archives:
      - Internet Archive (TOSEC collection): https://archive.org/details/Apple_2_TOSEC_2012_04_23
      - apple2.org.za mirrors: https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/
@@ -208,13 +209,13 @@ To test these scripts:
    # Create ROM directory
    mkdir -p $HOME/mame/roms
    
-   # Copy ROM files (after obtaining them legally)
-   cp apple2e.zip $HOME/mame/roms/
-   cp apple2gs.zip $HOME/mame/roms/
+   # Quick download for testing (using wget or curl)
+   wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -O $HOME/mame/roms/apple2e.zip
+   # OR
+   curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o $HOME/mame/roms/apple2e.zip
    
    # Verify ROM installation
    mame -verifyroms apple2e
-   mame -verifyroms apple2gs
    ```
 
 3. Initialize submodule (if not done):

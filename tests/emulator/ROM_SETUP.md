@@ -38,17 +38,24 @@ If you own Apple II hardware, you can dump the ROMs using:
 
 **Note**: These sources host ROM files for preservation purposes. Legal status varies by jurisdiction.
 
-1. **Internet Archive - TOSEC Collection**
+1. **Internet Archive - Emularity BIOS Collection** (Recommended for testing)
+   - Direct link to apple2e.zip: https://github.com/internetarchive/emularity-bios/blob/main/apple2e.zip
+   - Full repository: https://github.com/internetarchive/emularity-bios
+   - Contains ready-to-use ROM files for various systems
+   - Maintained by Internet Archive for emulation purposes
+   - **Quick download**: Click "Download" button on the file page
+
+2. **Internet Archive - TOSEC Collection**
    - URL: https://archive.org/details/Apple_2_TOSEC_2012_04_23
    - Contains comprehensive Apple II ROM collections
    - Download individual ROM sets or the complete archive
 
-2. **apple2.org.za Mirror**
+3. **apple2.org.za Mirror**
    - URL: https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/
    - Maintained archive of Apple II emulator resources
    - Individual ROM files available
 
-3. **GitHub Repositories**
+4. **Other GitHub Repositories**
    - Some GitHub repos host ROM files (search for "apple2e rom")
    - Example: apple2abandonware/abandonware
    - Use at your own discretion
@@ -63,11 +70,24 @@ Once you have obtained the ROM files legally:
 mkdir -p $HOME/mame/roms
 ```
 
-### Step 2: Copy ROM Files
+### Step 2: Download and Copy ROM Files
+
+#### Quick Method (Recommended for testing):
 
 ```bash
-# Copy the ROM zip file (do not extract)
+# Download apple2e.zip from Internet Archive Emularity BIOS
+cd /tmp
+wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip
+
+# Copy to MAME ROM directory (do not extract)
 cp apple2e.zip $HOME/mame/roms/
+```
+
+#### Alternative Method:
+
+```bash
+# If you obtained ROM files from another source
+cp /path/to/apple2e.zip $HOME/mame/roms/
 ```
 
 **Important**: ROM files must be in ZIP format. Do not extract the contents.
