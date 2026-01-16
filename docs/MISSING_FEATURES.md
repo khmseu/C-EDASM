@@ -151,12 +151,10 @@ These features exist in EDASM.SRC but are not yet ported to C++. They may be add
 ### Chain Files (CHN Directive)
 - **EDASM.SRC**: ASM3.S `CHN` directive
 - **Purpose**: Chain to another source file during assembly
-- **Why Not Yet**: Less critical than INCLUDE directive
-- **Current Status**: INCLUDE directive works (similar functionality)
-- **Future Priority**: Very Low (INCLUDE covers most use cases)
-- **Estimated Effort**: 1 week
-- **Status**: ⭕ Not implemented
-- **Cross-Reference**: ASM3.S CHN directive handler
+- **Current Status**: ✅ Implemented (as of 2026-01-16)
+- **Implementation**: Preprocessed alongside INCLUDE; closes current file and continues from chained file
+- **Restrictions**: Cannot be used within INCLUDE files (nesting error)
+- **Cross-Reference**: ASM3.S CHN directive handler, src/assembler/assembler.cpp preprocess_includes()
 
 ---
 
@@ -318,10 +316,11 @@ Known differences in behavior between EDASM.SRC and C-EDASM.
 | Category | Count | Status |
 |----------|-------|--------|
 | Hardware-specific (Not applicable) | 8 | ❌ Won't port |
-| Not yet implemented | 5 | ⭕ Future work |
+| Not yet implemented | 4 | ⭕ Future work |
 | Intentional design changes | 8 | ✅ Improved |
 | Enhanced in C++ | 5 | ✅ Better than original |
 | Edge case differences | 5 | ⚠️ Documented |
+| **Recently Implemented** | **1** | **✅ CHN directive** |
 | **Total** | **31** | |
 
 ### Implementation Priority
@@ -331,7 +330,8 @@ Known differences in behavior between EDASM.SRC and C-EDASM.
 | **High** (should add soon) | 0 | None - core features complete |
 | **Medium** (nice to have) | 1 | BUGBYTER debugger |
 | **Low** (optional) | 2 | Split buffer mode, macros |
-| **Very Low** (cosmetic) | 2 | BCD line numbers, CHN directive |
+| **Very Low** (cosmetic) | 1 | BCD line numbers |
+| **Recently Completed** | 1 | CHN directive |
 | **Won't Add** (not applicable) | 8 | Hardware-specific features |
 | **Already Better** (C++ advantage) | 13 | Memory management, error handling, etc. |
 

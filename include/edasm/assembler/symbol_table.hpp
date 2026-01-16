@@ -22,6 +22,7 @@ struct Symbol {
     bool is_external() const { return (flags & SYM_EXTERNAL) != 0; }
     bool is_entry() const { return (flags & SYM_ENTRY) != 0; }
     bool is_forward_ref() const { return (flags & SYM_FORWARD_REF) != 0; }
+    bool is_unreferenced() const { return (flags & SYM_UNREFERENCED) != 0; }
 };
 
 class SymbolTable {
@@ -32,6 +33,7 @@ class SymbolTable {
     void define(const std::string& name, uint16_t value, uint8_t flags = 0, int line_num = 0);
     void update_value(const std::string& name, uint16_t value);
     void update_flags(const std::string& name, uint8_t flags);
+    void mark_referenced(const std::string& name);
     
     Symbol* lookup(const std::string& name);
     const Symbol* lookup(const std::string& name) const;

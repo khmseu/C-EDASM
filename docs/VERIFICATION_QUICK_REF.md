@@ -261,7 +261,7 @@ BUILD_TYPE=Debug ./scripts/configure.sh && ./scripts/build.sh
 | Flag | EDASM.SRC Bit | C++ Flag | Meaning |
 |------|---------------|----------|---------|
 | Undefined | bit 7 ($80) | `FLAG_UNDEFINED` | Symbol not defined |
-| Unreferenced | bit 6 ($40) | N/A | Not tracked in C++ |
+| Unreferenced | bit 6 ($40) | `SYM_UNREFERENCED` | Tracked in C++ (as of 2026-01-16) |
 | Relative | bit 5 ($20) | `FLAG_RELATIVE` | REL mode symbol |
 | External | bit 4 ($10) | `FLAG_EXTERNAL` | EXT declaration |
 | Entry | bit 3 ($08) | `FLAG_ENTRY` | ENT declaration |

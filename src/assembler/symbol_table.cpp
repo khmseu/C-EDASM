@@ -39,7 +39,9 @@ void SymbolTable::define(const std::string& name, uint16_t value, uint8_t flags,
     Symbol sym;
     sym.name = name;
     sym.value = value;
-    sym.flags = flags;
+    // Reference: ASM2.S L8A00 - Mark new symbols as unreferenced
+    // "ORA #unrefd" at line ~8998 in ASM2.S
+    sym.flags = flags | SYM_UNREFERENCED;
     sym.line_defined = line_num;
     table_[name] = sym;
 }
@@ -62,14 +64,28 @@ void SymbolTable::update_flags(const std::string& name, uint8_t flags) {
     }
 }
 
+// Mark symbol as referenced (clear unreferenced bit)
+// Reference: Original EDASM clears bit 6 when symbol is used in Pass 2
+void SymbolTable::mark_referenced(const std::string& name) {
+    auto it = table_.find(name);
+    if (it != table_.end()) {
+        it->second.flags &= ~SYM_UNREFERENCED;
+    }
+}
+
 // Lookup symbol by name
 // Reference: ASM2.S FindSym ($88C3) - Hash table lookup with chain traversal
 // Returns pointer to symbol or nullptr if not found
+// Note: When a symbol is looked up for use (not just checking existence),
+// the unreferenced bit should be cleared to mark it as referenced
 Symbol* SymbolTable::lookup(const std::string& name) {
     auto it = table_.find(name);
     if (it == table_.end()) {
         return nullptr;
     }
+    // Clear the unreferenced bit when symbol is looked up
+    // Reference: Original EDASM clears bit 6 when symbol is used
+    it->second.flags &= ~SYM_UNREFERENCED;
     return &it->second;
 }
 
