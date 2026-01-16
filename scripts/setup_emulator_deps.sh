@@ -7,13 +7,92 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+REQUIRED_GO_VERSION="1.22.3"
+
+download_tool() {
+    if command -v curl &>/dev/null; then
+        curl -fsSL "$1" -o "$2"
+    elif command -v wget &>/dev/null; then
+        wget -q "$1" -O "$2"
+    else
+        echo "Error: Neither curl nor wget is available to download $1"
+        return 1
+    fi
+}
+
+version_ge() {
+    # Returns 0 if $1 >= $2 (both semver-like, e.g., 1.22.3)
+    [[ $1 == "$2" ]] && return 0
+    if [[ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" == "$2" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+ensure_go_version() {
+    local current=""
+    if command -v go &>/dev/null; then
+        current="$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//')"
+        if version_ge "$current" "$REQUIRED_GO_VERSION"; then
+            echo "✓ Go $current already installed (meets >= $REQUIRED_GO_VERSION)"
+            return 0
+        else
+            echo "Go $current found, need >= $REQUIRED_GO_VERSION"
+        fi
+    else
+        echo "Go not found, installing >= $REQUIRED_GO_VERSION"
+    fi
+
+    local go_os="linux"
+    local go_arch="amd64"
+
+    if [[ $OS == "macos" ]]; then
+        go_os="darwin"
+    fi
+
+    case "$(uname -m)" in
+    x86_64 | amd64)
+        go_arch="amd64"
+        ;;
+    arm64 | aarch64)
+        go_arch="arm64"
+        ;;
+    *)
+        echo "Warning: Unknown architecture $(uname -m), defaulting to amd64"
+        go_arch="amd64"
+        ;;
+    esac
+
+    local archive="go${REQUIRED_GO_VERSION}.${go_os}-${go_arch}.tar.gz"
+    local url="https://go.dev/dl/${archive}"
+    local tmpfile="/tmp/${archive}"
+
+    echo "Downloading Go $REQUIRED_GO_VERSION..."
+    download_tool "$url" "$tmpfile"
+
+    echo "Installing Go to /usr/local/go (requires sudo)..."
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf "$tmpfile"
+    rm -f "$tmpfile"
+
+    # Ensure newly installed Go is on PATH for the rest of this script
+    export PATH="/usr/local/go/bin:$PATH"
+    echo "✓ Go $REQUIRED_GO_VERSION installed"
+}
+
+diskm8_version() {
+    # Report the resolved binary path without launching interactive mode
+    command -v diskm8 2>/dev/null
+}
+
 echo "=== EDASM Emulator Dependencies Setup ==="
 echo ""
 
 # Detect OS
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+if [[ $OSTYPE == "linux-gnu"* ]]; then
     OS="linux"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
+elif [[ $OSTYPE == "darwin"* ]]; then
     OS="macos"
 else
     echo "Error: Unsupported OS: $OSTYPE"
@@ -23,18 +102,18 @@ fi
 # Install MAME
 install_mame() {
     echo "Installing MAME..."
-    
-    if command -v mame &> /dev/null; then
+
+    if command -v mame &>/dev/null; then
         echo "✓ MAME already installed: $(mame -version | head -1)"
         return 0
     fi
-    
-    if [[ "$OS" == "linux" ]]; then
-        if command -v apt-get &> /dev/null; then
+
+    if [[ $OS == "linux" ]]; then
+        if command -v apt-get &>/dev/null; then
             echo "Installing MAME via apt-get..."
             sudo apt-get update
             sudo apt-get install -y mame
-        elif command -v dnf &> /dev/null; then
+        elif command -v dnf &>/dev/null; then
             echo "Installing MAME via dnf..."
             sudo dnf install -y mame
         else
@@ -42,8 +121,8 @@ install_mame() {
             echo "See: https://www.mamedev.org/"
             return 1
         fi
-    elif [[ "$OS" == "macos" ]]; then
-        if command -v brew &> /dev/null; then
+    elif [[ $OS == "macos" ]]; then
+        if command -v brew &>/dev/null; then
             echo "Installing MAME via Homebrew..."
             brew install mame
         else
@@ -52,8 +131,8 @@ install_mame() {
             return 1
         fi
     fi
-    
-    if command -v mame &> /dev/null; then
+
+    if command -v mame &>/dev/null; then
         echo "✓ MAME installed successfully: $(mame -version | head -1)"
     else
         echo "✗ MAME installation failed"
@@ -65,46 +144,26 @@ install_mame() {
 install_diskm8() {
     echo ""
     echo "Installing diskm8..."
-    
-    if command -v diskm8 &> /dev/null; then
-        echo "✓ diskm8 already installed: $(diskm8 version 2>&1 | head -1 || echo 'unknown version')"
+
+    if command -v diskm8 &>/dev/null; then
+        local ver
+        ver="$(diskm8_version || true)"
+        echo "✓ diskm8 already installed: ${ver:-available}"
         return 0
     fi
-    
-    # Check if Go is installed
-    if ! command -v go &> /dev/null; then
-        echo "Go is required to install diskm8"
-        
-        if [[ "$OS" == "linux" ]]; then
-            if command -v apt-get &> /dev/null; then
-                echo "Installing Go via apt-get..."
-                sudo apt-get install -y golang-go
-            elif command -v dnf &> /dev/null; then
-                echo "Installing Go via dnf..."
-                sudo dnf install -y golang
-            else
-                echo "Warning: Please install Go manually: https://go.dev/doc/install"
-                return 1
-            fi
-        elif [[ "$OS" == "macos" ]]; then
-            if command -v brew &> /dev/null; then
-                echo "Installing Go via Homebrew..."
-                brew install go
-            else
-                echo "Error: Homebrew not found. Please install Go manually."
-                echo "See: https://go.dev/doc/install"
-                return 1
-            fi
-        fi
-    fi
-    
+
+    ensure_go_version
+
     # Install diskm8 using go install
-    echo "Installing diskm8 from GitHub..."
-    go install github.com/paleotronic/diskm8/cmd/diskm8@latest
-    
+    echo "Installing diskm8 from GitHub (module root)..."
+    # Upstream exposes the CLI at the module root (no cmd/ subdir)
+    go install github.com/paleotronic/diskm8@latest
+
     # Check if diskm8 is in PATH
-    if command -v diskm8 &> /dev/null; then
-        echo "✓ diskm8 installed successfully"
+    if command -v diskm8 &>/dev/null; then
+        local ver
+        ver="$(diskm8_version || true)"
+        echo "✓ diskm8 installed successfully (${ver:-available})"
     else
         # Try to find it in GOPATH
         GOPATH="${GOPATH:-$HOME/go}"
@@ -123,27 +182,27 @@ install_diskm8() {
 main() {
     install_mame
     MAME_OK=$?
-    
+
     install_diskm8
     DISKM8_OK=$?
-    
+
     echo ""
     echo "=== Installation Summary ==="
-    
+
     if [[ $MAME_OK -eq 0 ]]; then
         echo "✓ MAME: Ready"
     else
         echo "✗ MAME: Not available"
     fi
-    
+
     if [[ $DISKM8_OK -eq 0 ]]; then
         echo "✓ diskm8: Ready"
     else
         echo "✗ diskm8: Not available (may need to add to PATH)"
     fi
-    
+
     echo ""
-    
+
     if [[ $MAME_OK -eq 0 && $DISKM8_OK -eq 0 ]]; then
         echo "All dependencies installed successfully!"
         echo ""

@@ -2,8 +2,8 @@
 -- MAME Lua script to boot ProDOS and launch EDASM with proper keyboard injection
 -- Usage: mame apple2e -flop1 EDASM_SRC.2mg -video none -sound none -nothrottle -autoboot_script boot_test.lua
 
-local emu = manager.machine
-local cpu = emu.devices[":maincpu"]
+local machine = manager.machine
+local cpu = machine.devices[":maincpu"]
 local mem = cpu.spaces["program"]
 
 -- Apple II screen memory locations
@@ -148,8 +148,8 @@ function on_start()
     print("Memory monitoring may need tuning for different MAME versions.")
 end
 
--- Register the start callback
-emu.register_start(on_start)
+-- Run immediately (register_start is not available on this MAME build)
+on_start()
 
 print("Boot test script loaded (with keyboard injection)")
 print("Target: Apple IIe with EDASM_SRC.2mg")
