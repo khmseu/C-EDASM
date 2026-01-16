@@ -1,3 +1,16 @@
+// ProDOS file type mapping implementation
+//
+// This file implements ProDOS file type handling from EDASM.SRC/COMMONEQUS.S
+// Reference: COMMONEQUS.S - ProDOS file type definitions
+//
+// ProDOS file types from COMMONEQUS.S:
+//   TXT = $04  Text file
+//   BIN = $06  Binary file
+//   REL = $FE  Relocatable object file
+//   SYS = $FF  System file
+//
+// This C++ implementation maps ProDOS file types to Linux file extensions
+// and provides utilities for file type detection and conversion.
 #include "edasm/files/prodos_file.hpp"
 
 #include <algorithm>
