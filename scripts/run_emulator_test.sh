@@ -9,11 +9,15 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEST_WORK_DIR="${TEST_WORK_DIR:-/tmp/edasm-emulator-test}"
+TEST_WORK_DIR="${TEST_WORK_DIR:-$PROJECT_ROOT/tmp/edasm-emulator-test}"
 EDASM_DISK="$PROJECT_ROOT/third_party/EdAsm/EDASM_SRC.2mg"
+PRODOS_DISK="${PRODOS_DISK:-$PROJECT_ROOT/tmp/prodos.po}"
+PRODOS_URL="${PRODOS_URL:-https://releases.prodos8.com/ProDOS_2_4_3.po}"
 MAME_SYSTEM="${MAME_SYSTEM:-apple2gs}"
-MAME_SECONDS="${MAME_SECONDS:-30}"
+MAME_SECONDS="${MAME_SECONDS:-}"
+MAME_TIMEOUT="${MAME_TIMEOUT:-60}"
 ROM_DIR="${MAME_ROM_PATH:-$HOME/mame/roms}"
+MAME_VIDEO="${MAME_VIDEO:-none}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -72,6 +76,29 @@ check_submodule() {
 
     echo -e "${GREEN}✓ EdAsm submodule initialized${NC}"
     return 0
+}
+
+# Ensure a ProDOS boot disk is available (download if missing)
+ensure_prodos_disk() {
+    if [[ -f $PRODOS_DISK ]]; then
+        echo -e "${GREEN}✓ ProDOS boot disk present${NC}"
+        return 0
+    fi
+
+    echo "ProDOS disk not found; downloading from $PRODOS_URL ..."
+    mkdir -p "$(dirname "$PRODOS_DISK")"
+    local curl_opts=("-L" "--fail")
+    if [[ "${PRODOS_INSECURE:-0}" == "1" ]]; then
+        curl_opts+=("-k")
+    fi
+
+    if curl "${curl_opts[@]}" "$PRODOS_URL" -o "$PRODOS_DISK"; then
+        echo -e "${GREEN}✓ ProDOS boot disk downloaded to $PRODOS_DISK${NC}"
+        return 0
+    else
+        echo -e "${RED}Error: Failed to download ProDOS disk${NC}"
+        return 1
+    fi
 }
 
 # Check for Apple II ROM files
@@ -212,46 +239,52 @@ run_mame_test() {
     local lua_script="$1"
     local script_name=$(basename "$lua_script")
     local test_disk="$TEST_WORK_DIR/test_disk.2mg"
+    local flop1_args=("-flop1" "$PRODOS_DISK")
     local flop2_args=()
     local flop3_args=("-flop3" "$EDASM_DISK")
     local flop4_args=()
     local seconds_args=()
+    local timeout_cmd=(timeout "$MAME_TIMEOUT")
 
     if [[ -f $test_disk ]]; then
         flop4_args=("-flop4" "$test_disk")
     fi
 
-    if [[ -n $MAME_SECONDS ]]; then
+    if [[ -n ${MAME_SECONDS:-} ]]; then
         seconds_args=("-seconds_to_run" "$MAME_SECONDS")
     fi
 
     echo ""
     echo "Running MAME with $script_name..."
-    echo "---"
+    echo "---" | tee -a "$TEST_WORK_DIR/$script_name.log"
 
     # MAME command with headless options
     # Note: -nothrottle makes it run as fast as possible
     # -video none and -sound none disable graphics/audio
     set +e  # Don't exit on error, we want to check the result
-    mame "$MAME_SYSTEM" \
+    "${timeout_cmd[@]}" mame "$MAME_SYSTEM" \
+        "${flop1_args[@]}" \
         "${flop3_args[@]}" \
         "${flop4_args[@]}" \
         "${seconds_args[@]}" \
         -rompath "$ROM_DIR" \
-        -video none \
+        -video "$MAME_VIDEO" \
         -sound none \
+        -nomouse \
         -nothrottle \
         -autoboot_script "$lua_script" \
         2>&1 | tee "$TEST_WORK_DIR/$script_name.log"
     
-    local exit_code=$?
+    # Capture exit code of the timeout/mame command (first pipeline element)
+    local exit_code=${PIPESTATUS[0]}
+    echo "EXIT_CODE=$exit_code" >>"$TEST_WORK_DIR/$script_name.log"
     set -e
 
     echo "---"
     
     # Check if MAME crashed (segfault = 139, killed by signal = 128+signal)
     if [[ $exit_code -eq 139 ]]; then
-        echo -e "${RED}✗ MAME crashed with segmentation fault${NC}"
+        echo -e "${RED}✗ MAME crashed with segmentation fault${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
         echo ""
         echo "This is a known issue in CI environments without display/GPU access."
         echo "MAME requires hardware graphics support even with -video none."
@@ -263,13 +296,17 @@ run_mame_test() {
         echo ""
         echo "For more information, see: tests/emulator/README.md"
         return 1
+    elif [[ $exit_code -eq 124 ]]; then
+        echo -e "${YELLOW}⚠ MAME timed out after ${MAME_TIMEOUT}s${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
+        echo "Check log for details: $TEST_WORK_DIR/$script_name.log"
+        return 1
     elif [[ $exit_code -ne 0 ]]; then
-        echo -e "${YELLOW}⚠ MAME exited with code $exit_code${NC}"
+        echo -e "${YELLOW}⚠ MAME exited with code $exit_code${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
         echo "Check log for details: $TEST_WORK_DIR/$script_name.log"
         return 1
     fi
     
-    echo -e "${GREEN}✓ MAME test complete${NC}"
+    echo -e "${GREEN}✓ MAME test complete${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
     echo "Log saved to: $TEST_WORK_DIR/$script_name.log"
     return 0
 }
@@ -298,6 +335,7 @@ main() {
     # Pre-flight checks
     check_dependencies || exit 1
     check_submodule || exit 1
+    ensure_prodos_disk || exit 1
     check_roms || exit 1
     
     # Check if MAME can run (warn but don't fail)
