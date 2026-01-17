@@ -289,17 +289,17 @@ xvfb-run -a linapple --d1 disk.po --autoboot
 ### cadius (disk manipulation)
 ```bash
 # Install
-wget https://github.com/paleotronic/diskm8/releases/download/vX.Y.Z/diskm8-linux-amd64
-chmod +x diskm8-linux-amd64
+git clone https://github.com/mach-kernel/cadius
+cd cadius && make
 
 # List contents
-./diskm8-linux-amd64 list disk.2mg
+./cadius CATALOG disk.2mg
 
 # Extract files
-./diskm8-linux-amd64 extract disk.2mg ./output/
+./cadius EXTRACTVOLUME disk.2mg ./output/
 
 # Inject file
-./diskm8-linux-amd64 inject disk.2mg myfile.src
+./cadius ADDFILE disk.2mg /VOLUME/ myfile.src
 ```
 
 ---
