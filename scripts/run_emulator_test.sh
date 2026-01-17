@@ -42,19 +42,6 @@ check_dependencies() {
 
     # Check for required tools (MAME already checked by check_dependencies)
         # Try common Go install locations
-        local go_bin
-        go_bin="$(go env GOBIN 2>/dev/null || true)"
-        local go_path
-        go_path="$(go env GOPATH 2>/dev/null || echo "$HOME/go")"
-
-        if [[ -n $go_bin && -f "$go_bin/diskm8" ]]; then
-            export PATH="$PATH:$go_bin"
-        elif [[ -f "$go_path/bin/diskm8" ]]; then
-            export PATH="$PATH:$go_path/bin"
-        else
-            missing+=("diskm8")
-        fi
-    fi
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo -e "${RED}Error: Missing dependencies: ${missing[*]}${NC}"
