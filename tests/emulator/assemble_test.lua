@@ -7,7 +7,7 @@ local cpu = emu.devices[":maincpu"]
 local mem = cpu.spaces["program"]
 
 -- Configuration
-local TEST_FILE = "TEST.SIMPLE.SRC"  -- File to assemble (on flop2)
+local TEST_FILE = "TEST.SIMPLE.SRC"   -- File to assemble (on flop2)
 local OUTPUT_FILE = "TEST.SIMPLE.BIN" -- Output binary name
 
 -- Apple II memory locations
@@ -15,12 +15,12 @@ local TEXT_PAGE1_START = 0x0400
 local TEXT_PAGE1_END = 0x07FF
 local KBD_ADDR = 0xC000
 local KBDSTRB_ADDR = 0xC010
-local PROMPT_CHAR = 0xDD  -- ']' character
+local PROMPT_CHAR = 0xDD -- ']' character
 
 -- Convert ASCII character to Apple II keyboard code
 function ascii_to_apple2(ch)
     local code = string.byte(ch)
-    if code >= 97 and code <= 122 then  -- lowercase to uppercase
+    if code >= 97 and code <= 122 then -- lowercase to uppercase
         code = code - 32
     end
     -- Use bitwise OR to set high bit
@@ -102,14 +102,14 @@ end
 -- Wait for ProDOS boot
 function wait_for_prodos()
     print("Waiting for ProDOS to boot...")
-    
+
     local max_wait = 500
     local count = 0
-    
+
     while count < max_wait do
         emu.wait(10000)
         count = count + 1
-        
+
         if count % 10 == 0 then
             if check_for_prodos_prompt() then
                 print("✓ ProDOS ready")
@@ -118,7 +118,7 @@ function wait_for_prodos()
             end
         end
     end
-    
+
     print("⚠ ProDOS prompt timeout (using fallback)")
     return false
 end
@@ -126,14 +126,14 @@ end
 -- Wait for EDASM prompt
 function wait_for_edasm_prompt()
     print("Waiting for EDASM prompt...")
-    
+
     local max_wait = 300
     local count = 0
-    
+
     while count < max_wait do
         emu.wait(10000)
         count = count + 1
-        
+
         if count % 10 == 0 then
             if check_for_edasm_prompt() then
                 print("✓ EDASM ready")
@@ -142,9 +142,9 @@ function wait_for_edasm_prompt()
             end
         end
     end
-    
+
     print("⚠ EDASM prompt timeout (using fallback)")
-    emu.wait(500000)  -- Fallback: wait 500ms
+    emu.wait(500000) -- Fallback: wait 500ms
     return false
 end
 
@@ -152,7 +152,7 @@ end
 function launch_edasm()
     print("Launching EDASM.SYSTEM...")
     send_command("EDASM.SYSTEM")
-    
+
     -- Wait for EDASM to load
     wait_for_edasm_prompt()
     print("✓ EDASM loaded")
@@ -162,18 +162,18 @@ end
 function load_source()
     print("")
     print("Loading source file: " .. TEST_FILE)
-    
+
     -- Send 'L' command to load
     send_string("L")
     emu.wait(50000)
-    
+
     -- Send filename
     send_command(TEST_FILE)
-    
+
     -- Wait for file to load
     -- File loading is typically fast on emulated disks
-    emu.wait(500000)  -- 500ms should be plenty
-    
+    emu.wait(500000) -- 500ms should be plenty
+
     print("✓ Source loaded")
 end
 
@@ -181,15 +181,15 @@ end
 function assemble()
     print("")
     print("Assembling source...")
-    
+
     -- Send 'A' command to assemble
     send_string("A")
     emu.wait(50000)
-    
+
     -- Wait for assembly to complete
     -- Real implementation would monitor memory for completion flag
-    emu.wait(2000000)  -- 2 seconds for assembly
-    
+    emu.wait(2000000) -- 2 seconds for assembly
+
     print("✓ Assembly complete")
 end
 
@@ -197,17 +197,17 @@ end
 function save_binary()
     print("")
     print("Saving binary: " .. OUTPUT_FILE)
-    
+
     -- Send 'S' command to save
     send_string("S")
     emu.wait(50000)
-    
+
     -- Send filename
     send_command(OUTPUT_FILE)
-    
+
     -- Wait for save to complete
     emu.wait(500000)
-    
+
     print("✓ Binary saved")
 end
 
@@ -215,15 +215,15 @@ end
 function exit_edasm()
     print("")
     print("Exiting EDASM...")
-    
+
     -- Send 'Q' command to quit
     send_string("Q")
     emu.wait(50000)
-    
+
     -- Confirm quit if prompted
-    send_string("Y")  -- Yes to confirm
+    send_string("Y") -- Yes to confirm
     emu.wait(50000)
-    
+
     print("✓ EDASM exited")
 end
 
@@ -234,22 +234,22 @@ function run_automation()
     print("  Source: " .. TEST_FILE)
     print("  Output: " .. OUTPUT_FILE)
     print("")
-    
+
     -- Boot sequence
     local prodos_ok = wait_for_prodos()
     if not prodos_ok then
         print("⚠ Warning: ProDOS detection uncertain")
     end
-    
+
     -- Launch EDASM
     launch_edasm()
-    
+
     -- Assembly workflow
     load_source()
     assemble()
     save_binary()
     exit_edasm()
-    
+
     print("")
     print("=== Automation Complete ===")
     print("")
@@ -263,7 +263,7 @@ end
 emu.register_start(function()
     -- Give system a moment to initialize
     emu.wait(100000)
-    
+
     -- Run automation
     run_automation()
 end)
