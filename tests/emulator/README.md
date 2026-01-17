@@ -43,8 +43,8 @@ More complete automation script that demonstrates:
 
 ```bash
 # First, create and populate test disk
-diskm8 create /tmp/test_disk.2mg 140KB
-diskm8 inject /tmp/test_disk.2mg ../test_simple.src
+cadius CREATEVOLUME /tmp/test_disk.2mg TESTDSK 140KB
+cadius ADDFILE /tmp/test_disk.2mg /TESTDSK/ ../test_simple.src
 
 # Run MAME with automation
 mame apple2e \
@@ -54,7 +54,7 @@ mame apple2e \
   -autoboot_script tests/emulator/assemble_test.lua
 
 # Extract results
-diskm8 extract /tmp/test_disk.2mg /tmp/results/
+cadius EXTRACTVOLUME /tmp/test_disk.2mg /tmp/results/
 ```
 
 ## Important Notes

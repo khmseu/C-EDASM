@@ -40,7 +40,7 @@ check_dependencies() {
         missing+=("curl")
     fi
 
-    if ! command -v diskm8 &>/dev/null; then
+    # Check for required tools (MAME already checked by check_dependencies)
         # Try common Go install locations
         local go_bin
         go_bin="$(go env GOBIN 2>/dev/null || true)"
