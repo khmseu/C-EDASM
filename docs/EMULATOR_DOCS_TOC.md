@@ -36,7 +36,7 @@ This investigation addresses the question: **How can we host the original Apple 
 - GSPlus analysis: Debugger capabilities, CLI automation, limitations
 - LinApple analysis: Lightweight setup, headless challenges
 - Custom emulator analysis: Complexity, effort, risks (NOT recommended)
-- ProDOS disk tools: DiskM8, AppleCommander, apple2_prodos_utils
+- ProDOS disk tools: cadius, AppleCommander, apple2_prodos_utils
 - Comparative feature matrix
 - Implementation timelines (phase-by-phase)
 - Resource requirements
@@ -236,7 +236,7 @@ Key external links referenced in the investigation:
 - Lua scripting guide: https://www.mattgreer.dev/blog/mame-lua-for-better-retro-dev/
 
 ### Disk Tools
-- DiskM8: https://github.com/paleotronic/diskm8
+- cadius: https://github.com/mach-kernel/cadius
 - AppleCommander: https://applecommander.github.io/
 - apple2_prodos_utils: https://github.com/Michaelangel007/apple2_prodos_utils
 

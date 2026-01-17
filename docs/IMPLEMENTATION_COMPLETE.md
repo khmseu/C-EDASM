@@ -309,7 +309,7 @@ git submodule update --init --recursive
 
 ### Near-term (Phase 5 completion)
 
-- [ ] Test full workflow in CI environment with actual MAME/diskm8
+- [ ] Test full workflow in CI environment with actual MAME/cadius
 - [ ] Implement caching for disk images
 - [ ] Add golden output storage and comparison
 - [ ] Optimize timing for faster CI runs
@@ -336,8 +336,7 @@ git submodule update --init --recursive
 **Optional (for emulator testing):**
 
 - MAME (Apple IIe emulation)
-- Go (for diskm8)
-- diskm8 (ProDOS disk image tool)
+- cadius (ProDOS disk image tool)
 
 ---
 

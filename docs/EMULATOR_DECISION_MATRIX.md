@@ -286,7 +286,7 @@ linapple --d1 disk.po --autoboot
 xvfb-run -a linapple --d1 disk.po --autoboot
 ```
 
-### DiskM8 (disk manipulation)
+### cadius (disk manipulation)
 ```bash
 # Install
 wget https://github.com/paleotronic/diskm8/releases/download/vX.Y.Z/diskm8-linux-amd64

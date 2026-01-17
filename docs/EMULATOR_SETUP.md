@@ -253,7 +253,7 @@ cadius ADDFILE mydisk.2mg /MYDISK/ myfile.src
 Extract all files from disk:
 
 ```bash
-diskm8 extract mydisk.2mg /output/directory/
+cadius EXTRACTVOLUME mydisk.2mg /output/directory/
 ```
 
 Extract a specific file:
