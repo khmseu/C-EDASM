@@ -2,7 +2,14 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../../../../home/kai/.mame/snap/apple2gs"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"chat.tools.terminal.autoApprove": {
+			"./scripts/run_emulator_test.sh": true
+		}
+	}
 }
