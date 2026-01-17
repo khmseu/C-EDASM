@@ -21,7 +21,7 @@ Run the automated setup script:
 
 This will install:
 - **MAME**: Apple II emulator
-- **diskm8**: ProDOS disk image management tool (via Go)
+- **cadius**: ProDOS disk image management tool (C++)
 
 ### 2. Initialize Submodule
 
@@ -56,12 +56,11 @@ If the automated script doesn't work for your system, you can install manually:
 sudo apt-get update
 sudo apt-get install -y mame
 
-# Install Go (required for diskm8)
-sudo apt-get install -y golang-go
+# Install build dependencies (required for cadius)
+sudo apt-get install -y build-essential cmake git
 
-# Install diskm8
-go install github.com/paleotronic/diskm8/cmd/diskm8@latest
-export PATH="$PATH:$HOME/go/bin"
+# Install cadius
+cd /tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make && sudo cp bin/release/cadius /usr/local/bin/
 ```
 
 ### macOS
@@ -72,11 +71,11 @@ export PATH="$PATH:$HOME/go/bin"
 # Install MAME
 brew install mame
 
-# Install Go (required for diskm8)
-brew install go
+# Install build dependencies (required for cadius)
+brew install cmake git
 
-# Install diskm8
-go install github.com/paleotronic/diskm8/cmd/diskm8@latest
+# Install cadius
+cd /tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make && cp bin/release/cadius /usr/local/bin/
 export PATH="$PATH:$HOME/go/bin"
 ```
 
@@ -150,10 +149,10 @@ which mame
 ./scripts/setup_emulator_deps.sh
 ```
 
-### diskm8 not found
+### cadius not found
 ```bash
-# Check if diskm8 is in GOPATH
-ls -la $HOME/go/bin/diskm8
+# Check if cadius is installed
+which cadius
 
 # If present but not in PATH, add to PATH
 export PATH="$PATH:$HOME/go/bin"
@@ -207,21 +206,21 @@ mame apple2e \
   -autoboot_script tests/emulator/assemble_test.lua
 ```
 
-### diskm8 Usage
+### cadius Usage
 
 Create a ProDOS disk image:
 ```bash
-diskm8 create mydisk.2mg 140KB
+cadius CREATEVOLUME mydisk.2mg MYDISK 140KB
 ```
 
 List disk contents:
 ```bash
-diskm8 ls mydisk.2mg
+cadius CATALOG mydisk.2mg
 ```
 
 Inject a file into disk:
 ```bash
-diskm8 inject mydisk.2mg myfile.src
+cadius ADDFILE mydisk.2mg /MYDISK/ myfile.src
 ```
 
 Extract all files from disk:
@@ -231,13 +230,13 @@ diskm8 extract mydisk.2mg /output/directory/
 
 Extract a specific file:
 ```bash
-diskm8 extract mydisk.2mg /output/directory/ FILENAME
+cadius EXTRACTFILE mydisk.2mg /MYDISK/FILENAME /output/directory/
 ```
 
 ## CI/CD Integration
 
 The GitHub Actions workflow (`.github/workflows/emulator-tests.yml`) automatically:
-1. Installs MAME and diskm8
+1. Installs MAME and cadius
 2. Initializes the EdAsm submodule
 3. Builds C-EDASM
 4. Runs emulator tests
@@ -280,7 +279,7 @@ To make the emulator tests production-ready:
 ### External Links
 - [MAME Documentation](https://docs.mamedev.org/)
 - [MAME Lua Scripting](https://docs.mamedev.org/luascript/index.html)
-- [diskm8 GitHub](https://github.com/paleotronic/diskm8)
+- [cadius GitHub](https://github.com/mach-kernel/cadius)
 - [Apple II Technical Notes](https://www.kreativekorp.com/miscpages/a2info/)
 
 ## Contributing

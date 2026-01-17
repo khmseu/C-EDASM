@@ -139,7 +139,7 @@ HERE          LOOKUP                  DOCS            GUIDES
 │  │  • GSPlus: Good debugger, moderate fidelity                 │
 │  │  • LinApple: Lightweight, quick setup                       │
 │  │  • Custom emulator: High effort, not recommended            │
-│  │  • ProDOS disk tools: DiskM8, AppleCommander                │
+│  │  • ProDOS disk tools: cadius, AppleCommander                 │
 │  │                                                              │
 │  └──→ Complete analysis with recommendations                   │
 │                                                                 │

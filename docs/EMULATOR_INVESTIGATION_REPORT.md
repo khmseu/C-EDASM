@@ -339,16 +339,16 @@ Regardless of emulator choice, we need tools to inject test sources and extract 
 
 ### Recommended Tools
 
-#### 1. DiskM8 (Primary Recommendation)
+#### 1. cadius (Primary Recommendation)
 
-- **Website**: <https://github.com/paleotronic/diskm8>
+- **Website**: <https://github.com/mach-kernel/cadius>
 - **Platforms**: Windows, macOS, Linux, Raspberry Pi, FreeBSD
 - **Formats**: DSK, PO, 2MG, NIB (DOS and ProDOS order)
 - **Features**:
-  - Extract files: `diskm8 extract <image> <output-dir>`
-  - Inject files: `diskm8 inject <image> <file>`
-  - List contents: `diskm8 list <image>`
-  - Create images: `diskm8 create <image> <size>`
+  - Extract files: `cadius EXTRACTVOLUME <image> <output-dir>`
+  - Inject files: `cadius ADDFILE <image> <dest-path> <file>`
+  - List contents: `cadius CATALOG <image>`
+  - Create images: `cadius CREATEVOLUME <image> <name> <size>`
   - BASIC detokenization
   - Disk comparison
 
@@ -356,14 +356,14 @@ Regardless of emulator choice, we need tools to inject test sources and extract 
 
 ```bash
 # Create writable test disk
-diskm8 create test_sources.2mg 140KB
+cadius CREATEVOLUME test_sources.2mg TESTSRC 140KB
 
 # Inject test sources
-diskm8 inject test_sources.2mg tests/test_simple.src
-diskm8 inject test_sources.2mg tests/test_expressions.src
+cadius ADDFILE test_sources.2mg /TESTSRC/ tests/test_simple.src
+cadius ADDFILE test_sources.2mg /TESTSRC/ tests/test_expressions.src
 
 # After EDASM run, extract outputs
-diskm8 extract edasm_output.2mg ./outputs/
+cadius EXTRACTVOLUME edasm_output.2mg ./outputs/
 ```
 
 #### 2. AppleCommander (Alternative)
@@ -371,7 +371,7 @@ diskm8 extract edasm_output.2mg ./outputs/
 - **Website**: <https://applecommander.github.io/>
 - **Platforms**: Cross-platform (Java)
 - **Formats**: DO, DSK, PO, 2MG, HDV, NIB
-- **Features**: Similar to DiskM8, with GUI option
+- **Features**: Similar to cadius, with GUI option
 
 **Example Usage:**
 
@@ -396,7 +396,7 @@ ac -p mydisk.2mg newfile.bin PRODOS
 
 **In CI Pipeline:**
 
-1. **Pre-test**: Use DiskM8/AppleCommander to prepare test disk with sources
+1. **Pre-test**: Use cadius/AppleCommander to prepare test disk with sources
 2. **Emulator run**: Mount test disk, run EDASM via Lua script
 3. **Post-test**: Extract output files from result disk
 4. **Comparison**: Byte-for-byte diff against C-EDASM outputs
@@ -424,7 +424,7 @@ ac -p mydisk.2mg newfile.bin PRODOS
 
 ## Final Recommendation
 
-### Primary Path: MAME + DiskM8
+### Primary Path: MAME + cadius
 
 **Reasoning:**
 
@@ -478,8 +478,8 @@ ac -p mydisk.2mg newfile.bin PRODOS
 
 ```bash
 # 1. Prepare test disk
-diskm8 create /tmp/test_disk.2mg 140KB
-diskm8 inject /tmp/test_disk.2mg tests/test_simple.src
+cadius CREATEVOLUME /tmp/test_disk.2mg TESTDSK 140KB
+cadius ADDFILE /tmp/test_disk.2mg /TESTDSK/ tests/test_simple.src
 
 # 2. Run MAME with automation script
 mame apple2e \
@@ -490,7 +490,7 @@ mame apple2e \
   -autoboot_script tests/emulator/assemble_test.lua
 
 # 3. Extract results
-diskm8 extract /tmp/test_disk.2mg /tmp/edasm_output/
+cadius EXTRACTVOLUME /tmp/test_disk.2mg /tmp/edasm_output/
 
 # 4. Compare with C-EDASM
 ./build/edasm_cli tests/test_simple.src -o /tmp/cedasm_output.bin
@@ -509,7 +509,7 @@ diff /tmp/edasm_output/TEST_SIMPLE.BIN /tmp/cedasm_output.bin
 
 ### Disk Tools
 
-- DiskM8: <https://github.com/paleotronic/diskm8>
+- cadius: <https://github.com/mach-kernel/cadius>
 - AppleCommander: <https://applecommander.github.io/>
 - ProDOS utilities: <https://github.com/Michaelangel007/apple2_prodos_utils>
 
@@ -533,7 +533,7 @@ After thorough investigation, **MAME with Lua automation** is the clear best cho
 
 The alternative emulators (GSPlus, LinApple) are viable fallbacks but would require significant patching to achieve the same level of automation. Building a custom emulator is not recommended due to the high effort and risk involved.
 
-With MAME + DiskM8 + Lua scripting, we can achieve:
+With MAME + cadius + Lua scripting, we can achieve:
 
 - Automated test source injection
 - Scripted EDASM assembly and linking

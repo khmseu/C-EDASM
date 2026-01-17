@@ -16,10 +16,10 @@ This document summarizes the completed implementation of the EDASM emulator test
 
 **Setup Scripts:**
 
-- `scripts/setup_emulator_deps.sh` - Automated installation of MAME and diskm8
+- `scripts/setup_emulator_deps.sh` - Automated installation of MAME and cadius
   - Detects OS (Linux/macOS)
   - Installs MAME via package manager
-  - Installs Go and diskm8 (ProDOS disk image tool)
+  - Installs cadius (ProDOS disk image tool)
   - Validates installation success
 
 **CI/CD Integration:**
@@ -36,7 +36,7 @@ This document summarizes the completed implementation of the EDASM emulator test
   - Quick start instructions
   - Manual installation steps for various platforms
   - Troubleshooting common issues
-  - MAME and diskm8 usage examples
+  - MAME and cadius usage examples
 
 ### 2. Lua Automation Scripts ✅
 

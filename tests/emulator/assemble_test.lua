@@ -254,7 +254,7 @@ function run_automation()
     print("=== Automation Complete ===")
     print("")
     print("Output file should be on disk 2: " .. OUTPUT_FILE)
-    print("Extract with: diskm8 extract test_disk.2mg /output/dir/")
+    print("Extract with: cadius EXTRACTVOLUME test_disk.2mg /output/dir/")
     print("")
     print("Press Ctrl+C to exit MAME.")
 end

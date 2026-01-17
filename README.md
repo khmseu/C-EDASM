@@ -27,7 +27,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 - **MAME-based testing**: Automated testing against original Apple II EDASM
 - **Lua automation scripts**: Keyboard injection and screen monitoring for ProDOS/EDASM
-- **Disk management tools**: Create, inject, and extract ProDOS disk images with diskm8
+- **Disk management tools**: Create, inject, and extract ProDOS disk images with cadius
 - **Comparison framework**: Byte-by-byte comparison of C-EDASM vs original EDASM output
 - **Automated test harness**: Run all test programs and generate comprehensive reports
 - **CI integration**: GitHub Actions workflow for emulator-based testing
@@ -285,7 +285,7 @@ cd build && ./tests/test_assembler_integration
 ### Emulator Testing (NEW!)
 
 ```bash
-# Setup emulator dependencies (MAME + diskm8)
+# Setup emulator dependencies (MAME + cadius)
 ./scripts/setup_emulator_deps.sh
 
 # Run automated test harness on all test programs

@@ -182,7 +182,7 @@ The current implementation includes:
 
 To test these scripts:
 
-1. Install MAME and diskm8 (automated):
+1. Install MAME and cadius (automated):
 
    ```bash
    ./scripts/setup_emulator_deps.sh
@@ -194,8 +194,8 @@ To test these scripts:
    # On Ubuntu/Debian
    sudo apt-get install mame
    
-   # Install diskm8 (requires Go >= 1.22.3)
-   go install github.com/paleotronic/diskm8@latest
+   # Install cadius (requires build tools)
+   git clone https://github.com/mach-kernel/cadius && cd cadius && make
    
    # Or build MAME from source
    git clone https://github.com/mamedev/mame.git
@@ -285,9 +285,9 @@ If `mame -verifyroms` reports errors:
 - Verify ROM files are not corrupted
 - Some ROM archives may have incorrect file names or versions
 
-### diskm8 not found
+### cadius not found
 
-If diskm8 is installed but not in PATH:
+If cadius is installed but not in PATH:
 
 ```bash
 export PATH="$PATH:$HOME/go/bin"
