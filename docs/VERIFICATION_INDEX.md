@@ -7,6 +7,7 @@ This document provides a quick lookup index for verifying C++ implementation aga
 ## Purpose
 
 This index helps answer:
+
 - "Where in EDASM.SRC is this C++ feature implemented?"
 - "What C++ code corresponds to this 6502 routine?"
 - "Why is this feature missing/different in C++?"
@@ -154,18 +155,21 @@ This index helps answer:
 ## Features Not Yet Ported
 
 ### BUGBYTER Module (Debugger)
+
 - **Location**: `EDASM.SRC/BUGBYTER/*.S` (~6,000 lines)
 - **Status**: ⭕ Not ported
 - **Reason**: Focus on editor/assembler core first
 - **Future**: Could be implemented as separate debugger tool
 
 ### Macro System
+
 - **Location**: ASM3.S macro processing (~2,000 lines)
 - **Status**: 🔄 Partially implemented
 - **Reason**: Basic string substitution works, complex macros pending
 - **Future**: Full macro expansion with parameters
 
 ### Split Buffer Mode
+
 - **Location**: EDITOR*.S SwapMode handling
 - **Status**: ⭕ Not implemented
 - **Reason**: Editor enhancement, lower priority
@@ -178,6 +182,7 @@ This index helps answer:
 These features are intentionally different due to platform differences:
 
 ### Apple II Hardware Features
+
 - **Sweet16 pseudo-processor** → Native C++ pointers
 - **ProDOS MLI calls** → Linux file I/O (POSIX)
 - **40-column text mode** → ncurses terminal (80+ columns)
@@ -185,6 +190,7 @@ These features are intentionally different due to platform differences:
 - **Memory banking** → Dynamic allocation (no 64K limit)
 
 ### Zero Page Variables
+
 All zero page variables (`$00-$FF`) are mapped to C++ class member variables. See VERIFICATION_REPORT.md for complete mapping.
 
 ---
@@ -215,7 +221,7 @@ cat src/assembler/expression.cpp
 cd build && ./tests/test_assembler_integration --gtest_filter=*Expression*
 
 # 4. Compare behavior with test programs
-./build/test_asm test_expressions.src
+./build/test_asm tests/test_expressions.src
 ```
 
 ---
@@ -225,21 +231,25 @@ cd build && ./tests/test_assembler_integration --gtest_filter=*Expression*
 Despite maintaining functional equivalence, some algorithms differ in implementation:
 
 ### Hash Table
+
 - **EDASM**: Fixed 256-bucket hash table with linked lists
 - **C++**: `std::unordered_map` with STL hash function
 - **Rationale**: STL provides better performance and memory management
 
 ### Symbol Storage
+
 - **EDASM**: Variable-length records with high-bit terminated strings
 - **C++**: `std::string` in `Symbol` struct
 - **Rationale**: Modern C++ strings are safer and more flexible
 
 ### Text Buffer
+
 - **EDASM**: Fixed memory region `$0801-$9900` with explicit pointers
 - **C++**: `std::vector<std::string>` with dynamic allocation
 - **Rationale**: No memory constraints on modern systems
 
 ### Error Handling
+
 - **EDASM**: Flag-based error tracking with goto-style control
 - **C++**: Exception-based error handling with structured error objects
 - **Rationale**: C++ exceptions provide better error propagation
@@ -257,6 +267,7 @@ When reading C++ code, look for these comment patterns:
 ```
 
 Format:
+
 - **From EDASM.SRC**: Module and line reference
 - **Implements**: Brief description of functionality
 - **Differences**: Any notable implementation changes
@@ -266,18 +277,24 @@ Format:
 ## Testing Strategy for Verification
 
 ### Unit Tests
+
 Each C++ module has unit tests that verify specific functionality:
+
 - `test_asm.cpp` - Assembler core
 - `test_editor.cpp` - Editor commands
 - `test_linker.cpp` - Linker operations
 
 ### Integration Tests
+
 Test complete workflows:
+
 - `test_assembler_integration.cpp` - End-to-end assembly
 - Test programs in repository root (`test_*.src`)
 
 ### Comparison Testing
+
 Compare output with original EDASM (requires Apple II or emulator):
+
 1. Assemble same source on Apple II EDASM
 2. Assemble same source with C-EDASM
 3. Compare binary output byte-by-byte
@@ -301,6 +318,7 @@ For more detailed information, see:
 ## Quick Reference: File Locations
 
 ### EDASM.SRC Structure
+
 ```
 third_party/EdAsm/EDASM.SRC/
 ├── ASM/                 # Assembler (3 passes)
@@ -330,6 +348,7 @@ third_party/EdAsm/EDASM.SRC/
 ```
 
 ### C++ Implementation Structure
+
 ```
 src/
 ├── assembler/           # Assembler implementation
@@ -359,7 +378,9 @@ include/edasm/
 ## Maintenance Notes
 
 ### Adding New Features
+
 When adding a new feature:
+
 1. Locate the corresponding EDASM.SRC implementation
 2. Document the algorithm in comments
 3. Add cross-reference comments in C++ code
@@ -368,7 +389,9 @@ When adding a new feature:
 6. Update VERIFICATION_REPORT.md if significant
 
 ### Reporting Discrepancies
+
 If you find a difference between EDASM.SRC and C++ implementation:
+
 1. Document the difference
 2. Verify if it's intentional (platform adaptation) or a bug
 3. Update documentation with rationale

@@ -27,6 +27,7 @@ Print this page and keep it handy when doing verification work!
 ## Critical Routine Cross-Reference
 
 ### Assembler Core
+
 ```
 DoPass1    (ASM2.S L7E1E)     → assembler.cpp::pass1()
 DoPass2    (ASM2.S L7F69)     → assembler.cpp::pass2()
@@ -35,6 +36,7 @@ InitASM    (ASM2.S L7DC3)     → assembler.cpp::reset()
 ```
 
 ### Expression & Symbol Handling
+
 ```
 EvalExpr   (ASM2.S L8561)     → expression.cpp::evaluate()
 FindSym    (ASM2.S L88C3)     → symbol_table.cpp::lookup()
@@ -43,6 +45,7 @@ HashFn     (ASM2.S L8955)     → std::unordered_map (STL)
 ```
 
 ### Code Generation
+
 ```
 HndlMnem   (ASM2.S L8200)     → assembler.cpp::process_instruction()
 EvalOprnd  (ASM2.S L8377)     → assembler.cpp::determine_addressing_mode()
@@ -50,6 +53,7 @@ GInstLen   (ASM2.S L8458)     → assembler.cpp::get_instruction_length()
 ```
 
 ### Directives (ASM3.S → assembler.cpp)
+
 ```
 ORG        (L8A82)            → process_directive_pass1() ORG case
 EQU        (L8A31)            → process_directive_pass1() EQU case
@@ -66,6 +70,7 @@ ASC        (L8DD2)            → process_directive_pass2() ASC case
 ## Common Verification Tasks
 
 ### Task 1: Verify an Instruction
+
 ```bash
 # 1. Find opcode in 6502 source
 grep "LDA" third_party/EdAsm/EDASM.SRC/ASM/ASM3.S
@@ -78,6 +83,7 @@ cd build && ./tests/test_assembler_integration
 ```
 
 ### Task 2: Verify a Directive
+
 ```bash
 # 1. Find directive in EDASM.SRC
 grep -n "ORG" third_party/EdAsm/EDASM.SRC/ASM/ASM3.S
@@ -90,6 +96,7 @@ diff <(extract_6502_logic) <(extract_cpp_logic)
 ```
 
 ### Task 3: Verify Expression Operator
+
 ```bash
 # 1. Check EDASM.SRC expression evaluator
 cat third_party/EdAsm/EDASM.SRC/ASM/ASM2.S | sed -n '8561,8800p'
@@ -103,6 +110,7 @@ echo "LDA #\$10+\$20" > test.src
 ```
 
 ### Task 4: Compare Output
+
 ```bash
 # Assemble same source on both systems
 # (Requires Apple II or emulator for EDASM.SRC)
@@ -149,6 +157,7 @@ diff edasm_output.lst cedasm_output.lst
 ## Useful Commands
 
 ### View EDASM.SRC File
+
 ```bash
 # View specific file
 cat third_party/EdAsm/EDASM.SRC/ASM/ASM2.S | less
@@ -161,6 +170,7 @@ wc -l third_party/EdAsm/EDASM.SRC/ASM/*.S
 ```
 
 ### Search C++ Code
+
 ```bash
 # Find function definition
 grep -rn "pass1()" src/
@@ -173,6 +183,7 @@ ls -la src/assembler/
 ```
 
 ### Run Tests
+
 ```bash
 # All tests
 cd build && ctest
@@ -184,10 +195,11 @@ cd build && ctest -R test_assembler_integration -V
 cd build && ./tests/test_assembler_integration --gtest_filter=*Expression*
 
 # Run assembler on test file
-./build/test_asm test_simple.src
+./build/test_asm tests/test_simple.src
 ```
 
 ### Build Commands
+
 ```bash
 # Clean build
 rm -rf build && ./scripts/configure.sh && ./scripts/build.sh
@@ -216,6 +228,7 @@ BUILD_TYPE=Debug ./scripts/configure.sh && ./scripts/build.sh
 ## Operator Precedence Comparison
 
 ### EDASM.SRC (from ASM2.S expression evaluator)
+
 ```
 1. Parentheses ()
 2. Unary: -, +
@@ -226,6 +239,7 @@ BUILD_TYPE=Debug ./scripts/configure.sh && ./scripts/build.sh
 ```
 
 ### C++ (expression.cpp)
+
 ```cpp
 1. parse_full():     binary operators (+, -, *, /, ^, |, !)
 2. parse_simple():   unary operators (-, +), byte ops (<, >)

@@ -15,6 +15,7 @@ This document summarizes the completed implementation of the EDASM emulator test
 ### 1. Infrastructure Setup ✅
 
 **Setup Scripts:**
+
 - `scripts/setup_emulator_deps.sh` - Automated installation of MAME and diskm8
   - Detects OS (Linux/macOS)
   - Installs MAME via package manager
@@ -22,6 +23,7 @@ This document summarizes the completed implementation of the EDASM emulator test
   - Validates installation success
 
 **CI/CD Integration:**
+
 - `.github/workflows/emulator-tests.yml` - GitHub Actions workflow
   - Installs all dependencies in CI environment
   - Runs C-EDASM build and tests
@@ -29,6 +31,7 @@ This document summarizes the completed implementation of the EDASM emulator test
   - Uploads test artifacts
 
 **Documentation:**
+
 - `docs/EMULATOR_SETUP.md` - Comprehensive setup and usage guide
   - Quick start instructions
   - Manual installation steps for various platforms
@@ -38,6 +41,7 @@ This document summarizes the completed implementation of the EDASM emulator test
 ### 2. Lua Automation Scripts ✅
 
 **Enhanced boot_test.lua:**
+
 - ✅ Keyboard injection via direct memory writes ($C000, $C010)
 - ✅ ASCII to Apple II character conversion
 - ✅ Screen memory monitoring ($0400-$07FF)
@@ -46,6 +50,7 @@ This document summarizes the completed implementation of the EDASM emulator test
 - ✅ Comprehensive logging
 
 **Enhanced assemble_test.lua:**
+
 - ✅ Full assembly workflow automation (load, assemble, save)
 - ✅ Keyboard injection for EDASM commands
 - ✅ EDASM prompt detection
@@ -54,6 +59,7 @@ This document summarizes the completed implementation of the EDASM emulator test
 - ✅ Exit and cleanup handling
 
 **Key Improvements:**
+
 ```lua
 -- Direct keyboard injection to Apple II hardware
 function send_char(ch)
@@ -77,6 +83,7 @@ end
 ### 3. Disk Management Tools ✅
 
 **disk_helper.sh:**
+
 - Create ProDOS disk images (140KB default)
 - Inject files into disk images
 - Extract files from disk images
@@ -85,6 +92,7 @@ end
 - Create test disks with all sample sources
 
 **Usage Examples:**
+
 ```bash
 # Create and populate a disk
 ./scripts/disk_helper.sh create /tmp/test.2mg 140KB
@@ -101,12 +109,14 @@ end
 ### 4. Comparison Framework ✅
 
 **assemble_helper.py:**
+
 - Runs C-EDASM test_asm program
 - Parses hex dump output
 - Writes binary files for comparison
 - Python-based for portability
 
 **compare_assemblers.sh:**
+
 - Automated comparison workflow
 - Assembles with C-EDASM
 - Framework ready for original EDASM assembly
@@ -115,6 +125,7 @@ end
 - Hex dump comparison on differences
 
 **Sample Output:**
+
 ```
 === Comparison Results ===
 
@@ -130,6 +141,7 @@ Then re-run comparison.
 ### 5. Test Harness ✅
 
 **test_harness.sh:**
+
 - Automated testing of all sample programs
 - Comprehensive test reports
 - Detailed logging for each test
@@ -137,6 +149,7 @@ Then re-run comparison.
 - Pass/fail tracking with statistics
 
 **Test Results:**
+
 ```
 ╔══════════════════════════════════════════╗
 ║           Test Results Summary           ║
@@ -151,22 +164,24 @@ Pass Rate: 100%
 ```
 
 **Tested Programs:**
-- test_addr_mode.src (12 bytes)
-- test_directives.src (17 bytes)
-- test_expressions.src (17 bytes)
-- test_hex_add.src (3 bytes)
-- test_module1.src (6 bytes)
-- test_module2.src (6 bytes)
-- test_msb.src (14 bytes)
-- test_msb_debug.src (2 bytes)
-- test_rel.src (12 bytes)
-- test_simple.src (11 bytes)
-- test_simple_expr.src (3 bytes)
-- test_symbol_add.src (3 bytes)
+
+- tests/test_addr_mode.src (12 bytes)
+- tests/test_directives.src (17 bytes)
+- tests/test_expressions.src (17 bytes)
+- tests/test_hex_add.src (3 bytes)
+- tests/test_module1.src (6 bytes)
+- tests/test_module2.src (6 bytes)
+- tests/test_msb.src (14 bytes)
+- tests/test_msb_debug.src (2 bytes)
+- tests/test_rel.src (12 bytes)
+- tests/test_simple.src (11 bytes)
+- tests/test_simple_expr.src (3 bytes)
+- tests/test_symbol_add.src (3 bytes)
 
 ### 6. Wrapper Scripts ✅
 
 **run_emulator_test.sh:**
+
 - Pre-flight dependency checks
 - Test disk creation
 - MAME execution with proper flags
@@ -174,6 +189,7 @@ Pass Rate: 100%
 - Multiple test modes (boot, assemble)
 
 **Usage:**
+
 ```bash
 ./scripts/run_emulator_test.sh boot      # Boot test only
 ./scripts/run_emulator_test.sh assemble  # Full assembly workflow
@@ -184,6 +200,7 @@ Pass Rate: 100%
 ## Technical Achievements
 
 ### Lua/MAME Integration
+
 - ✅ Proper Apple II keyboard emulation at hardware level
 - ✅ Screen memory reading for state detection
 - ✅ Event-driven waiting with fallback timing
@@ -191,12 +208,14 @@ Pass Rate: 100%
 - ✅ Headless operation support
 
 ### Automation
+
 - ✅ End-to-end assembly workflow automation
 - ✅ Disk image creation and management
 - ✅ Binary extraction and comparison
 - ✅ Comprehensive test coverage
 
 ### Testing
+
 - ✅ 12/12 test programs assemble successfully
 - ✅ 100% pass rate on automated test harness
 - ✅ All binaries generated and validated
@@ -230,6 +249,7 @@ C-EDASM/
 ## Usage Quick Reference
 
 ### Setup (One-time)
+
 ```bash
 # Install dependencies
 ./scripts/setup_emulator_deps.sh
@@ -239,12 +259,13 @@ git submodule update --init --recursive
 ```
 
 ### Testing
+
 ```bash
 # Run all C-EDASM tests
 ./scripts/test_harness.sh all
 
 # Test a single file
-./scripts/test_harness.sh single test_simple.src
+./scripts/test_harness.sh single tests/test_simple.src
 
 # Run emulator tests
 ./scripts/run_emulator_test.sh boot
@@ -252,12 +273,14 @@ git submodule update --init --recursive
 ```
 
 ### Comparison
+
 ```bash
 # Compare C-EDASM vs original EDASM
-./scripts/compare_assemblers.sh test_simple.src
+./scripts/compare_assemblers.sh tests/test_simple.src
 ```
 
 ### Disk Management
+
 ```bash
 # Create test disk
 ./scripts/disk_helper.sh test-disk /tmp/test.2mg
@@ -285,12 +308,14 @@ git submodule update --init --recursive
 ## Future Enhancements
 
 ### Near-term (Phase 5 completion)
+
 - [ ] Test full workflow in CI environment with actual MAME/diskm8
 - [ ] Implement caching for disk images
 - [ ] Add golden output storage and comparison
 - [ ] Optimize timing for faster CI runs
 
 ### Long-term
+
 - [ ] Interactive debugging support
 - [ ] Visual diff tools for assembly listings
 - [ ] Performance benchmarking
@@ -302,12 +327,14 @@ git submodule update --init --recursive
 ## Dependencies
 
 **Required:**
+
 - CMake ≥3.16
 - C++20 compiler (GCC/Clang)
 - ncurses development headers
 - Python 3
 
 **Optional (for emulator testing):**
+
 - MAME (Apple IIe emulation)
 - Go (for diskm8)
 - diskm8 (ProDOS disk image tool)
@@ -342,6 +369,7 @@ The EDASM emulator testing infrastructure is now fully implemented and operation
 - ✅ Complete documentation
 
 The system is ready for:
+
 1. Automated testing of C-EDASM development
 2. Comparison testing against original EDASM
 3. Continuous integration validation

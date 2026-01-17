@@ -24,6 +24,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 ## Recent Additions (2026-01-16)
 
 ### Emulator Testing Infrastructure (NEW!) 🎮
+
 - **MAME-based testing**: Automated testing against original Apple II EDASM
 - **Lua automation scripts**: Keyboard injection and screen monitoring for ProDOS/EDASM
 - **Disk management tools**: Create, inject, and extract ProDOS disk images with diskm8
@@ -34,6 +35,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - See [docs/EMULATOR_SETUP.md](docs/EMULATOR_SETUP.md) for setup guide
 
 ### Phase 7 Testing & Polish ✨
+
 - **Bug fixes**: DB/DFB and DW/DA directives now properly count comma-separated values in Pass 1
 - **Validation improvements**: Line range validation (auto-swap if reversed), symbol name length checking
 - **Comprehensive testing**: Created test_comprehensive.src validating all features together
@@ -42,6 +44,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - **Listing generation validated**: Complete assembly listings with symbol tables working perfectly
 
 ### Comprehensive Integration Test Suite ✨
+
 - **7 comprehensive integration tests** covering all major assembler features
 - **Basic instructions test**: LDA, STA, RTS and other common opcodes
 - **Addressing modes test**: All 9 6502 addressing modes validated
@@ -54,6 +57,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - **Manual validation**: All 14 test_*.src sample programs assemble successfully
 
 ### Expression Evaluation (COMPLETE!) ✨
+
 - **Arithmetic operators**: +, -, *, / (with proper precedence)
 - **Byte extraction**: < (low byte), > (high byte)
 - **Bitwise operators**: ^ (AND), | (OR), ! (XOR) - **EDASM syntax**
@@ -61,6 +65,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - Note: EDASM uses non-standard syntax: `^` for AND, `!` for XOR (not C-style `&`, `^`)
 
 ### Conditional Assembly (NEW!) ✨
+
 - **DO/IFNE directive**: Start conditional block, assemble if expression ≠ 0
 - **ELSE directive**: Alternate block (assemble if DO condition was false)
 - **FIN directive**: End conditional block
@@ -74,6 +79,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - Matches EDASM.SRC behavior from ASM3.S L90B7-L9122
 
 ### INCLUDE Directive ✨
+
 - **File inclusion**: Include external source files during assembly
 - **Path resolution**: Supports relative and absolute paths, quoted filenames
 - **Nesting prevention**: Prevents nested INCLUDE directives (matches original EDASM behavior)
@@ -82,6 +88,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - **Listing integration**: Included files appear in assembly listings with line numbers
 
 ### Linker (NEW!) ✨
+
 - **Complete 6-phase linker** for REL (relocatable) object files
 - Links multiple REL files into BIN, REL, or SYS output
 - **External reference resolution**: Resolves EXTERN symbols across modules
@@ -91,6 +98,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - Successfully tested with multi-module programs
 
 ### REL File Support ✨
+
 - **REL directive**: Enable relocatable code mode
 - **ENT/ENTRY directive**: Mark symbols as entry points
 - **EXT/EXTRN directive**: Declare external symbols
@@ -101,24 +109,28 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - Foundation for multi-module linking
 
 ### EXEC Command ✨
+
 - Execute commands from text files
 - Commands displayed with "+" prefix during execution
 - Automatic return to keyboard mode on EOF
 - Nested EXEC support (closes previous file before opening new)
 
 ### Control Directives ✨
+
 - **LST directive**: Control listing output (ON/OFF)
 - **MSB directive**: Set high bit on ASCII characters (ON/OFF)
 - **SBTL directive**: Subtitle for listing sections
 - Apple II text mode compatibility (MSB ON for inverse/flash text)
 
 ### INSERT Mode
+
 - Interactive line entry with line number prompts
 - Empty line exits INSERT mode  
 - Lines can be inserted at any position or appended at end
 - Displays count of lines inserted on exit
 
 ### Listing File Generation
+
 - Complete assembly listings with line numbers, addresses, and hex bytes
 - Multi-line hex dumps for instructions/data longer than 3 bytes
 - Configurable symbol table at end (2/4/6 columns)
@@ -131,12 +143,14 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 This project includes comprehensive documentation for verification and implementation:
 
 ### 📋 Verification Documentation (Start Here!)
+
 - **[VERIFICATION_QUICK_REF.md](docs/VERIFICATION_QUICK_REF.md)** - ⭐ One-page quick reference card for verification work
 - **[VERIFICATION_INDEX.md](docs/VERIFICATION_INDEX.md)** - Detailed feature-by-feature lookup table with cross-references
 - **[VERIFICATION_REPORT.md](docs/VERIFICATION_REPORT.md)** - Complete cross-reference between EDASM.SRC and C++ code
 - **[MISSING_FEATURES.md](docs/MISSING_FEATURES.md)** - Explicit documentation of what's NOT ported and why
 
 ### 📚 Implementation Documentation
+
 - **[PORTING_PLAN.md](docs/PORTING_PLAN.md)** - 14-week implementation roadmap with module mapping and status
 - **[ASSEMBLER_ARCHITECTURE.md](docs/ASSEMBLER_ARCHITECTURE.md)** - Two-pass assembler design and symbol table structure
 - **[COMMAND_REFERENCE.md](docs/COMMAND_REFERENCE.md)** - Complete command set documentation
@@ -197,6 +211,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 ## Implemented Features
 
 ### Editor Commands (Phase 2 - 95% Complete)
+
 - **File Operations**: LOAD, SAVE, CATALOG (directory listing)
 - **Text Editing**: LIST, **INSERT (interactive mode)**, DELETE (line ranges)
 - **Search & Replace**: FIND, CHANGE (with pattern matching)
@@ -205,6 +220,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - **Control**: **EXEC (run commands from file)**, PREFIX (set working directory), HELP
 
 ### Assembler (Phases 3-6 - Feature Complete)
+
 - **Two-pass assembly**: Symbol table building and code generation
 - **Full 6502 instruction set**: All addressing modes supported
 - **Expression evaluation**: Arithmetic (+, -, *, /), bitwise (^=AND, |=OR, !=XOR), byte extraction (<, >)
@@ -218,6 +234,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - **Symbol table**: Multi-column format (2/4/6 columns), sort by name or value, flag display
 
 ### Linker (Phase 6 - Complete!)
+
 - **Multi-module linking**: Link REL files into executable binaries
 - **Symbol resolution**: Resolve EXTERN references across modules
 - **Code relocation**: Apply RLD entries to relocate addresses
@@ -227,6 +244,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - Successfully links multi-module 6502 programs
 
 ### System Features (Phase 1 - Complete)
+
 - Command-line interface with dispatch table
 - ProDOS file type mapping (TXT, BIN, REL, SYS)
 - Line-based text buffer (std::vector<string>)
@@ -234,6 +252,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - ncurses screen wrapper
 
 ### Testing
+
 - **2 comprehensive test suites** with 100% pass rate
 - **test_editor**: Unit tests for all editor operations (LineRange parsing, FIND, CHANGE, MOVE, COPY, JOIN, SPLIT)
 - **test_assembler_integration**: 7 integration tests covering:
@@ -251,6 +270,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 ## Examples
 
 ### Running Tests
+
 ```bash
 # Run all unit tests
 cd build && ctest
@@ -263,6 +283,7 @@ cd build && ./tests/test_assembler_integration
 ```
 
 ### Emulator Testing (NEW!)
+
 ```bash
 # Setup emulator dependencies (MAME + diskm8)
 ./scripts/setup_emulator_deps.sh
@@ -271,11 +292,11 @@ cd build && ./tests/test_assembler_integration
 ./scripts/test_harness.sh all
 
 # Compare C-EDASM vs original EDASM output
-./scripts/compare_assemblers.sh test_simple.src
+./scripts/compare_assemblers.sh tests/test_simple.src
 
 # Manage ProDOS disk images
 ./scripts/disk_helper.sh create /tmp/test.2mg 140KB
-./scripts/disk_helper.sh inject /tmp/test.2mg test_simple.src
+./scripts/disk_helper.sh inject /tmp/test.2mg tests/test_simple.src
 ./scripts/disk_helper.sh list /tmp/test.2mg
 ./scripts/disk_helper.sh extract /tmp/test.2mg /tmp/output/
 
@@ -287,6 +308,7 @@ cd build && ./tests/test_assembler_integration
 See [docs/EMULATOR_SETUP.md](docs/EMULATOR_SETUP.md) for detailed setup and usage guide.
 
 ### Assemble with Listing
+
 ```bash
 # Assemble and generate listing file
 ./build/test_asm_listing source.src output.lst
@@ -296,6 +318,7 @@ See [docs/EMULATOR_SETUP.md](docs/EMULATOR_SETUP.md) for detailed setup and usag
 ```
 
 ### Example Listing Output
+
 ```
 Line# Addr  Bytes        Source
 ----- ----  ----------   ---------------------------
@@ -311,6 +334,7 @@ LOOP             $0807 RSTART            $0800 R
 ```
 
 ### Expression Examples
+
 ```asm
 ; Arithmetic
 LDA #$10+$20        ; Addition: $30
@@ -331,7 +355,9 @@ LDA #$FF!$AA        ; XOR (! in EDASM): $55
 ## Known Limitations & EDASM Syntax Notes
 
 ### Bitwise Operator Syntax
+
 **Important**: EDASM uses non-standard bitwise operator syntax:
+
 - `^` = AND (not XOR like in C)
 - `!` = XOR (not logical NOT)
 - `|` = OR (same as C)
@@ -339,18 +365,21 @@ LDA #$FF!$AA        ; XOR (! in EDASM): $55
 This matches the original Apple II EDASM behavior for compatibility.
 
 ### Feature Status
+
 - **Split buffer mode (SWAP)**: Not implemented (editor enhancement, low priority)
 - **BCD line numbers**: Partial implementation (cosmetic feature, low priority)
 - **Macro support (MACLIB)**: Not implemented (was incomplete/buggy in original EDASM)
 - **Pass 1 addressing mode optimization**: Pass 1 assumes 3-byte absolute addressing for all non-immediate instructions; Pass 2 corrects this, so no functional impact
 
 ### Known Edge Cases
+
 - **Division by zero**: Returns 0 (matches 6502 behavior where division errors are silent)
 - **Undefined symbols**: Evaluate to $0000 in Pass 2 (standard assembler behavior)
 - **Symbol name length**: Accepts 1-16 characters per EDASM spec (longer names silently allowed but not recommended)
 - **Line range validation**: Automatically swaps reversed ranges (e.g., "20,10" becomes "10,20") for user convenience
 
 ### Comparison to Original EDASM
+
 - ✅ Command syntax: 100% compatible
 - ✅ Assembler directives: 100% compatible
 - ✅ 6502 instruction set: Complete
