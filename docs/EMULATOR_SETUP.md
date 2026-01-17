@@ -5,6 +5,7 @@ This guide explains how to set up and use the MAME-based emulator testing infras
 ## Overview
 
 The emulator testing system allows us to:
+
 1. Run the original Apple II EDASM in MAME
 2. Assemble test source files with the original EDASM
 3. Extract the output files (BIN, REL, LST)
@@ -15,33 +16,39 @@ The emulator testing system allows us to:
 ### 1. Install Dependencies
 
 Run the automated setup script:
+
 ```bash
 ./scripts/setup_emulator_deps.sh
 ```
 
 This will install:
+
 - **MAME**: Apple II emulator
 - **cadius**: ProDOS disk image management tool (C++)
 
 ### 2. Initialize Submodule
 
 Ensure the EdAsm submodule is initialized to access the original EDASM disk image:
+
 ```bash
 git submodule update --init --recursive
 ```
 
 This provides:
+
 - `third_party/EdAsm/EDASM_SRC.2mg` - Bootable ProDOS disk with EDASM.SYSTEM
 - `third_party/EdAsm/EDASM.SRC/` - Original 6502 source code for reference
 
 ### 3. Run Tests
 
 Run the boot test (demonstrates MAME + EDASM launch):
+
 ```bash
 ./scripts/run_emulator_test.sh boot
 ```
 
 Or run the full assembly test (load, assemble, save):
+
 ```bash
 ./scripts/run_emulator_test.sh assemble
 ```
@@ -51,6 +58,7 @@ Or run the full assembly test (load, assemble, save):
 If the automated script doesn't work for your system, you can install manually:
 
 ### Ubuntu/Debian
+
 ```bash
 # Install MAME
 sudo apt-get update
@@ -64,6 +72,7 @@ cd /tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make 
 ```
 
 ### macOS
+
 ```bash
 # Install Homebrew if not already installed
 # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -98,7 +107,9 @@ C-EDASM/
 ## Test Workflow
 
 ### Boot Test
+
 The boot test demonstrates basic MAME automation:
+
 1. Boot ProDOS from EDASM_SRC.2mg
 2. Wait for ProDOS prompt
 3. Launch EDASM.SYSTEM
@@ -107,7 +118,9 @@ The boot test demonstrates basic MAME automation:
 **Current Status**: Prototype - timing-based, no keyboard injection yet
 
 ### Assembly Test
+
 The assembly test demonstrates a complete workflow:
+
 1. Create a test disk with sample .src files
 2. Boot ProDOS and launch EDASM
 3. Load a source file from the test disk
@@ -120,6 +133,7 @@ The assembly test demonstrates a complete workflow:
 ## Implementation Status
 
 ### ✅ Completed
+
 - [x] Documentation and planning
 - [x] Prototype Lua scripts
 - [x] Setup and wrapper scripts
@@ -127,12 +141,14 @@ The assembly test demonstrates a complete workflow:
 - [x] Basic MAME integration concept
 
 ### 🚧 In Progress (Phase 2)
+
 - [ ] Proper keyboard injection using MAME's ioport API
 - [ ] Screen memory monitoring for prompts
 - [ ] Robust timing and state detection
 - [ ] Error handling and verification
 
 ### 📋 Planned (Phase 3+)
+
 - [ ] Automated comparison tools
 - [ ] Test harness for all sample .src files
 - [ ] Golden output management
@@ -141,6 +157,7 @@ The assembly test demonstrates a complete workflow:
 ## Common Issues
 
 ### MAME not found
+
 ```bash
 # Check if MAME is installed
 which mame
@@ -150,6 +167,7 @@ which mame
 ```
 
 ### cadius not found
+
 ```bash
 # Check if cadius is installed
 which cadius
@@ -162,6 +180,7 @@ export PATH="$PATH:$HOME/go/bin"
 ```
 
 ### EdAsm submodule not initialized
+
 ```bash
 # Initialize the submodule
 git submodule update --init --recursive
@@ -171,6 +190,7 @@ ls -la third_party/EdAsm/EDASM_SRC.2mg
 ```
 
 ### MAME keyboard not working
+
 This is expected in the current prototype phase. The Lua scripts use placeholder functions for keyboard injection. See `tests/emulator/README.md` for implementation requirements.
 
 ## MAME Usage
@@ -178,11 +198,13 @@ This is expected in the current prototype phase. The Lua scripts use placeholder
 ### Basic MAME Commands
 
 Run MAME with EDASM disk:
+
 ```bash
 mame apple2e -flop1 third_party/EdAsm/EDASM_SRC.2mg
 ```
 
 Run headless (no video/sound):
+
 ```bash
 mame apple2e \
   -flop1 third_party/EdAsm/EDASM_SRC.2mg \
@@ -190,6 +212,7 @@ mame apple2e \
 ```
 
 Run with automation script:
+
 ```bash
 mame apple2e \
   -flop1 third_party/EdAsm/EDASM_SRC.2mg \
@@ -198,6 +221,7 @@ mame apple2e \
 ```
 
 Run with multiple disks:
+
 ```bash
 mame apple2e \
   -flop1 third_party/EdAsm/EDASM_SRC.2mg \
@@ -209,26 +233,31 @@ mame apple2e \
 ### cadius Usage
 
 Create a ProDOS disk image:
+
 ```bash
 cadius CREATEVOLUME mydisk.2mg MYDISK 140KB
 ```
 
 List disk contents:
+
 ```bash
 cadius CATALOG mydisk.2mg
 ```
 
 Inject a file into disk:
+
 ```bash
 cadius ADDFILE mydisk.2mg /MYDISK/ myfile.src
 ```
 
 Extract all files from disk:
+
 ```bash
 diskm8 extract mydisk.2mg /output/directory/
 ```
 
 Extract a specific file:
+
 ```bash
 cadius EXTRACTFILE mydisk.2mg /MYDISK/FILENAME /output/directory/
 ```
@@ -236,6 +265,7 @@ cadius EXTRACTFILE mydisk.2mg /MYDISK/FILENAME /output/directory/
 ## CI/CD Integration
 
 The GitHub Actions workflow (`.github/workflows/emulator-tests.yml`) automatically:
+
 1. Installs MAME and cadius
 2. Initializes the EdAsm submodule
 3. Builds C-EDASM
@@ -271,12 +301,14 @@ To make the emulator tests production-ready:
 ## Resources
 
 ### Documentation
+
 - [DEBUGGER_EMULATOR_PLAN.md](../docs/DEBUGGER_EMULATOR_PLAN.md) - Original planning document
 - [EMULATOR_INVESTIGATION_REPORT.md](../docs/EMULATOR_INVESTIGATION_REPORT.md) - Detailed analysis
 - [EMULATOR_DECISION_MATRIX.md](../docs/EMULATOR_DECISION_MATRIX.md) - Decision framework
 - [tests/emulator/README.md](../tests/emulator/README.md) - Implementation guide
 
 ### External Links
+
 - [MAME Documentation](https://docs.mamedev.org/)
 - [MAME Lua Scripting](https://docs.mamedev.org/luascript/index.html)
 - [cadius GitHub](https://github.com/mach-kernel/cadius)
@@ -285,6 +317,7 @@ To make the emulator tests production-ready:
 ## Contributing
 
 When improving the emulator testing infrastructure:
+
 1. Test thoroughly with actual hardware/emulator
 2. Document Apple II-specific behaviors
 3. Keep scripts modular and reusable
