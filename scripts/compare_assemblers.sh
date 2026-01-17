@@ -39,13 +39,8 @@ check_emulator() {
         missing+=("mame")
     fi
     
-    if ! command -v diskm8 &> /dev/null; then
-        GOPATH="${GOPATH:-$HOME/go}"
-        if [[ ! -f "$GOPATH/bin/diskm8" ]]; then
-            missing+=("diskm8")
-        else
-            export PATH="$PATH:$GOPATH/bin"
-        fi
+    if ! command -v cadius &> /dev/null && [[ ! -x "/tmp/cadius/cadius" ]]; then
+        missing+=("cadius")
     fi
     
     if [[ ${#missing[@]} -gt 0 ]]; then

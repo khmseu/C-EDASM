@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Setup script for emulator testing dependencies
-# Installs MAME and diskm8 required for automated testing against original EDASM
+# Installs MAME and cadius required for automated testing against original EDASM
 
 set -euo pipefail
 
@@ -81,9 +81,16 @@ ensure_go_version() {
     echo "✓ Go $REQUIRED_GO_VERSION installed"
 }
 
-diskm8_version() {
-    # Report the resolved binary path without launching interactive mode
-    command -v diskm8 2>/dev/null
+cadius_version() {
+    # Check for cadius in various locations
+    if command -v cadius &>/dev/null; then
+        echo "cadius ($(command -v cadius))"
+        return 0
+    elif [[ -x "/tmp/cadius/cadius" ]]; then
+        echo "cadius (/tmp/cadius/cadius)"
+        return 0
+    fi
+    return 1
 }
 
 echo "=== EDASM Emulator Dependencies Setup ==="
@@ -140,41 +147,45 @@ install_mame() {
     fi
 }
 
-# Install diskm8 (Go-based ProDOS disk image tool)
-install_diskm8() {
+# Install cadius (C++-based ProDOS disk image tool)
+install_cadius() {
     echo ""
-    echo "Installing diskm8..."
-
-    if command -v diskm8 &>/dev/null; then
+    echo "Installing cadius..."
+    
+    if cadius_version &>/dev/null; then
         local ver
-        ver="$(diskm8_version || true)"
-        echo "✓ diskm8 already installed: ${ver:-available}"
+        ver="$(cadius_version || true)"
+        echo "✓ cadius already available: ${ver:-available}"
         return 0
     fi
-
-    ensure_go_version
-
-    # Install diskm8 using go install
-    echo "Installing diskm8 from GitHub (module root)..."
-    # Upstream exposes the CLI at the module root (no cmd/ subdir)
-    go install github.com/paleotronic/diskm8@latest
-
-    # Check if diskm8 is in PATH
-    if command -v diskm8 &>/dev/null; then
-        local ver
-        ver="$(diskm8_version || true)"
-        echo "✓ diskm8 installed successfully (${ver:-available})"
-    else
-        # Try to find it in GOPATH
-        GOPATH="${GOPATH:-$HOME/go}"
-        if [[ -f "$GOPATH/bin/diskm8" ]]; then
-            echo "✓ diskm8 installed to $GOPATH/bin/diskm8"
-            echo "Note: You may need to add $GOPATH/bin to your PATH:"
-            echo "  export PATH=\"\$PATH:$GOPATH/bin\""
-        else
-            echo "✗ diskm8 installation failed"
-            return 1
+    
+    echo "📦 Installing build dependencies..."
+    # Install build tools
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get update >/dev/null 2>&1
+        sudo apt-get install -y build-essential cmake git >/dev/null 2>&1
+    elif command -v brew &>/dev/null; then
+        brew install cmake git >/dev/null 2>&1
+    fi
+    
+    echo "🔧 Building cadius from source..."
+    (
+        cd /tmp
+        if [[ -d cadius ]]; then
+            rm -rf cadius
         fi
+        git clone https://github.com/mach-kernel/cadius >/dev/null 2>&1
+        cd cadius
+        make >/dev/null 2>&1
+    )
+    
+    # Check if cadius built successfully
+    if [[ -x "/tmp/cadius/cadius" ]]; then
+        echo "✓ cadius built successfully at /tmp/cadius/cadius"
+        return 0
+    else
+        echo "✗ cadius build failed"
+        return 1
     fi
 }
 
@@ -235,8 +246,8 @@ main() {
     install_mame
     MAME_OK=$?
 
-    install_diskm8
-    DISKM8_OK=$?
+    install_cadius
+    CADIUS_OK=$?
 
     echo ""
     echo "=== Installation Summary ==="
@@ -247,10 +258,10 @@ main() {
         echo "✗ MAME: Not available"
     fi
 
-    if [[ $DISKM8_OK -eq 0 ]]; then
-        echo "✓ diskm8: Ready"
+    if [[ $CADIUS_OK -eq 0 ]]; then
+        echo "✓ cadius: Ready"
     else
-        echo "✗ diskm8: Not available (may need to add to PATH)"
+        echo "✗ cadius: Not available (may need to add to PATH)"
     fi
 
     # Check for ROM files
@@ -259,7 +270,7 @@ main() {
 
     echo ""
 
-    if [[ $MAME_OK -eq 0 && $DISKM8_OK -eq 0 ]]; then
+    if [[ $MAME_OK -eq 0 && $CADIUS_OK -eq 0 ]]; then
         echo "All software dependencies installed successfully!"
         echo ""
         if [[ $ROM_OK -ne 0 ]]; then

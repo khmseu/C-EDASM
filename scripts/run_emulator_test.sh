@@ -213,7 +213,8 @@ create_test_disk() {
         rm "$test_disk"
     fi
 
-    diskm8 create "$test_disk" 140KB
+    # Use disk_helper.sh for disk operations
+    "$SCRIPT_DIR/disk_helper.sh" create "$test_disk" 140KB TESTDSK
 
     # Inject test source files
     echo "Injecting test files..."
@@ -227,7 +228,7 @@ create_test_disk() {
         if [[ -f $src_file ]]; then
             local basename=$(basename "$src_file")
             echo "  - $basename"
-            diskm8 inject "$test_disk" "$src_file"
+            "$SCRIPT_DIR/disk_helper.sh" inject "$test_disk" "$src_file"
         fi
     done
 
@@ -316,12 +317,12 @@ extract_results() {
     echo ""
     echo "Extracting results from test disk..."
 
-    diskm8 ls "$TEST_WORK_DIR/test_disk.2mg" >"$TEST_WORK_DIR/disk_listing.txt"
+    "$SCRIPT_DIR/disk_helper.sh" list "$TEST_WORK_DIR/test_disk.2mg" >"$TEST_WORK_DIR/disk_listing.txt"
     echo "Disk contents:"
     cat "$TEST_WORK_DIR/disk_listing.txt"
 
     # Try to extract all files
-    diskm8 extract "$TEST_WORK_DIR/test_disk.2mg" "$TEST_WORK_DIR/results/" || true
+    "$SCRIPT_DIR/disk_helper.sh" extract "$TEST_WORK_DIR/test_disk.2mg" "$TEST_WORK_DIR/results/" || true
 
     echo ""
     echo "Results extracted to: $TEST_WORK_DIR/results/"

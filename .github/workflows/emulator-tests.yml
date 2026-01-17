@@ -37,16 +37,23 @@ jobs:
                   ln -s "$ROM_DIR" "$HOME/.mame/roms" 2>/dev/null || true
                   mame -rompath "$ROM_DIR" -verifyroms apple2gs || mame -verifyroms apple2gs
 
-            - name: Install diskm8
+            - name: Install cadius
               run: |
-                  go install github.com/paleotronic/diskm8@latest
+                  # Install build dependencies
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential cmake git
+                  
+                  # Build cadius
+                  cd /tmp
+                  git clone https://github.com/mach-kernel/cadius
+                  cd cadius
+                  make
                   echo "$HOME/go/bin" >> $GITHUB_PATH
 
-            - name: Verify diskm8 installation
+            - name: Verify cadius installation
               run: |
-                  export PATH="$PATH:$HOME/go/bin"
-                  diskm8 version || echo "diskm8 installed (version command may not be available)"
-                  ls -la $HOME/go/bin/diskm8
+                  # Check if cadius was built successfully
+                  /tmp/cadius/cadius --help || echo "cadius built (help command may not be available)"
 
             - name: Configure C-EDASM
               run: ./scripts/configure.sh
