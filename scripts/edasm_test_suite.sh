@@ -282,6 +282,8 @@ cmd_setup_original() {
 
 # Run full emulator test
 cmd_emulator_test() {
+    local interactive="${1:-false}"
+    
     log "Running emulator integration test..."
 
     if ! command -v mame &>/dev/null; then
@@ -296,21 +298,35 @@ cmd_emulator_test() {
         cmd_setup_original
     fi
 
-    log "Starting MAME with Apple IIe..."
+    log "Starting MAME with Apple IIGS..."
     log "Boot disk: ${BOOT_DISK}"
     log "Work disk: ${work_disk}"
 
-    # Run MAME (will open window for manual testing)
-    mame apple2gs \
-        -flop1 "${BOOT_DISK}" \
-        -flop3 "${work_disk}" \
-        -window ||
-        true
+    if [[ "${interactive}" == "true" ]]; then
+        # Interactive mode with window
+        mame apple2gs \
+            -flop1 "${BOOT_DISK}" \
+            -flop3 "${work_disk}" \
+            -window ||
+            true
+    else
+        # Automated mode - headless
+        mame apple2gs \
+            -flop1 "${BOOT_DISK}" \
+            -flop3 "${work_disk}" \
+            -video none \
+            -sound none \
+            -nothrottle \
+            -seconds_to_run 30 ||
+            true
+    fi
 
     success "MAME session completed"
 
     # Check for any output files
     log "Checking for results..."
+    local cadius_cmd
+    cadius_cmd="$(get_cadius)"
     if "${cadius_cmd}" CATALOG "${work_disk}" | grep -i "\.bin\|\.obj\|\.lst" >/dev/null 2>&1; then
         success "Found output files on work disk"
     else
@@ -348,7 +364,7 @@ Commands:
   test-cedasm              Test C-EDASM assembler with all test files
   compare <file.src>       Compare C-EDASM vs reference for single file
   setup-original          Setup original EDASM environment for testing
-  emulator-test           Run full emulation test with MAME
+  emulator-test [--interactive] Run emulator integration test
   full-comparison         Run comprehensive C-EDASM vs Original comparison
   
 Options:
@@ -360,7 +376,8 @@ Examples:
   ${0} test-cedasm                    # Test all C-EDASM functionality
   ${0} compare tests/test_simple.src  # Compare specific file
   ${0} setup-original                 # Setup original EDASM environment
-  ${0} emulator-test                  # Run MAME-based testing
+  ${0} emulator-test                  # Run automated emulator test
+  ${0} emulator-test --interactive    # Run interactive MAME session
   ${0} full-comparison                # Complete comparison workflow
 
 Features:
@@ -428,7 +445,12 @@ main() {
         cmd_setup_original "$@"
         ;;
     emulator-test)
-        cmd_emulator_test "$@"
+        local interactive="false"
+        if [[ $# -gt 0 && "$1" == "--interactive" ]]; then
+            interactive="true"
+            shift
+        fi
+        cmd_emulator_test "${interactive}"
         ;;
     full-comparison)
         cmd_full_comparison "$@"
