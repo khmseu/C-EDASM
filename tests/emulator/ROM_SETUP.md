@@ -81,7 +81,7 @@ mkdir -p $HOME/mame/roms
 
 ```bash
 # Download apple2e.zip from Internet Archive Emularity BIOS
-cd /tmp
+cd ./tmp
 wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip
 
 # Copy to MAME ROM directory (do not extract)

@@ -66,7 +66,7 @@ ensure_go_version() {
 
     local archive="go${REQUIRED_GO_VERSION}.${go_os}-${go_arch}.tar.gz"
     local url="https://go.dev/dl/${archive}"
-    local tmpfile="/tmp/${archive}"
+    local tmpfile="${PROJECT_ROOT}/tmp/${archive}"
 
     echo "Downloading Go ${REQUIRED_GO_VERSION}..."
     download_tool "${url}" "${tmpfile}"
@@ -86,8 +86,8 @@ cadius_version() {
     if command -v cadius &>/dev/null; then
         echo "cadius ($(command -v cadius))"
         return 0
-    elif [[ -x "/tmp/cadius/cadius" ]]; then
-        echo "cadius (/tmp/cadius/cadius)"
+    elif [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
+        echo "cadius (${PROJECT_ROOT}/tmp/cadius/cadius)"
         return 0
     fi
     return 1
@@ -170,7 +170,7 @@ install_cadius() {
 
     echo "🔧 Building cadius from source..."
     (
-        cd /tmp
+        cd "${PROJECT_ROOT}/tmp"
         if [[ -d cadius ]]; then
             rm -rf cadius
         fi
@@ -180,8 +180,8 @@ install_cadius() {
     )
 
     # Check if cadius built successfully
-    if [[ -x "/tmp/cadius/cadius" ]]; then
-        echo "✓ cadius built successfully at /tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
+        echo "✓ cadius built successfully at ${PROJECT_ROOT}/tmp/cadius/cadius"
         return 0
     else
         echo "✗ cadius build failed"

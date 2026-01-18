@@ -478,23 +478,23 @@ ac -p mydisk.2mg newfile.bin PRODOS
 
 ```bash
 # 1. Prepare test disk
-cadius CREATEVOLUME /tmp/test_disk.2mg TESTDSK 140KB
-cadius ADDFILE /tmp/test_disk.2mg /TESTDSK/ tests/test_simple.src
+cadius CREATEVOLUME ./tmp/test_disk.2mg TESTDSK 140KB
+cadius ADDFILE ./tmp/test_disk.2mg /TESTDSK/ tests/test_simple.src
 
 # 2. Run MAME with automation script
 mame apple2e \
   -flop1 third_party/EdAsm/EDASM_SRC.2mg \
-  -flop2 /tmp/test_disk.2mg \
+  -flop2 ./tmp/test_disk.2mg \
   -video none -sound none -nothrottle \
   -autoboot_delay 2 \
   -autoboot_script tests/emulator/assemble_test.lua
 
 # 3. Extract results
-cadius EXTRACTVOLUME /tmp/test_disk.2mg /tmp/edasm_output/
+cadius EXTRACTVOLUME ./tmp/test_disk.2mg ./tmp/edasm_output/
 
 # 4. Compare with C-EDASM
-./build/edasm_cli tests/test_simple.src -o /tmp/cedasm_output.bin
-diff /tmp/edasm_output/TEST_SIMPLE.BIN /tmp/cedasm_output.bin
+./build/edasm_cli tests/test_simple.src -o ./tmp/cedasm_output.bin
+diff ./tmp/edasm_output/TEST_SIMPLE.BIN ./tmp/cedasm_output.bin
 ```
 
 ---

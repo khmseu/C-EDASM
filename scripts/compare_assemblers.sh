@@ -6,7 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-WORK_DIR="${WORK_DIR:-/tmp/edasm-comparison}"
+WORK_DIR="${WORK_DIR:-${PROJECT_ROOT}/tmp/edasm-comparison}"
 
 # Colors
 RED='\033[0;31m'
@@ -39,7 +39,7 @@ check_emulator() {
         missing+=("mame")
     fi
 
-    if ! command -v cadius &>/dev/null && [[ ! -x "/tmp/cadius/cadius" ]]; then
+    if ! command -v cadius &>/dev/null && [[ ! -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
         missing+=("cadius")
     fi
 

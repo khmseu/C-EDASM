@@ -6,7 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-TEST_RESULTS_DIR="${TEST_RESULTS_DIR:-/tmp/edasm-test-results}"
+TEST_RESULTS_DIR="${TEST_RESULTS_DIR:-${PROJECT_ROOT}/tmp/edasm-test-results}"
 
 # Colors
 RED='\033[0;31m'

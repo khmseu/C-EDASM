@@ -450,7 +450,7 @@ void test_chn_directive() {
     std::cout << "Testing CHN directive..." << std::endl;
 
     // Create temporary chain file
-    std::ofstream chain_file("/tmp/test_chn_chain.src");
+    std::ofstream chain_file("tmp/test_chn_chain.src");
     chain_file << "        ; This is the chained file\n";
     chain_file << "        LDX #$10\n";
     chain_file << "        RTS\n";
@@ -461,7 +461,7 @@ void test_chn_directive() {
     std::string source = R"(
         ORG $1000
 START   LDA #$01
-        CHN "/tmp/test_chn_chain.src"
+        CHN "tmp/test_chn_chain.src"
         BRK
 )";
 
@@ -490,14 +490,14 @@ void test_chn_from_include_error() {
     std::cout << "Testing CHN from INCLUDE error..." << std::endl;
 
     // Create a temporary include file with CHN (which should fail)
-    std::ofstream temp_include("/tmp/test_include_with_chn.src");
+    std::ofstream temp_include("tmp/test_include_with_chn.src");
     temp_include << "        LDA #$01\n";
     temp_include << "        CHN \"test_chn_chain.src\"\n";
     temp_include.close();
 
     std::string source = R"(
         ORG $1000
-        INCLUDE "/tmp/test_include_with_chn.src"
+        INCLUDE "tmp/test_include_with_chn.src"
         END
 )";
 

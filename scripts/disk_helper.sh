@@ -16,11 +16,11 @@ NC='\033[0m'
 
 # Check if cadius is available
 check_cadius() {
-    local cadius_path="/tmp/cadius/cadius"
+    local cadius_path="${PROJECT_ROOT}${PROJECT_ROOT}/tmp/cadius/cadius"
     if [[ ! -x ${cadius_path} ]] && ! command -v cadius &>/dev/null; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
-            cd /tmp
+            cd "${PROJECT_ROOT}/tmp"
             if [[ ! -d cadius ]]; then
                 git clone https://github.com/mach-kernel/cadius >/dev/null 2>&1
             fi
@@ -48,8 +48,8 @@ create_disk() {
     fi
 
     local cadius_cmd="cadius"
-    if [[ -x "/tmp/cadius/cadius" ]]; then
-        cadius_cmd="/tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
+        cadius_cmd="${PROJECT_ROOT}/tmp/cadius/cadius"
     fi
 
     "${cadius_cmd}" CREATEVOLUME "${disk_path}" "${volume_name}" "${size}"
@@ -76,8 +76,8 @@ inject_file() {
     echo "  Injecting: ${filename}"
 
     local cadius_cmd="cadius"
-    if [[ -x "/tmp/cadius/cadius" ]]; then
-        cadius_cmd="/tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
+        cadius_cmd="${PROJECT_ROOT}/tmp/cadius/cadius"
     fi
 
     # If no destination path provided, use root
@@ -117,8 +117,8 @@ list_disk() {
     echo -e "${BLUE}Disk contents: ${disk_path}${NC}"
 
     local cadius_cmd="cadius"
-    if [[ -x "/tmp/cadius/cadius" ]]; then
-        cadius_cmd="/tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
+        cadius_cmd="${PROJECT_ROOT}/tmp/cadius/cadius"
     fi
 
     "${cadius_cmd}" CATALOG "${disk_path}"
@@ -151,7 +151,7 @@ extract_disk() {
     fi
 
     # Check if cadius is available
-    local cadius_path="/tmp/cadius/cadius"
+    local cadius_path="${PROJECT_ROOT}${PROJECT_ROOT}/tmp/cadius/cadius"
     if [[ ! -x ${cadius_path} ]]; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
@@ -216,7 +216,7 @@ extract_disk() {
 
 # Create a test disk with sample source files
 create_test_disk() {
-    local disk_path="${1:-/tmp/edasm_test_disk.2mg}"
+    local disk_path="${1:-${PROJECT_ROOT}/tmp/edasm_test_disk.2mg}"
 
     echo -e "${BLUE}Creating test disk with sample sources${NC}"
 
@@ -304,22 +304,22 @@ Commands:
 
 Examples:
   # Create a new disk
-  ${0} create /tmp/mydisk.2mg 140KB
+  ${0} create ${PROJECT_ROOT}/tmp/mydisk.2mg 140KB
   
   # Inject a single file
-  ${0} inject /tmp/mydisk.2mg tests/test_simple.src
+  ${0} inject ${PROJECT_ROOT}/tmp/mydisk.2mg tests/test_simple.src
   
   # Inject multiple files
-  ${0} inject-many /tmp/mydisk.2mg test_*.src
+  ${0} inject-many ${PROJECT_ROOT}/tmp/mydisk.2mg test_*.src
   
   # List disk contents
-  ${0} list /tmp/mydisk.2mg
+  ${0} list ${PROJECT_ROOT}/tmp/mydisk.2mg
   
   # Extract all files
-  ${0} extract /tmp/mydisk.2mg /tmp/output/
+  ${0} extract ${PROJECT_ROOT}/tmp/mydisk.2mg ${PROJECT_ROOT}/tmp/output/
   
   # Create test disk with all sample sources
-  ${0} test-disk /tmp/test.2mg
+  ${0} test-disk ${PROJECT_ROOT}/tmp/test.2mg
   
   # Compare two binaries
   ${0} compare original.bin cedasm.bin

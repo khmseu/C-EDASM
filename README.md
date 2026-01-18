@@ -295,10 +295,10 @@ cd build && ./tests/test_assembler_integration
 ./scripts/compare_assemblers.sh tests/test_simple.src
 
 # Manage ProDOS disk images
-./scripts/disk_helper.sh create /tmp/test.2mg 140KB
-./scripts/disk_helper.sh inject /tmp/test.2mg tests/test_simple.src
-./scripts/disk_helper.sh list /tmp/test.2mg
-./scripts/disk_helper.sh extract /tmp/test.2mg /tmp/output/
+./scripts/disk_helper.sh create ./tmp/test.2mg 140KB
+./scripts/disk_helper.sh inject ./tmp/test.2mg tests/test_simple.src
+./scripts/disk_helper.sh list ./tmp/test.2mg
+./scripts/disk_helper.sh extract ./tmp/test.2mg ./tmp/output/
 
 # Run MAME with EDASM automation
 ./scripts/run_emulator_test.sh boot      # Boot test

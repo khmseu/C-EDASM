@@ -95,12 +95,12 @@ end
 
 ```bash
 # Create and populate a disk
-./scripts/disk_helper.sh create /tmp/test.2mg 140KB
-./scripts/disk_helper.sh inject-many /tmp/test.2mg test_*.src
-./scripts/disk_helper.sh list /tmp/test.2mg
+./scripts/disk_helper.sh create ../tmp/test.2mg 140KB
+./scripts/disk_helper.sh inject-many ../tmp/test.2mg test_*.src
+./scripts/disk_helper.sh list ../tmp/test.2mg
 
 # Extract results
-./scripts/disk_helper.sh extract /tmp/test.2mg /tmp/output/
+./scripts/disk_helper.sh extract ./tmp/test.2mg ./tmp/output/
 
 # Compare binaries
 ./scripts/disk_helper.sh compare file1.bin file2.bin
@@ -133,7 +133,7 @@ end
 ⚠ Original EDASM output: Not found (manual assembly required)
 
 C-EDASM assembly successful. Place original output at:
-  /tmp/edasm-comparison/original/test_simple.bin
+  ../tmp/edasm-comparison/original/test_simple.bin
 
 Then re-run comparison.
 ```
@@ -283,11 +283,11 @@ git submodule update --init --recursive
 
 ```bash
 # Create test disk
-./scripts/disk_helper.sh test-disk /tmp/test.2mg
+./scripts/disk_helper.sh test-disk ../tmp/test.2mg
 
 # Manage disk contents
-./scripts/disk_helper.sh list /tmp/test.2mg
-./scripts/disk_helper.sh extract /tmp/test.2mg /tmp/output/
+./scripts/disk_helper.sh list ./tmp/test.2mg
+./scripts/disk_helper.sh extract ./tmp/test.2mg ./tmp/output/
 ```
 
 ---

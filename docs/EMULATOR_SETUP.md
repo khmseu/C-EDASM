@@ -68,7 +68,7 @@ sudo apt-get install -y mame
 sudo apt-get install -y build-essential cmake git
 
 # Install cadius
-cd /tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make && sudo cp bin/release/cadius /usr/local/bin/
+cd ./tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make && sudo cp bin/release/cadius /usr/local/bin/
 ```
 
 ### macOS
@@ -84,7 +84,7 @@ brew install mame
 brew install cmake git
 
 # Install cadius
-cd /tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make && cp bin/release/cadius /usr/local/bin/
+cd ./tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make && cp bin/release/cadius /usr/local/bin/
 export PATH="$PATH:$HOME/go/bin"
 ```
 
@@ -225,7 +225,7 @@ Run with multiple disks:
 ```bash
 mame apple2e \
   -flop1 third_party/EdAsm/EDASM_SRC.2mg \
-  -flop2 /tmp/test_disk.2mg \
+  -flop2 ./tmp/test_disk.2mg \
   -video none -sound none -nothrottle \
   -autoboot_script tests/emulator/assemble_test.lua
 ```

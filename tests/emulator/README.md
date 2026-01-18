@@ -43,18 +43,18 @@ More complete automation script that demonstrates:
 
 ```bash
 # First, create and populate test disk
-cadius CREATEVOLUME /tmp/test_disk.2mg TESTDSK 140KB
-cadius ADDFILE /tmp/test_disk.2mg /TESTDSK/ ../test_simple.src
+cadius CREATEVOLUME ./tmp/test_disk.2mg TESTDSK 140KB
+cadius ADDFILE ./tmp/test_disk.2mg /TESTDSK/ ../test_simple.src
 
 # Run MAME with automation
 mame apple2e \
   -flop1 third_party/EdAsm/EDASM_SRC.2mg \
-  -flop2 /tmp/test_disk.2mg \
+  -flop2 ./tmp/test_disk.2mg \
   -video none -sound none -nothrottle \
   -autoboot_script tests/emulator/assemble_test.lua
 
 # Extract results
-cadius EXTRACTVOLUME /tmp/test_disk.2mg /tmp/results/
+cadius EXTRACTVOLUME ./tmp/test_disk.2mg ./tmp/results/
 ```
 
 ## Important Notes
