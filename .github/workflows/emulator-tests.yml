@@ -66,7 +66,7 @@ jobs:
             - name: Test emulator setup (boot test)
               run: |
                   export PATH="$PATH:$HOME/go/bin"
-                  ./scripts/run_emulator_test.sh boot
+                  ./scripts/edasm_test_suite.sh emulator-test
               continue-on-error: true # Expected to skip in CI without display/GPU
 
             - name: Upload test artifacts

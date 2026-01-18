@@ -289,10 +289,10 @@ cd build && ./tests/test_assembler_integration
 ./scripts/setup_emulator_deps.sh
 
 # Run automated test harness on all test programs
-./scripts/test_harness.sh all
+./scripts/edasm_test_suite.sh test-cedasm
 
-# Compare C-EDASM vs original EDASM output
-./scripts/compare_assemblers.sh tests/test_simple.src
+# Compare C-EDASM vs reference implementation
+./scripts/edasm_test_suite.sh compare tests/test_simple.src
 
 # Manage ProDOS disk images
 ./scripts/disk_helper.sh create ./tmp/test.2mg 140KB
@@ -300,9 +300,9 @@ cd build && ./tests/test_assembler_integration
 ./scripts/disk_helper.sh list ./tmp/test.2mg
 ./scripts/disk_helper.sh extract ./tmp/test.2mg ./tmp/output/
 
-# Run MAME with EDASM automation
-./scripts/run_emulator_test.sh boot      # Boot test
-./scripts/run_emulator_test.sh assemble  # Assembly workflow test
+# Run MAME with unified test suite
+./scripts/edasm_test_suite.sh emulator-test      # Boot and emulation test
+./scripts/edasm_test_suite.sh full-comparison    # Complete workflow test
 ```
 
 See [docs/EMULATOR_SETUP.md](docs/EMULATOR_SETUP.md) for detailed setup and usage guide.

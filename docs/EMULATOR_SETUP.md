@@ -44,13 +44,13 @@ This provides:
 Run the boot test (demonstrates MAME + EDASM launch):
 
 ```bash
-./scripts/run_emulator_test.sh boot
+./scripts/edasm_test_suite.sh emulator-test
 ```
 
 Or run the full assembly test (load, assemble, save):
 
 ```bash
-./scripts/run_emulator_test.sh assemble
+./scripts/edasm_test_suite.sh full-comparison
 ```
 
 ## Manual Setup (Alternative)
@@ -94,7 +94,7 @@ export PATH="$PATH:$HOME/go/bin"
 C-EDASM/
 ├── scripts/
 │   ├── setup_emulator_deps.sh   # Dependency installation
-│   └── run_emulator_test.sh     # Test runner wrapper
+│   └── edasm_test_suite.sh      # Unified test suite
 ├── tests/emulator/
 │   ├── README.md                # Implementation guide
 │   ├── boot_test.lua            # Prototype: Boot ProDOS + launch EDASM

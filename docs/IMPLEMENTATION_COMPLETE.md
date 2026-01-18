@@ -115,14 +115,14 @@ end
 - Writes binary files for comparison
 - Python-based for portability
 
-**compare_assemblers.sh:**
+**edasm_test_suite.sh (compare command):**
 
-- Automated comparison workflow
-- Assembles with C-EDASM
-- Framework ready for original EDASM assembly
-- Byte-by-byte comparison
-- Generates detailed reports
-- Hex dump comparison on differences
+- Unified comparison workflow replacing compare_assemblers.sh
+- Assembles with C-EDASM and compares with reference
+- Framework ready for original EDASM integration
+- Byte-by-byte binary comparison with detailed analysis
+- Generates comprehensive reports with hex dumps
+- Supports automated regression testing
 
 **Sample Output:**
 
@@ -140,13 +140,13 @@ Then re-run comparison.
 
 ### 5. Test Harness ✅
 
-**test_harness.sh:**
+**edasm_test_suite.sh (test-cedasm command):**
 
-- Automated testing of all sample programs
-- Comprehensive test reports
-- Detailed logging for each test
+- Unified automated testing replacing test_harness.sh
+- Comprehensive testing of all sample programs
+- Detailed test reports with statistics and logging
 - Binary generation and validation
-- Pass/fail tracking with statistics
+- Pass/fail tracking with comprehensive analysis
 
 **Test Results:**
 
@@ -180,19 +180,20 @@ Pass Rate: 100%
 
 ### 6. Wrapper Scripts ✅
 
-**run_emulator_test.sh:**
+**edasm_test_suite.sh (emulator-test command):**
 
-- Pre-flight dependency checks
-- Test disk creation
-- MAME execution with proper flags
-- Result extraction
-- Multiple test modes (boot, assemble)
+- Unified emulation testing replacing run_emulator_test.sh
+- Comprehensive dependency checks and environment setup
+- Automated test disk creation and ProDOS management
+- MAME execution with proper configuration
+- Result extraction and analysis
+- Multiple test modes for complete workflow coverage
 
 **Usage:**
 
 ```bash
-./scripts/run_emulator_test.sh boot      # Boot test only
-./scripts/run_emulator_test.sh assemble  # Full assembly workflow
+./scripts/edasm_test_suite.sh emulator-test     # Boot and emulation test
+./scripts/edasm_test_suite.sh full-comparison   # Complete workflow
 ```
 
 ---
@@ -233,11 +234,10 @@ C-EDASM/
 │   └── EMULATOR_SETUP.md           # Setup guide
 ├── scripts/
 │   ├── setup_emulator_deps.sh      # Dependency installation
-│   ├── run_emulator_test.sh        # Test wrapper
+│   ├── edasm_test_suite.sh         # Unified test suite
 │   ├── disk_helper.sh              # Disk management
 │   ├── assemble_helper.py          # C-EDASM output extraction
-│   ├── compare_assemblers.sh       # Comparison framework
-│   └── test_harness.sh             # Automated test runner
+│   └── create_boot_disk.sh         # Boot disk creation
 └── tests/emulator/
     ├── README.md                   # Implementation guide
     ├── boot_test.lua               # Boot automation
@@ -262,21 +262,21 @@ git submodule update --init --recursive
 
 ```bash
 # Run all C-EDASM tests
-./scripts/test_harness.sh all
+./scripts/edasm_test_suite.sh test-cedasm
 
-# Test a single file
-./scripts/test_harness.sh single tests/test_simple.src
+# Test a single file  
+./scripts/edasm_test_suite.sh compare tests/test_simple.src
 
 # Run emulator tests
-./scripts/run_emulator_test.sh boot
-./scripts/run_emulator_test.sh assemble
+./scripts/edasm_test_suite.sh emulator-test
+./scripts/edasm_test_suite.sh full-comparison
 ```
 
 ### Comparison
 
 ```bash
-# Compare C-EDASM vs original EDASM
-./scripts/compare_assemblers.sh tests/test_simple.src
+# Compare C-EDASM vs reference implementation
+./scripts/edasm_test_suite.sh compare tests/test_simple.src
 ```
 
 ### Disk Management
