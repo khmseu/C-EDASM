@@ -17,7 +17,7 @@ NC='\033[0m'
 # Check if cadius is available
 check_cadius() {
     local cadius_path="${PROJECT_ROOT}/third_party/cadius/cadius"
-    if [[ ! -x "${cadius_path}" ]] && ! command -v cadius &> /dev/null; then
+    if [[ ! -x ${cadius_path} ]] && ! command -v cadius &>/dev/null; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
             cd "${PROJECT_ROOT}/third_party/cadius"
@@ -149,7 +149,7 @@ extract_disk() {
 
     # Check if cadius is available
     local cadius_path="${PROJECT_ROOT}/third_party/cadius/cadius"
-    if [[ ! -x "${cadius_path}" ]]; then
+    if [[ ! -x ${cadius_path} ]]; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
             cd "${PROJECT_ROOT}/third_party/cadius"
