@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Colors
 RED='\033[0;31m'
@@ -17,7 +17,7 @@ NC='\033[0m'
 # Check if cadius is available
 check_cadius() {
     local cadius_path="/tmp/cadius/cadius"
-    if [[ ! -x $cadius_path ]] && ! command -v cadius &>/dev/null; then
+    if [[ ! -x ${cadius_path} ]] && ! command -v cadius &>/dev/null; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
             cd /tmp
@@ -26,7 +26,7 @@ check_cadius() {
             fi
             cd cadius && make >/dev/null 2>&1
         )
-        if [[ ! -x $cadius_path ]] && ! command -v cadius &>/dev/null; then
+        if [[ ! -x ${cadius_path} ]] && ! command -v cadius &>/dev/null; then
             echo -e "${RED}Error: cadius not available and could not be built${NC}"
             echo "Please install cadius manually or run: ./scripts/setup_emulator_deps.sh"
             exit 1
@@ -36,15 +36,15 @@ check_cadius() {
 
 # Create a new ProDOS disk image
 create_disk() {
-    local disk_path="$1"
+    local disk_path="${1}"
     local size="${2:-140KB}"
     local volume_name="${3:-DISK}"
 
-    echo -e "${BLUE}Creating disk image: $disk_path (${size})${NC}"
+    echo -e "${BLUE}Creating disk image: ${disk_path} (${size})${NC}"
 
-    if [[ -f $disk_path ]]; then
+    if [[ -f ${disk_path} ]]; then
         echo -e "${YELLOW}Warning: Disk already exists, removing...${NC}"
-        rm "$disk_path"
+        rm "${disk_path}"
     fi
 
     local cadius_cmd="cadius"
@@ -52,28 +52,28 @@ create_disk() {
         cadius_cmd="/tmp/cadius/cadius"
     fi
 
-    "$cadius_cmd" CREATEVOLUME "$disk_path" "$volume_name" "$size"
+    "${cadius_cmd}" CREATEVOLUME "${disk_path}" "${volume_name}" "${size}"
     echo -e "${GREEN}✓ Disk created${NC}"
 }
 
 # Inject a file into disk image
 inject_file() {
-    local disk_path="$1"
-    local file_path="$2"
+    local disk_path="${1}"
+    local file_path="${2}"
     local dest_path="${3-}"
 
-    if [[ ! -f $disk_path ]]; then
-        echo -e "${RED}Error: Disk not found: $disk_path${NC}"
+    if [[ ! -f ${disk_path} ]]; then
+        echo -e "${RED}Error: Disk not found: ${disk_path}${NC}"
         exit 1
     fi
 
-    if [[ ! -f $file_path ]]; then
-        echo -e "${RED}Error: File not found: $file_path${NC}"
+    if [[ ! -f ${file_path} ]]; then
+        echo -e "${RED}Error: File not found: ${file_path}${NC}"
         exit 1
     fi
 
-    local filename=$(basename "$file_path")
-    echo "  Injecting: $filename"
+    local filename=$(basename "${file_path}")
+    echo "  Injecting: ${filename}"
 
     local cadius_cmd="cadius"
     if [[ -x "/tmp/cadius/cadius" ]]; then
@@ -81,25 +81,25 @@ inject_file() {
     fi
 
     # If no destination path provided, use root
-    if [[ -z $dest_path ]]; then
+    if [[ -z ${dest_path} ]]; then
         # Get volume name from disk
-        local volume_info=$("$cadius_cmd" CATALOG "$disk_path" 2>/dev/null | head -1 | grep -o '/[^/]*/' || echo "/DISK/")
-        dest_path="$volume_info"
+        local volume_info=$("${cadius_cmd}" CATALOG "${disk_path}" 2>/dev/null | head -1 | grep -o '/[^/]*/' || echo "/DISK/")
+        dest_path="${volume_info}"
     fi
 
-    "$cadius_cmd" ADDFILE "$disk_path" "$dest_path" "$file_path"
+    "${cadius_cmd}" ADDFILE "${disk_path}" "${dest_path}" "${file_path}"
 }
 
 # Inject multiple files
 inject_files() {
-    local disk_path="$1"
+    local disk_path="${1}"
     shift
     local files=("$@")
 
-    echo -e "${BLUE}Injecting ${#files[@]} files into: $disk_path${NC}"
+    echo -e "${BLUE}Injecting ${#files[@]} files into: ${disk_path}${NC}"
 
     for file in "${files[@]}"; do
-        inject_file "$disk_path" "$file"
+        inject_file "${disk_path}" "${file}"
     done
 
     echo -e "${GREEN}✓ All files injected${NC}"
@@ -107,52 +107,52 @@ inject_files() {
 
 # List disk contents
 list_disk() {
-    local disk_path="$1"
+    local disk_path="${1}"
 
-    if [[ ! -f $disk_path ]]; then
-        echo -e "${RED}Error: Disk not found: $disk_path${NC}"
+    if [[ ! -f ${disk_path} ]]; then
+        echo -e "${RED}Error: Disk not found: ${disk_path}${NC}"
         exit 1
     fi
 
-    echo -e "${BLUE}Disk contents: $disk_path${NC}"
+    echo -e "${BLUE}Disk contents: ${disk_path}${NC}"
 
     local cadius_cmd="cadius"
     if [[ -x "/tmp/cadius/cadius" ]]; then
         cadius_cmd="/tmp/cadius/cadius"
     fi
 
-    "$cadius_cmd" CATALOG "$disk_path"
+    "${cadius_cmd}" CATALOG "${disk_path}"
 }
 
 # Debug disk contents and extract files
 debug_disk() {
-    local disk_path="$1"
+    local disk_path="${1}"
     local output_dir="${2:-./debug_extract}"
 
-    echo -e "${BLUE}Debugging disk: $disk_path${NC}"
+    echo -e "${BLUE}Debugging disk: ${disk_path}${NC}"
     echo "This will list contents and extract all files."
 
     # List contents first
-    list_disk "$disk_path"
+    list_disk "${disk_path}"
 
     echo ""
     echo "=== Extracting files ==="
-    extract_disk "$disk_path" "$output_dir"
+    extract_disk "${disk_path}" "${output_dir}"
 }
 
 # Extract all files using cadius
 extract_disk() {
-    local disk_path="$1"
-    local output_dir="$2"
+    local disk_path="${1}"
+    local output_dir="${2}"
 
-    if [[ ! -f $disk_path ]]; then
-        echo -e "${RED}Error: Disk not found: $disk_path${NC}"
+    if [[ ! -f ${disk_path} ]]; then
+        echo -e "${RED}Error: Disk not found: ${disk_path}${NC}"
         exit 1
     fi
 
     # Check if cadius is available
     local cadius_path="/tmp/cadius/cadius"
-    if [[ ! -x $cadius_path ]]; then
+    if [[ ! -x ${cadius_path} ]]; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
             cd /tmp
@@ -161,51 +161,51 @@ extract_disk() {
             fi
             cd cadius && make >/dev/null 2>&1
         )
-        if [[ ! -x $cadius_path ]]; then
+        if [[ ! -x ${cadius_path} ]]; then
             echo -e "${RED}Error: Could not build cadius${NC}"
             exit 1
         fi
     fi
 
-    echo -e "${BLUE}Extracting files using cadius from: $disk_path${NC}"
-    echo "  Output directory: $output_dir"
+    echo -e "${BLUE}Extracting files using cadius from: ${disk_path}${NC}"
+    echo "  Output directory: ${output_dir}"
 
-    mkdir -p "$output_dir"
+    mkdir -p "${output_dir}"
 
     # Convert to absolute path
     local abs_disk_path
-    if [[ $disk_path == /* ]]; then
-        abs_disk_path="$disk_path"
+    if [[ ${disk_path} == /* ]]; then
+        abs_disk_path="${disk_path}"
     else
-        abs_disk_path="$(realpath "$disk_path")"
+        abs_disk_path="$(realpath "${disk_path}")"
     fi
 
     # Change to output directory and extract
-    local original_dir="$PWD"
-    cd "$output_dir"
+    local original_dir="${PWD}"
+    cd "${output_dir}"
 
     echo "Extracting all files..."
-    if "$cadius_path" EXTRACTVOLUME "$abs_disk_path" . 2>/dev/null; then
+    if "${cadius_path}" EXTRACTVOLUME "${abs_disk_path}" . 2>/dev/null; then
         echo -e "${GREEN}✓ Extraction completed successfully${NC}"
     else
         echo -e "${RED}✗ Extraction failed${NC}"
-        cd "$original_dir"
+        cd "${original_dir}"
         return 1
     fi
 
-    cd "$original_dir"
+    cd "${original_dir}"
 
     # Count and organize results
-    local total_files=$(find "$output_dir" -type f | wc -l)
-    local source_files=$(find "$output_dir" -name "*.S#*" | wc -l)
+    local total_files=$(find "${output_dir}" -type f | wc -l)
+    local source_files=$(find "${output_dir}" -name "*.S#*" | wc -l)
 
     echo ""
     echo "=== Extraction Results ==="
-    echo "Total files extracted: $total_files"
-    echo "Source files (.S): $source_files"
+    echo "Total files extracted: ${total_files}"
+    echo "Source files (.S): ${source_files}"
     echo ""
     echo "Directory structure:"
-    tree -L 2 "$output_dir" 2>/dev/null || ls -la "$output_dir"
+    tree -L 2 "${output_dir}" 2>/dev/null || ls -la "${output_dir}"
 
     echo ""
     echo -e "${GREEN}Note:${NC} Files have Apple II metadata suffixes (e.g., #040000)"
@@ -221,66 +221,66 @@ create_test_disk() {
     echo -e "${BLUE}Creating test disk with sample sources${NC}"
 
     # Create disk
-    create_disk "$disk_path"
+    create_disk "${disk_path}"
 
     # Find all test .src files
     local src_files=()
     while IFS= read -r -d '' file; do
-        src_files+=("$file")
-    done < <(find "$PROJECT_ROOT/tests" -name "test_*.src" -print0)
+        src_files+=("${file}")
+    done < <(find "${PROJECT_ROOT}/tests" -name "test_*.src" -print0)
 
     if [[ ${#src_files[@]} -eq 0 ]]; then
         echo -e "${YELLOW}Warning: No test_*.src files found${NC}"
     else
-        inject_files "$disk_path" "${src_files[@]}"
+        inject_files "${disk_path}" "${src_files[@]}"
     fi
 
     echo ""
-    list_disk "$disk_path"
+    list_disk "${disk_path}"
 
     echo ""
-    echo -e "${GREEN}✓ Test disk ready: $disk_path${NC}"
+    echo -e "${GREEN}✓ Test disk ready: ${disk_path}${NC}"
 }
 
 # Compare two binary files byte-by-byte
 compare_binaries() {
-    local file1="$1"
-    local file2="$2"
+    local file1="${1}"
+    local file2="${2}"
 
     echo -e "${BLUE}Comparing binaries:${NC}"
-    echo "  File 1: $file1"
-    echo "  File 2: $file2"
+    echo "  File 1: ${file1}"
+    echo "  File 2: ${file2}"
 
-    if [[ ! -f $file1 ]]; then
+    if [[ ! -f ${file1} ]]; then
         echo -e "${RED}✗ File 1 not found${NC}"
         return 1
     fi
 
-    if [[ ! -f $file2 ]]; then
+    if [[ ! -f ${file2} ]]; then
         echo -e "${RED}✗ File 2 not found${NC}"
         return 1
     fi
 
     # Get file sizes
-    local size1=$(stat -f%z "$file1" 2>/dev/null || stat -c%s "$file1" 2>/dev/null)
-    local size2=$(stat -f%z "$file2" 2>/dev/null || stat -c%s "$file2" 2>/dev/null)
+    local size1=$(stat -f%z "${file1}" 2>/dev/null || stat -c%s "${file1}" 2>/dev/null)
+    local size2=$(stat -f%z "${file2}" 2>/dev/null || stat -c%s "${file2}" 2>/dev/null)
 
-    echo "  Size 1: $size1 bytes"
-    echo "  Size 2: $size2 bytes"
+    echo "  Size 1: ${size1} bytes"
+    echo "  Size 2: ${size2} bytes"
 
-    if [[ $size1 != "$size2" ]]; then
+    if [[ ${size1} != "${size2}" ]]; then
         echo -e "${RED}✗ Size mismatch!${NC}"
         return 1
     fi
 
     # Byte-by-byte comparison
-    if cmp -s "$file1" "$file2"; then
+    if cmp -s "${file1}" "${file2}"; then
         echo -e "${GREEN}✓ Files are identical${NC}"
         return 0
     else
         echo -e "${RED}✗ Files differ${NC}"
         echo "Differences:"
-        cmp -l "$file1" "$file2" | head -20
+        cmp -l "${file1}" "${file2}" | head -20
         return 1
     fi
 }
@@ -290,7 +290,7 @@ usage() {
     cat <<EOF
 EDASM Disk Image Management Helper
 
-Usage: $0 <command> [options]
+Usage: ${0} <command> [options]
 
 Commands:
   create <disk> [size] [volume]  Create new ProDOS disk (default: 140KB, DISK)
@@ -304,25 +304,25 @@ Commands:
 
 Examples:
   # Create a new disk
-  $0 create /tmp/mydisk.2mg 140KB
+  ${0} create /tmp/mydisk.2mg 140KB
   
   # Inject a single file
-  $0 inject /tmp/mydisk.2mg tests/test_simple.src
+  ${0} inject /tmp/mydisk.2mg tests/test_simple.src
   
   # Inject multiple files
-  $0 inject-many /tmp/mydisk.2mg test_*.src
+  ${0} inject-many /tmp/mydisk.2mg test_*.src
   
   # List disk contents
-  $0 list /tmp/mydisk.2mg
+  ${0} list /tmp/mydisk.2mg
   
   # Extract all files
-  $0 extract /tmp/mydisk.2mg /tmp/output/
+  ${0} extract /tmp/mydisk.2mg /tmp/output/
   
   # Create test disk with all sample sources
-  $0 test-disk /tmp/test.2mg
+  ${0} test-disk /tmp/test.2mg
   
   # Compare two binaries
-  $0 compare original.bin cedasm.bin
+  ${0} compare original.bin cedasm.bin
 
 EOF
 }
@@ -336,14 +336,14 @@ main() {
 
     check_cadius
 
-    local command="$1"
+    local command="${1}"
     shift
 
-    case "$command" in
+    case "${command}" in
     create)
         if [[ $# -lt 1 ]]; then
             echo -e "${RED}Error: create requires disk path${NC}"
-            echo "Usage: $0 create <disk> [size]"
+            echo "Usage: ${0} create <disk> [size]"
             exit 1
         fi
         create_disk "$@"
@@ -352,7 +352,7 @@ main() {
     inject)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: inject requires disk and file${NC}"
-            echo "Usage: $0 inject <disk> <file> [name]"
+            echo "Usage: ${0} inject <disk> <file> [name]"
             exit 1
         fi
         inject_file "$@"
@@ -361,7 +361,7 @@ main() {
     inject-many)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: inject-many requires disk and files${NC}"
-            echo "Usage: $0 inject-many <disk> <files...>"
+            echo "Usage: ${0} inject-many <disk> <files...>"
             exit 1
         fi
         inject_files "$@"
@@ -370,7 +370,7 @@ main() {
     list | ls)
         if [[ $# -lt 1 ]]; then
             echo -e "${RED}Error: list requires disk path${NC}"
-            echo "Usage: $0 list <disk>"
+            echo "Usage: ${0} list <disk>"
             exit 1
         fi
         list_disk "$@"
@@ -379,7 +379,7 @@ main() {
     extract)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: extract requires disk and output dir${NC}"
-            echo "Usage: $0 extract <disk> <outdir>"
+            echo "Usage: ${0} extract <disk> <outdir>"
             exit 1
         fi
         extract_disk "$@"
@@ -388,7 +388,7 @@ main() {
     extract-adv)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: extract-adv requires disk and output dir${NC}"
-            echo "Usage: $0 extract-adv <disk> <outdir>"
+            echo "Usage: ${0} extract-adv <disk> <outdir>"
             exit 1
         fi
         extract_disk_advanced "$@"
@@ -397,7 +397,7 @@ main() {
     extract-correct)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: extract-correct requires disk and output dir${NC}"
-            echo "Usage: $0 extract-correct <disk> <outdir>"
+            echo "Usage: ${0} extract-correct <disk> <outdir>"
             exit 1
         fi
         extract_disk_correct "$@"
@@ -406,7 +406,7 @@ main() {
     extract-targeted)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: extract-targeted requires disk and output dir${NC}"
-            echo "Usage: $0 extract-targeted <disk> <outdir>"
+            echo "Usage: ${0} extract-targeted <disk> <outdir>"
             exit 1
         fi
         extract_disk_targeted "$@"
@@ -415,7 +415,7 @@ main() {
     extract-final)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: extract-final requires disk and output dir${NC}"
-            echo "Usage: $0 extract-final <disk> <outdir>"
+            echo "Usage: ${0} extract-final <disk> <outdir>"
             exit 1
         fi
         extract_disk_final "$@"
@@ -424,7 +424,7 @@ main() {
     extract-robust)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: extract-robust requires disk and output dir${NC}"
-            echo "Usage: $0 extract-robust <disk> <outdir>"
+            echo "Usage: ${0} extract-robust <disk> <outdir>"
             exit 1
         fi
         extract_disk_robust "$@"
@@ -433,7 +433,7 @@ main() {
     extract-cadius)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: extract-cadius requires disk and output dir${NC}"
-            echo "Usage: $0 extract-cadius <disk> <outdir>"
+            echo "Usage: ${0} extract-cadius <disk> <outdir>"
             exit 1
         fi
         extract_disk_cadius "$@"
@@ -442,7 +442,7 @@ main() {
     debug)
         if [[ $# -lt 1 ]]; then
             echo -e "${RED}Error: debug requires disk path${NC}"
-            echo "Usage: $0 debug <disk> [outdir]"
+            echo "Usage: ${0} debug <disk> [outdir]"
             exit 1
         fi
         debug_disk "$@"
@@ -455,7 +455,7 @@ main() {
     compare)
         if [[ $# -lt 2 ]]; then
             echo -e "${RED}Error: compare requires two files${NC}"
-            echo "Usage: $0 compare <file1> <file2>"
+            echo "Usage: ${0} compare <file1> <file2>"
             exit 1
         fi
         compare_binaries "$@"
@@ -466,7 +466,7 @@ main() {
         ;;
 
     *)
-        echo -e "${RED}Error: Unknown command: $command${NC}"
+        echo -e "${RED}Error: Unknown command: ${command}${NC}"
         echo ""
         usage
         exit 1

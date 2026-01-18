@@ -8,15 +8,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEST_WORK_DIR="${TEST_WORK_DIR:-$PROJECT_ROOT/tmp/edasm-emulator-test}"
-EDASM_DISK="$PROJECT_ROOT/third_party/EdAsm/EDASM_SRC.2mg"
-PRODOS_DISK="${PRODOS_DISK:-$PROJECT_ROOT/tmp/prodos.po}"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TEST_WORK_DIR="${TEST_WORK_DIR:-${PROJECT_ROOT}/tmp/edasm-emulator-test}"
+EDASM_DISK="${PROJECT_ROOT}/third_party/EdAsm/EDASM_SRC.2mg"
+PRODOS_DISK="${PRODOS_DISK:-${PROJECT_ROOT}/tmp/prodos.po}"
 PRODOS_URL="${PRODOS_URL:-https://releases.prodos8.com/ProDOS_2_4_3.po}"
 MAME_SYSTEM="${MAME_SYSTEM:-apple2gs}"
 MAME_SECONDS="${MAME_SECONDS-}"
 MAME_TIMEOUT="${MAME_TIMEOUT:-60}"
-ROM_DIR="${MAME_ROM_PATH:-$HOME/mame/roms}"
+ROM_DIR="${MAME_ROM_PATH:-${HOME}/mame/roms}"
 MAME_VIDEO="${MAME_VIDEO:-none}"
 
 # Colors for output
@@ -55,7 +55,7 @@ check_dependencies() {
 
 # Check if EdAsm submodule is initialized
 check_submodule() {
-    if [[ ! -f $EDASM_DISK ]]; then
+    if [[ ! -f ${EDASM_DISK} ]]; then
         echo -e "${RED}Error: EDASM_SRC.2mg not found${NC}"
         echo "Run: git submodule update --init --recursive"
         return 1
@@ -67,20 +67,20 @@ check_submodule() {
 
 # Ensure a ProDOS boot disk is available (download if missing)
 ensure_prodos_disk() {
-    if [[ -f $PRODOS_DISK ]]; then
+    if [[ -f ${PRODOS_DISK} ]]; then
         echo -e "${GREEN}✓ ProDOS boot disk present${NC}"
         return 0
     fi
 
-    echo "ProDOS disk not found; downloading from $PRODOS_URL ..."
-    mkdir -p "$(dirname "$PRODOS_DISK")"
+    echo "ProDOS disk not found; downloading from ${PRODOS_URL} ..."
+    mkdir -p "$(dirname "${PRODOS_DISK}")"
     local curl_opts=("-L" "--fail")
     if [[ ${PRODOS_INSECURE:-0} == "1" ]]; then
         curl_opts+=("-k")
     fi
 
-    if curl "${curl_opts[@]}" "$PRODOS_URL" -o "$PRODOS_DISK"; then
-        echo -e "${GREEN}✓ ProDOS boot disk downloaded to $PRODOS_DISK${NC}"
+    if curl "${curl_opts[@]}" "${PRODOS_URL}" -o "${PRODOS_DISK}"; then
+        echo -e "${GREEN}✓ ProDOS boot disk downloaded to ${PRODOS_DISK}${NC}"
         return 0
     else
         echo -e "${RED}Error: Failed to download ProDOS disk${NC}"
@@ -94,22 +94,22 @@ check_roms() {
     echo "Checking for Apple II ROM files..."
 
     # Try to verify ROMs with MAME
-    if mame -rompath "$ROM_DIR" -verifyroms "$MAME_SYSTEM" &>/dev/null || mame -verifyroms "$MAME_SYSTEM" &>/dev/null; then
-        echo -e "${GREEN}✓ $MAME_SYSTEM ROM files available${NC}"
+    if mame -rompath "${ROM_DIR}" -verifyroms "${MAME_SYSTEM}" &>/dev/null || mame -verifyroms "${MAME_SYSTEM}" &>/dev/null; then
+        echo -e "${GREEN}✓ ${MAME_SYSTEM} ROM files available${NC}"
         return 0
     fi
 
     echo "ROM verification failed; attempting to fetch emularity BIOS ROMs..."
     fetch_roms || return 1
 
-    if mame -rompath "$ROM_DIR" -verifyroms "$MAME_SYSTEM" &>/dev/null || mame -verifyroms "$MAME_SYSTEM" &>/dev/null; then
-        echo -e "${GREEN}✓ $MAME_SYSTEM ROM files available after fetch${NC}"
+    if mame -rompath "${ROM_DIR}" -verifyroms "${MAME_SYSTEM}" &>/dev/null || mame -verifyroms "${MAME_SYSTEM}" &>/dev/null; then
+        echo -e "${GREEN}✓ ${MAME_SYSTEM} ROM files available after fetch${NC}"
         return 0
     fi
 
     # Check common ROM paths
     local rom_paths=(
-        "$HOME/mame/roms"
+        "${HOME}/mame/roms"
         "/usr/local/share/games/mame/roms"
         "/usr/share/games/mame/roms"
     )
@@ -121,8 +121,8 @@ check_roms() {
 
     for rom_path in "${rom_paths[@]}"; do
         for rom_file in "${rom_files[@]}"; do
-            if [[ -f "$rom_path/$rom_file" ]]; then
-                echo -e "${YELLOW}⚠ ROM files found at $rom_path/$rom_file but MAME verification failed${NC}"
+            if [[ -f "${rom_path}/${rom_file}" ]]; then
+                echo -e "${YELLOW}⚠ ROM files found at ${rom_path}/${rom_file} but MAME verification failed${NC}"
                 echo "  This may be due to incorrect ROM versions or incomplete ROM sets."
                 return 1
             fi
@@ -142,21 +142,21 @@ check_roms() {
 
 # Download Apple II ROMs from emularity-bios if missing
 fetch_roms() {
-    mkdir -p "$ROM_DIR"
-    mkdir -p "$HOME/.mame"
+    mkdir -p "${ROM_DIR}"
+    mkdir -p "${HOME}/.mame"
 
-    local apple2e_zip="$ROM_DIR/apple2e.zip"
-    local apple2gs_zip="$ROM_DIR/apple2gs.zip"
+    local apple2e_zip="${ROM_DIR}/apple2e.zip"
+    local apple2gs_zip="${ROM_DIR}/apple2gs.zip"
 
-    if [[ ! -f $apple2e_zip ]]; then
-        curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o "$apple2e_zip"
+    if [[ ! -f ${apple2e_zip} ]]; then
+        curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o "${apple2e_zip}"
     fi
 
-    if [[ ! -f $apple2gs_zip ]]; then
-        curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2gs.zip -o "$apple2gs_zip"
+    if [[ ! -f ${apple2gs_zip} ]]; then
+        curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2gs.zip -o "${apple2gs_zip}"
     fi
 
-    ln -s "$ROM_DIR" "$HOME/.mame/roms" 2>/dev/null || true
+    ln -s "${ROM_DIR}" "${HOME}/.mame/roms" 2>/dev/null || true
 }
 
 # Check if MAME can run in the current environment
@@ -181,9 +181,9 @@ check_mame_runtime() {
 # Create test work directory
 setup_work_dir() {
     echo ""
-    echo "Setting up work directory: $TEST_WORK_DIR"
-    mkdir -p "$TEST_WORK_DIR"
-    mkdir -p "$TEST_WORK_DIR/results"
+    echo "Setting up work directory: ${TEST_WORK_DIR}"
+    mkdir -p "${TEST_WORK_DIR}"
+    mkdir -p "${TEST_WORK_DIR}/results"
     echo -e "${GREEN}✓ Work directory ready${NC}"
 }
 
@@ -192,87 +192,87 @@ create_test_disk() {
     echo ""
     echo "Creating test disk..."
 
-    local test_disk="$TEST_WORK_DIR/test_disk.2mg"
+    local test_disk="${TEST_WORK_DIR}/test_disk.2mg"
 
     # Create 140KB ProDOS disk
-    if [[ -f $test_disk ]]; then
+    if [[ -f ${test_disk} ]]; then
         echo "Removing existing test disk..."
-        rm "$test_disk"
+        rm "${test_disk}"
     fi
 
     # Use disk_helper.sh for disk operations
-    "$SCRIPT_DIR/disk_helper.sh" create "$test_disk" 140KB TESTDSK
+    "${SCRIPT_DIR}/disk_helper.sh" create "${test_disk}" 140KB TESTDSK
 
     # Inject test source files
     echo "Injecting test files..."
     local test_files=(
-        "$PROJECT_ROOT/tests/test_simple.src"
-        "$PROJECT_ROOT/tests/test_hex_add.src"
-        "$PROJECT_ROOT/tests/test_symbol_add.src"
+        "${PROJECT_ROOT}/tests/test_simple.src"
+        "${PROJECT_ROOT}/tests/test_hex_add.src"
+        "${PROJECT_ROOT}/tests/test_symbol_add.src"
     )
 
     for src_file in "${test_files[@]}"; do
-        if [[ -f $src_file ]]; then
-            local basename=$(basename "$src_file")
-            echo "  - $basename"
-            "$SCRIPT_DIR/disk_helper.sh" inject "$test_disk" "$src_file"
+        if [[ -f ${src_file} ]]; then
+            local basename=$(basename "${src_file}")
+            echo "  - ${basename}"
+            "${SCRIPT_DIR}/disk_helper.sh" inject "${test_disk}" "${src_file}"
         fi
     done
 
-    echo -e "${GREEN}✓ Test disk created: $test_disk${NC}"
+    echo -e "${GREEN}✓ Test disk created: ${test_disk}${NC}"
 }
 
 # Run MAME with the specified Lua script
 run_mame_test() {
-    local lua_script="$1"
-    local script_name=$(basename "$lua_script")
-    local test_disk="$TEST_WORK_DIR/test_disk.2mg"
-    local flop1_args=("-flop1" "$PRODOS_DISK")
+    local lua_script="${1}"
+    local script_name=$(basename "${lua_script}")
+    local test_disk="${TEST_WORK_DIR}/test_disk.2mg"
+    local flop1_args=("-flop1" "${PRODOS_DISK}")
     local flop2_args=()
-    local flop3_args=("-flop3" "$EDASM_DISK")
+    local flop3_args=("-flop3" "${EDASM_DISK}")
     local flop4_args=()
     local seconds_args=()
-    local timeout_cmd=(timeout "$MAME_TIMEOUT")
+    local timeout_cmd=(timeout "${MAME_TIMEOUT}")
 
-    if [[ -f $test_disk ]]; then
-        flop4_args=("-flop4" "$test_disk")
+    if [[ -f ${test_disk} ]]; then
+        flop4_args=("-flop4" "${test_disk}")
     fi
 
     if [[ -n ${MAME_SECONDS-} ]]; then
-        seconds_args=("-seconds_to_run" "$MAME_SECONDS")
+        seconds_args=("-seconds_to_run" "${MAME_SECONDS}")
     fi
 
     echo ""
-    echo "Running MAME with $script_name..."
-    echo "---" | tee -a "$TEST_WORK_DIR/$script_name.log"
+    echo "Running MAME with ${script_name}..."
+    echo "---" | tee -a "${TEST_WORK_DIR}/${script_name}.log"
 
     # MAME command with headless options
     # Note: -nothrottle makes it run as fast as possible
     # -video none and -sound none disable graphics/audio
     set +e # Don't exit on error, we want to check the result
-    "${timeout_cmd[@]}" mame "$MAME_SYSTEM" \
+    "${timeout_cmd[@]}" mame "${MAME_SYSTEM}" \
         "${flop1_args[@]}" \
         "${flop3_args[@]}" \
         "${flop4_args[@]}" \
         "${seconds_args[@]}" \
-        -rompath "$ROM_DIR" \
-        -video "$MAME_VIDEO" \
+        -rompath "${ROM_DIR}" \
+        -video "${MAME_VIDEO}" \
         -sound none \
         -nomouse \
         -nothrottle \
-        -autoboot_script "$lua_script" \
-        2>&1 | tee "$TEST_WORK_DIR/$script_name.log"
+        -autoboot_script "${lua_script}" \
+        2>&1 | tee "${TEST_WORK_DIR}/${script_name}.log"
 
     # Capture exit code of the timeout/mame command (first pipeline element)
     local exit_code=${PIPESTATUS[0]}
-    echo "EXIT_CODE=$exit_code" >>"$TEST_WORK_DIR/$script_name.log"
+    echo "EXIT_CODE=${exit_code}" >>"${TEST_WORK_DIR}/${script_name}.log"
     set -e
 
     echo "---"
 
     # Check if MAME crashed (segfault = 139, killed by signal = 128+signal)
-    if [[ $exit_code -eq 139 ]]; then
-        echo -e "${RED}✗ MAME crashed with segmentation fault${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
+    if [[ ${exit_code} -eq 139 ]]; then
+        echo -e "${RED}✗ MAME crashed with segmentation fault${NC}" | tee -a "${TEST_WORK_DIR}/${script_name}.log"
         echo ""
         echo "This is a known issue in CI environments without display/GPU access."
         echo "MAME requires hardware graphics support even with -video none."
@@ -284,18 +284,18 @@ run_mame_test() {
         echo ""
         echo "For more information, see: tests/emulator/README.md"
         return 1
-    elif [[ $exit_code -eq 124 ]]; then
-        echo -e "${YELLOW}⚠ MAME timed out after ${MAME_TIMEOUT}s${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
-        echo "Check log for details: $TEST_WORK_DIR/$script_name.log"
+    elif [[ ${exit_code} -eq 124 ]]; then
+        echo -e "${YELLOW}⚠ MAME timed out after ${MAME_TIMEOUT}s${NC}" | tee -a "${TEST_WORK_DIR}/${script_name}.log"
+        echo "Check log for details: ${TEST_WORK_DIR}/${script_name}.log"
         return 1
-    elif [[ $exit_code -ne 0 ]]; then
-        echo -e "${YELLOW}⚠ MAME exited with code $exit_code${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
-        echo "Check log for details: $TEST_WORK_DIR/$script_name.log"
+    elif [[ ${exit_code} -ne 0 ]]; then
+        echo -e "${YELLOW}⚠ MAME exited with code ${exit_code}${NC}" | tee -a "${TEST_WORK_DIR}/${script_name}.log"
+        echo "Check log for details: ${TEST_WORK_DIR}/${script_name}.log"
         return 1
     fi
 
-    echo -e "${GREEN}✓ MAME test complete${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
-    echo "Log saved to: $TEST_WORK_DIR/$script_name.log"
+    echo -e "${GREEN}✓ MAME test complete${NC}" | tee -a "${TEST_WORK_DIR}/${script_name}.log"
+    echo "Log saved to: ${TEST_WORK_DIR}/${script_name}.log"
     return 0
 }
 
@@ -304,16 +304,16 @@ extract_results() {
     echo ""
     echo "Extracting results from test disk..."
 
-    "$SCRIPT_DIR/disk_helper.sh" list "$TEST_WORK_DIR/test_disk.2mg" >"$TEST_WORK_DIR/disk_listing.txt"
+    "${SCRIPT_DIR}/disk_helper.sh" list "${TEST_WORK_DIR}/test_disk.2mg" >"${TEST_WORK_DIR}/disk_listing.txt"
     echo "Disk contents:"
-    cat "$TEST_WORK_DIR/disk_listing.txt"
+    cat "${TEST_WORK_DIR}/disk_listing.txt"
 
     # Try to extract all files
-    "$SCRIPT_DIR/disk_helper.sh" extract "$TEST_WORK_DIR/test_disk.2mg" "$TEST_WORK_DIR/results/" || true
+    "${SCRIPT_DIR}/disk_helper.sh" extract "${TEST_WORK_DIR}/test_disk.2mg" "${TEST_WORK_DIR}/results/" || true
 
     echo ""
-    echo "Results extracted to: $TEST_WORK_DIR/results/"
-    ls -lh "$TEST_WORK_DIR/results/" || echo "No files extracted"
+    echo "Results extracted to: ${TEST_WORK_DIR}/results/"
+    ls -lh "${TEST_WORK_DIR}/results/" || echo "No files extracted"
 }
 
 # Main test execution
@@ -333,12 +333,12 @@ main() {
     # Setup
     setup_work_dir
 
-    case "$test_type" in
+    case "${test_type}" in
     boot)
         echo ""
         echo "Test type: Boot test (demonstrates MAME + ProDOS + EDASM launch)"
 
-        if [[ $mame_can_run -eq 0 ]]; then
+        if [[ ${mame_can_run} -eq 0 ]]; then
             echo -e "${YELLOW}⚠ Skipping MAME test due to runtime environment limitations${NC}"
             echo ""
             echo "=== Test Skipped ==="
@@ -348,7 +348,7 @@ main() {
             exit 0
         fi
 
-        if run_mame_test "$PROJECT_ROOT/tests/emulator/boot_test.lua"; then
+        if run_mame_test "${PROJECT_ROOT}/tests/emulator/boot_test.lua"; then
             echo ""
             echo -e "${GREEN}=== Test Complete ===${NC}"
         else
@@ -365,7 +365,7 @@ main() {
         echo ""
         echo "Test type: Assembly test (full workflow: load, assemble, save)"
 
-        if [[ $mame_can_run -eq 0 ]]; then
+        if [[ ${mame_can_run} -eq 0 ]]; then
             echo -e "${YELLOW}⚠ Skipping MAME test due to runtime environment limitations${NC}"
             echo ""
             echo "=== Test Skipped ==="
@@ -376,7 +376,7 @@ main() {
         fi
 
         create_test_disk
-        if run_mame_test "$PROJECT_ROOT/tests/emulator/assemble_test.lua"; then
+        if run_mame_test "${PROJECT_ROOT}/tests/emulator/assemble_test.lua"; then
             extract_results
             echo ""
             echo -e "${GREEN}=== Test Complete ===${NC}"
@@ -391,8 +391,8 @@ main() {
         ;;
 
     *)
-        echo -e "${RED}Error: Unknown test type: $test_type${NC}"
-        echo "Usage: $0 [boot|assemble]"
+        echo -e "${RED}Error: Unknown test type: ${test_type}${NC}"
+        echo "Usage: ${0} [boot|assemble]"
         echo ""
         echo "Test types:"
         echo "  boot     - Basic boot test (ProDOS + EDASM launch)"
