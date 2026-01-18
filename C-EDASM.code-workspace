@@ -1,12 +1,13 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {
-		"chat.tools.terminal.autoApprove": {
-			"./scripts/run_emulator_test.sh": true
-		}
-	}
+    "folders": [
+        {
+            "path": ".",
+        },
+    ],
+    "settings": {
+        "chat.tools.terminal.autoApprove": {
+            "./scripts/run_emulator_test.sh": true,
+            "./scripts/test_original_edasm.sh": true,
+        },
+    },
 }
