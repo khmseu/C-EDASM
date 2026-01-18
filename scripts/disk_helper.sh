@@ -16,7 +16,7 @@ NC='\033[0m'
 
 # Check if cadius is available
 check_cadius() {
-    local cadius_path="${PROJECT_ROOT}${PROJECT_ROOT}/tmp/cadius/cadius"
+    local cadius_path="${PROJECT_ROOT}/tmp/cadius/cadius"
     if [[ ! -x ${cadius_path} ]] && ! command -v cadius &>/dev/null; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
@@ -151,11 +151,11 @@ extract_disk() {
     fi
 
     # Check if cadius is available
-    local cadius_path="${PROJECT_ROOT}${PROJECT_ROOT}/tmp/cadius/cadius"
+    local cadius_path="${PROJECT_ROOT}/tmp/cadius/cadius"
     if [[ ! -x ${cadius_path} ]]; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
-            cd /tmp
+            cd "${PROJECT_ROOT}/tmp"
             if [[ ! -d cadius ]]; then
                 git clone https://github.com/mach-kernel/cadius >/dev/null 2>&1
             fi
