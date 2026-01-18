@@ -85,7 +85,7 @@ brew install cmake git
 
 # Install cadius
 cd ./tmp && git clone https://github.com/mach-kernel/cadius && cd cadius && make && cp bin/release/cadius /usr/local/bin/
-export PATH="$PATH:$HOME/go/bin"
+export PATH="${PATH}:${HOME}/go/bin"
 ```
 
 ## Directory Structure
@@ -173,7 +173,7 @@ which mame
 which cadius
 
 # If present but not in PATH, add to PATH
-export PATH="$PATH:$HOME/go/bin"
+export PATH="${PATH}:${HOME}/go/bin"
 
 # If not installed, run setup script
 ./scripts/setup_emulator_deps.sh

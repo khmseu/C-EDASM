@@ -264,7 +264,7 @@ git submodule update --init --recursive
 # Run all C-EDASM tests
 ./scripts/edasm_test_suite.sh test-cedasm
 
-# Test a single file  
+# Test a single file
 ./scripts/edasm_test_suite.sh compare tests/test_simple.src
 
 # Run emulator tests

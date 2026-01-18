@@ -65,7 +65,7 @@ setup_work_env() {
     mkdir -p "${WORK_DIR}" "${RESULTS_DIR}"
 
     # Check boot disk exists
-    if [[ ! -f "${BOOT_DISK}" ]]; then
+    if [[ ! -f ${BOOT_DISK} ]]; then
         echo -e "${RED}Error: Boot disk not found: ${BOOT_DISK}${NC}"
         echo "The minimal boot disk should be available in third_party/artifacts/"
         exit 1
@@ -235,11 +235,11 @@ main() {
     echo -e "${GREEN}Test environment is ready!${NC}"
     echo ""
     echo "Next steps:"
-    echo "1. Run MAME test: $0 --run-mame"
-    echo "2. Extract results: $0 --extract"
-    echo "3. Compare outputs: $0 --compare"
+    echo "1. Run MAME test: ${0} --run-mame"
+    echo "2. Extract results: ${0} --extract"
+    echo "3. Compare outputs: ${0} --compare"
     echo ""
-    echo "Or run full test: $0 --full-test"
+    echo "Or run full test: ${0} --full-test"
 }
 
 # Command line handling

@@ -74,7 +74,7 @@ ensure_prodos_disk() {
 
     echo "ProDOS boot disk not found; creating minimal boot disk..."
     mkdir -p "$(dirname "${PRODOS_DISK}")"
-    
+
     if "${PROJECT_ROOT}/scripts/create_boot_disk.sh" "" "${PRODOS_DISK}"; then
         echo -e "${GREEN}✓ Minimal ProDOS boot disk created at ${PRODOS_DISK}${NC}"
         return 0
