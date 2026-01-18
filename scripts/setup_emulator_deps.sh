@@ -86,8 +86,8 @@ cadius_version() {
     if command -v cadius &>/dev/null; then
         echo "cadius ($(command -v cadius))"
         return 0
-    elif [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
-        echo "cadius (${PROJECT_ROOT}/tmp/cadius/cadius)"
+    elif [[ -x "${PROJECT_ROOT}/third_party/cadius/cadius" ]]; then
+        echo "cadius (${PROJECT_ROOT}/third_party/cadius/cadius)"
         return 0
     fi
     return 1
@@ -168,20 +168,15 @@ install_cadius() {
         brew install cmake git >/dev/null 2>&1
     fi
 
-    echo "🔧 Building cadius from source..."
+    echo "🔧 Building cadius from submodule..."
     (
-        cd "${PROJECT_ROOT}/tmp"
-        if [[ -d cadius ]]; then
-            rm -rf cadius
-        fi
-        git clone https://github.com/mach-kernel/cadius >/dev/null 2>&1
-        cd cadius
+        cd "${PROJECT_ROOT}/third_party/cadius"
         make >/dev/null 2>&1
     )
 
     # Check if cadius built successfully
-    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
-        echo "✓ cadius built successfully at ${PROJECT_ROOT}/tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/third_party/cadius/cadius" ]]; then
+        echo "✓ cadius built successfully at ${PROJECT_ROOT}/third_party/cadius/cadius"
         return 0
     else
         echo "✗ cadius build failed"

@@ -16,15 +16,12 @@ NC='\033[0m'
 
 # Check if cadius is available
 check_cadius() {
-    local cadius_path="${PROJECT_ROOT}/tmp/cadius/cadius"
-    if [[ ! -x ${cadius_path} ]] && ! command -v cadius &>/dev/null; then
+    local cadius_path="${PROJECT_ROOT}/third_party/cadius/cadius"
+    if [[ ! -x "${cadius_path}" ]] && ! command -v cadius &> /dev/null; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
-            cd "${PROJECT_ROOT}/tmp"
-            if [[ ! -d cadius ]]; then
-                git clone https://github.com/mach-kernel/cadius >/dev/null 2>&1
-            fi
-            cd cadius && make >/dev/null 2>&1
+            cd "${PROJECT_ROOT}/third_party/cadius"
+            make >/dev/null 2>&1
         )
         if [[ ! -x ${cadius_path} ]] && ! command -v cadius &>/dev/null; then
             echo -e "${RED}Error: cadius not available and could not be built${NC}"
@@ -48,8 +45,8 @@ create_disk() {
     fi
 
     local cadius_cmd="cadius"
-    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
-        cadius_cmd="${PROJECT_ROOT}/tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/third_party/cadius/cadius" ]]; then
+        cadius_cmd="${PROJECT_ROOT}/third_party/cadius/cadius"
     fi
 
     "${cadius_cmd}" CREATEVOLUME "${disk_path}" "${volume_name}" "${size}"
@@ -76,8 +73,8 @@ inject_file() {
     echo "  Injecting: ${filename}"
 
     local cadius_cmd="cadius"
-    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
-        cadius_cmd="${PROJECT_ROOT}/tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/third_party/cadius/cadius" ]]; then
+        cadius_cmd="${PROJECT_ROOT}/third_party/cadius/cadius"
     fi
 
     # If no destination path provided, use root
@@ -117,8 +114,8 @@ list_disk() {
     echo -e "${BLUE}Disk contents: ${disk_path}${NC}"
 
     local cadius_cmd="cadius"
-    if [[ -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
-        cadius_cmd="${PROJECT_ROOT}/tmp/cadius/cadius"
+    if [[ -x "${PROJECT_ROOT}/third_party/cadius/cadius" ]]; then
+        cadius_cmd="${PROJECT_ROOT}/third_party/cadius/cadius"
     fi
 
     "${cadius_cmd}" CATALOG "${disk_path}"
@@ -151,15 +148,12 @@ extract_disk() {
     fi
 
     # Check if cadius is available
-    local cadius_path="${PROJECT_ROOT}/tmp/cadius/cadius"
-    if [[ ! -x ${cadius_path} ]]; then
+    local cadius_path="${PROJECT_ROOT}/third_party/cadius/cadius"
+    if [[ ! -x "${cadius_path}" ]]; then
         echo -e "${YELLOW}cadius not found, building it...${NC}"
         (
-            cd "${PROJECT_ROOT}/tmp"
-            if [[ ! -d cadius ]]; then
-                git clone https://github.com/mach-kernel/cadius >/dev/null 2>&1
-            fi
-            cd cadius && make >/dev/null 2>&1
+            cd "${PROJECT_ROOT}/third_party/cadius"
+            make >/dev/null 2>&1
         )
         if [[ ! -x ${cadius_path} ]]; then
             echo -e "${RED}Error: Could not build cadius${NC}"

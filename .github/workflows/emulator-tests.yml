@@ -43,17 +43,14 @@ jobs:
                   sudo apt-get update
                   sudo apt-get install -y build-essential cmake git
 
-                  # Build cadius
-                  cd tmp
-                  git clone https://github.com/mach-kernel/cadius
-                  cd cadius
+                  # Build cadius from submodule
+                  cd third_party/cadius
                   make
-                  echo "$HOME/go/bin" >> $GITHUB_PATH
 
             - name: Verify cadius installation
               run: |
                   # Check if cadius was built successfully
-                  ./tmp/cadius/cadius --help || echo "cadius built (help command may not be available)"
+                  ./third_party/cadius/cadius --help || echo "cadius built (help command may not be available)"
 
             - name: Configure C-EDASM
               run: ./scripts/configure.sh

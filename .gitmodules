@@ -1,3 +1,6 @@
 [submodule "third_party/EdAsm"]
 	path = third_party/EdAsm
 	url = https://github.com/markpmlim/EdAsm
+[submodule "third_party/cadius"]
+	path = third_party/cadius
+	url = https://github.com/mach-kernel/cadius.git

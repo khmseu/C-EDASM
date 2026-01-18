@@ -39,7 +39,7 @@ check_emulator() {
         missing+=("mame")
     fi
 
-    if ! command -v cadius &>/dev/null && [[ ! -x "${PROJECT_ROOT}/tmp/cadius/cadius" ]]; then
+    if ! command -v cadius &>/dev/null && [[ ! -x "${PROJECT_ROOT}/third_party/cadius/cadius" ]]; then
         missing+=("cadius")
     fi
 
