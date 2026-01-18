@@ -153,8 +153,8 @@ copy_essential_files() {
     local files_to_copy=(
         "PRODOS"
         "BITSY.BOOT" 
-        "QUIT.SYSTEM"
         "BASIC.SYSTEM"
+        "QUIT.SYSTEM"
     )
     
     # Find and copy each file
