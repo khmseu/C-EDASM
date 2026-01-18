@@ -14,7 +14,7 @@ EDASM_DISK="$PROJECT_ROOT/third_party/EdAsm/EDASM_SRC.2mg"
 PRODOS_DISK="${PRODOS_DISK:-$PROJECT_ROOT/tmp/prodos.po}"
 PRODOS_URL="${PRODOS_URL:-https://releases.prodos8.com/ProDOS_2_4_3.po}"
 MAME_SYSTEM="${MAME_SYSTEM:-apple2gs}"
-MAME_SECONDS="${MAME_SECONDS:-}"
+MAME_SECONDS="${MAME_SECONDS-}"
 MAME_TIMEOUT="${MAME_TIMEOUT:-60}"
 ROM_DIR="${MAME_ROM_PATH:-$HOME/mame/roms}"
 MAME_VIDEO="${MAME_VIDEO:-none}"
@@ -41,7 +41,7 @@ check_dependencies() {
     fi
 
     # Check for required tools (MAME already checked by check_dependencies)
-        # Try common Go install locations
+    # Try common Go install locations
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo -e "${RED}Error: Missing dependencies: ${missing[*]}${NC}"
@@ -75,7 +75,7 @@ ensure_prodos_disk() {
     echo "ProDOS disk not found; downloading from $PRODOS_URL ..."
     mkdir -p "$(dirname "$PRODOS_DISK")"
     local curl_opts=("-L" "--fail")
-    if [[ "${PRODOS_INSECURE:-0}" == "1" ]]; then
+    if [[ ${PRODOS_INSECURE:-0} == "1" ]]; then
         curl_opts+=("-k")
     fi
 
@@ -148,11 +148,11 @@ fetch_roms() {
     local apple2e_zip="$ROM_DIR/apple2e.zip"
     local apple2gs_zip="$ROM_DIR/apple2gs.zip"
 
-    if [[ ! -f "$apple2e_zip" ]]; then
+    if [[ ! -f $apple2e_zip ]]; then
         curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o "$apple2e_zip"
     fi
 
-    if [[ ! -f "$apple2gs_zip" ]]; then
+    if [[ ! -f $apple2gs_zip ]]; then
         curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2gs.zip -o "$apple2gs_zip"
     fi
 
@@ -163,14 +163,14 @@ fetch_roms() {
 check_mame_runtime() {
     echo ""
     echo "Checking if MAME can run in this environment..."
-    
+
     # Try a quick MAME test that doesn't require ROMs
     # Use -listxml with a short timeout to test basic functionality
     if timeout 5 mame -listxml apple2gs >/dev/null 2>&1; then
         echo -e "${GREEN}✓ MAME runtime check passed${NC}"
         return 0
     fi
-    
+
     echo -e "${YELLOW}⚠ MAME runtime check failed${NC}"
     echo "  MAME may not be able to run in this environment."
     echo "  This is common in CI environments without display/GPU support."
@@ -238,7 +238,7 @@ run_mame_test() {
         flop4_args=("-flop4" "$test_disk")
     fi
 
-    if [[ -n ${MAME_SECONDS:-} ]]; then
+    if [[ -n ${MAME_SECONDS-} ]]; then
         seconds_args=("-seconds_to_run" "$MAME_SECONDS")
     fi
 
@@ -249,7 +249,7 @@ run_mame_test() {
     # MAME command with headless options
     # Note: -nothrottle makes it run as fast as possible
     # -video none and -sound none disable graphics/audio
-    set +e  # Don't exit on error, we want to check the result
+    set +e # Don't exit on error, we want to check the result
     "${timeout_cmd[@]}" mame "$MAME_SYSTEM" \
         "${flop1_args[@]}" \
         "${flop3_args[@]}" \
@@ -262,14 +262,14 @@ run_mame_test() {
         -nothrottle \
         -autoboot_script "$lua_script" \
         2>&1 | tee "$TEST_WORK_DIR/$script_name.log"
-    
+
     # Capture exit code of the timeout/mame command (first pipeline element)
     local exit_code=${PIPESTATUS[0]}
     echo "EXIT_CODE=$exit_code" >>"$TEST_WORK_DIR/$script_name.log"
     set -e
 
     echo "---"
-    
+
     # Check if MAME crashed (segfault = 139, killed by signal = 128+signal)
     if [[ $exit_code -eq 139 ]]; then
         echo -e "${RED}✗ MAME crashed with segmentation fault${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
@@ -293,7 +293,7 @@ run_mame_test() {
         echo "Check log for details: $TEST_WORK_DIR/$script_name.log"
         return 1
     fi
-    
+
     echo -e "${GREEN}✓ MAME test complete${NC}" | tee -a "$TEST_WORK_DIR/$script_name.log"
     echo "Log saved to: $TEST_WORK_DIR/$script_name.log"
     return 0
@@ -325,7 +325,7 @@ main() {
     check_submodule || exit 1
     ensure_prodos_disk || exit 1
     check_roms || exit 1
-    
+
     # Check if MAME can run (warn but don't fail)
     local mame_can_run=1
     check_mame_runtime || mame_can_run=0
@@ -337,17 +337,17 @@ main() {
     boot)
         echo ""
         echo "Test type: Boot test (demonstrates MAME + ProDOS + EDASM launch)"
-        
+
         if [[ $mame_can_run -eq 0 ]]; then
             echo -e "${YELLOW}⚠ Skipping MAME test due to runtime environment limitations${NC}"
             echo ""
-            echo "=== Test Skipped ===" 
+            echo "=== Test Skipped ==="
             echo ""
             echo "Note: MAME requires display/GPU support to run."
             echo "See tests/emulator/README.md for troubleshooting."
             exit 0
         fi
-        
+
         if run_mame_test "$PROJECT_ROOT/tests/emulator/boot_test.lua"; then
             echo ""
             echo -e "${GREEN}=== Test Complete ===${NC}"
@@ -364,17 +364,17 @@ main() {
     assemble)
         echo ""
         echo "Test type: Assembly test (full workflow: load, assemble, save)"
-        
+
         if [[ $mame_can_run -eq 0 ]]; then
             echo -e "${YELLOW}⚠ Skipping MAME test due to runtime environment limitations${NC}"
             echo ""
-            echo "=== Test Skipped ===" 
+            echo "=== Test Skipped ==="
             echo ""
             echo "Note: MAME requires display/GPU support to run."
             echo "See tests/emulator/README.md for troubleshooting."
             exit 0
         fi
-        
+
         create_test_disk
         if run_mame_test "$PROJECT_ROOT/tests/emulator/assemble_test.lua"; then
             extract_results

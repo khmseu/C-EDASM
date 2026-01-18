@@ -52,6 +52,7 @@ Start: Need to automate EDASM testing
 ## Use Case Recommendations
 
 ### Use Case: Automated CI/CD Testing
+
 **Recommended:** MAME  
 **Why:** Native headless mode, Lua automation, high fidelity, deterministic execution
 
@@ -59,6 +60,7 @@ Start: Need to automate EDASM testing
 **Why:** If dependency size is a concern, LinApple can work with virtual display
 
 ### Use Case: Interactive Debugging of EDASM
+
 **Recommended:** GSPlus  
 **Why:** Built-in debugger with breakpoints, watchpoints, step-through execution
 
@@ -66,6 +68,7 @@ Start: Need to automate EDASM testing
 **Why:** MAME also has a debugger, though Lua interface may be more awkward for interactive use
 
 ### Use Case: Quick Prototype Testing
+
 **Recommended:** LinApple  
 **Why:** Fastest to install and get running, good enough fidelity for basic tests
 
@@ -73,6 +76,7 @@ Start: Need to automate EDASM testing
 **Why:** Almost as quick, slightly better fidelity
 
 ### Use Case: Long-term Production Testing
+
 **Recommended:** MAME  
 **Why:** Best long-term maintainability, highest confidence in results, external maintenance
 
@@ -80,6 +84,7 @@ Start: Need to automate EDASM testing
 **Why:** Only if MAME proves inadequate and we need very specific features
 
 ### Use Case: Lightweight Development Environment
+
 **Recommended:** LinApple  
 **Why:** Small footprint, quick startup, good for iterative development
 
@@ -89,6 +94,7 @@ Start: Need to automate EDASM testing
 ## Effort Estimates
 
 ### MAME Path
+
 ```
 Phase 1: Proof of concept
   - Install MAME: 1 hour
@@ -112,6 +118,7 @@ Overall: 1 week (5-7 days)
 ```
 
 ### GSPlus Path
+
 ```
 Phase 1: Setup & patching
   - Install GSPlus: 1 hour
@@ -135,6 +142,7 @@ Overall: 1.5 weeks (7-10 days)
 ```
 
 ### LinApple Path
+
 ```
 Phase 1: Setup
   - Install LinApple: 30 mins
@@ -158,6 +166,7 @@ Overall: 1 week (6-8 days)
 ```
 
 ### Custom Emulator Path
+
 ```
 Phase 1: Core emulation
   - 6502 CPU core: 5 days
@@ -184,6 +193,7 @@ Overall: 9-10 weeks
 ## Risk Assessment
 
 ### MAME Risks
+
 - **Low Risk:** Dependency size in CI (mitigated by Docker layer caching)
 - **Low Risk:** Lua learning curve (one-time investment, good documentation)
 - **Low Risk:** API stability (rarely breaking changes)
@@ -191,6 +201,7 @@ Overall: 9-10 weeks
 **Overall Risk: LOW** ✓
 
 ### GSPlus Risks
+
 - **Medium Risk:** Patching effort may exceed estimate
 - **Medium Risk:** Headless mode may not work cleanly
 - **Medium Risk:** .2mg support issues
@@ -198,6 +209,7 @@ Overall: 9-10 weeks
 **Overall Risk: MEDIUM** ⚠
 
 ### LinApple Risks
+
 - **Medium Risk:** Xvfb in CI may have issues
 - **Medium Risk:** Fidelity may cause false test failures
 - **Low Risk:** No .2mg support (can convert images)
@@ -205,6 +217,7 @@ Overall: 9-10 weeks
 **Overall Risk: MEDIUM** ⚠
 
 ### Custom Emulator Risks
+
 - **High Risk:** Development time significantly longer than estimate
 - **High Risk:** Edge cases may be missed, causing false positives/negatives
 - **High Risk:** Becomes a project of its own, diverting resources
@@ -224,6 +237,7 @@ Last resort: Custom emulator (avoid if possible)
 ### Decision Rationale
 
 MAME wins on nearly all important criteria:
+
 1. **Best automation capabilities** (Lua API)
 2. **Highest emulation fidelity** (fewer false failures)
 3. **Native headless mode** (no display hacks)
@@ -236,6 +250,7 @@ The main downside (dependency size) is easily mitigated with Docker and layer ca
 ### When to Reconsider
 
 Reconsider MAME only if:
+
 - CI runners have severe space constraints (< 1 GB available)
 - MAME proves incompatible with CI environment (unlikely)
 - Lua automation proves more difficult than expected (unlikely)
@@ -246,6 +261,7 @@ In any of these cases, fall back to LinApple + Xvfb as the next best option.
 ## Useful Commands
 
 ### MAME
+
 ```bash
 # Install
 sudo apt-get install mame  # or build from source
@@ -262,6 +278,7 @@ mame -listfull | grep -i apple
 ```
 
 ### GSPlus
+
 ```bash
 # Build
 git clone https://github.com/digarok/gsplus.git
@@ -274,6 +291,7 @@ make
 ```
 
 ### LinApple
+
 ```bash
 # Install
 sudo apt-get install linapple  # if packaged
@@ -287,6 +305,7 @@ xvfb-run -a linapple --d1 disk.po --autoboot
 ```
 
 ### cadius (disk manipulation)
+
 ```bash
 # Install
 git clone https://github.com/mach-kernel/cadius

@@ -9,6 +9,7 @@ This investigation addresses the question: **How can we host the original Apple 
 ## 🗂️ Documents in Reading Order
 
 ### 1. Background & Requirements
+
 **File:** `DEBUGGER_EMULATOR_PLAN.md`  
 **Size:** 4.0 KB  
 **Purpose:** Original planning document outlining the need for emulator integration  
@@ -16,6 +17,7 @@ This investigation addresses the question: **How can we host the original Apple 
 **Time:** 5-10 minutes
 
 **Key Topics:**
+
 - What EDASM expects (Apple IIe, ProDOS, language card)
 - Goals (boot original EDASM, inject tests, extract outputs)
 - Initial emulator options overview
@@ -24,6 +26,7 @@ This investigation addresses the question: **How can we host the original Apple 
 ---
 
 ### 2. Comprehensive Research Report
+
 **File:** `EMULATOR_INVESTIGATION_REPORT.md`  
 **Size:** 18 KB  
 **Purpose:** Complete analysis of all emulator options with detailed findings  
@@ -31,6 +34,7 @@ This investigation addresses the question: **How can we host the original Apple 
 **Time:** 20-30 minutes
 
 **Key Topics:**
+
 - Executive summary with recommendation (MAME)
 - MAME analysis: Lua API, headless mode, fidelity, implementation path
 - GSPlus analysis: Debugger capabilities, CLI automation, limitations
@@ -43,6 +47,7 @@ This investigation addresses the question: **How can we host the original Apple 
 - Final recommendation with rationale
 
 **Appendices:**
+
 - Open questions for decision-making
 - Example command workflows
 - Reference links (MAME docs, disk tools, community forums)
@@ -50,6 +55,7 @@ This investigation addresses the question: **How can we host the original Apple 
 ---
 
 ### 3. Quick Decision Reference
+
 **File:** `EMULATOR_DECISION_MATRIX.md`  
 **Size:** 8.4 KB  
 **Purpose:** Fast lookup guide for choosing an emulator  
@@ -57,6 +63,7 @@ This investigation addresses the question: **How can we host the original Apple 
 **Time:** 10-15 minutes
 
 **Key Topics:**
+
 - Decision tree (Q&A format to guide choice)
 - Quick comparison table (all options side-by-side)
 - Use case recommendations:
@@ -73,6 +80,7 @@ This investigation addresses the question: **How can we host the original Apple 
 ---
 
 ### 4. Implementation Guide
+
 **File:** `tests/emulator/README.md`  
 **Size:** 4.9 KB  
 **Purpose:** Developer guide for the prototype automation scripts  
@@ -80,6 +88,7 @@ This investigation addresses the question: **How can we host the original Apple 
 **Time:** 10-15 minutes
 
 **Key Topics:**
+
 - Overview of automation approach
 - Script descriptions (boot_test.lua, assemble_test.lua)
 - Usage examples with command-line invocations
@@ -101,9 +110,11 @@ This investigation addresses the question: **How can we host the original Apple 
 ### 5. Prototype Scripts
 
 #### `tests/emulator/boot_test.lua`
+
 **Size:** 1.7 KB  
 **Purpose:** Basic proof-of-concept demonstrating MAME Lua automation  
 **Contains:**
+
 - ProDOS boot waiting logic
 - EDASM.SYSTEM launch sequence
 - MAME API usage examples (emu.wait, emu.register_start)
@@ -112,9 +123,11 @@ This investigation addresses the question: **How can we host the original Apple 
 **Status:** Prototype only - demonstrates concept, not production-ready
 
 #### `tests/emulator/assemble_test.lua`
+
 **Size:** 4.2 KB  
 **Purpose:** Complete workflow automation (load → assemble → save)  
 **Contains:**
+
 - Helper functions for keyboard simulation
 - Multi-disk handling (source disk + test disk)
 - Command sequencing (L, A, S commands)
@@ -128,6 +141,7 @@ This investigation addresses the question: **How can we host the original Apple 
 ## 🎯 Recommended Reading Paths
 
 ### Path A: Quick Decision (30 minutes)
+
 For stakeholders who need to make an informed choice quickly:
 
 1. **DEBUGGER_EMULATOR_PLAN.md** (5 min) - Understand the problem
@@ -136,6 +150,7 @@ For stakeholders who need to make an informed choice quickly:
 4. ✅ **Decision:** Proceed with MAME (or discuss alternatives)
 
 ### Path B: Implementation Planning (60 minutes)
+
 For developers who will implement the solution:
 
 1. **DEBUGGER_EMULATOR_PLAN.md** (5 min) - Background
@@ -146,6 +161,7 @@ For developers who will implement the solution:
 6. ✅ **Output:** Implementation plan and timeline
 
 ### Path C: Complete Understanding (90 minutes)
+
 For technical leads who need comprehensive knowledge:
 
 1. **DEBUGGER_EMULATOR_PLAN.md** (10 min) - Original requirements
@@ -156,6 +172,7 @@ For technical leads who need comprehensive knowledge:
 6. ✅ **Output:** Deep expertise and ability to answer questions
 
 ### Path D: Quick Reference (5 minutes)
+
 For engineers who just need a refresher:
 
 1. **EMULATOR_DECISION_MATRIX.md** - Decision tree section
@@ -189,7 +206,8 @@ boot_test.lua & assemble_test.lua
 
 ## 🔍 Search Guide
 
-### Looking for...
+### Looking for
+
 - **"Which emulator should I use?"** → EMULATOR_DECISION_MATRIX.md
 - **"Why MAME?"** → EMULATOR_INVESTIGATION_REPORT.md (Executive Summary)
 - **"How does MAME Lua work?"** → tests/emulator/README.md
@@ -231,23 +249,27 @@ boot_test.lua & assemble_test.lua
 Key external links referenced in the investigation:
 
 ### MAME
-- Official Lua API: https://docs.mamedev.org/luascript/index.html
-- Autoboot examples: https://forums.launchbox-app.com/topic/78092-autoboot-lua-scripts-in-mame/
-- Lua scripting guide: https://www.mattgreer.dev/blog/mame-lua-for-better-retro-dev/
+
+- Official Lua API: <https://docs.mamedev.org/luascript/index.html>
+- Autoboot examples: <https://forums.launchbox-app.com/topic/78092-autoboot-lua-scripts-in-mame/>
+- Lua scripting guide: <https://www.mattgreer.dev/blog/mame-lua-for-better-retro-dev/>
 
 ### Disk Tools
-- cadius: https://github.com/mach-kernel/cadius
-- AppleCommander: https://applecommander.github.io/
-- apple2_prodos_utils: https://github.com/Michaelangel007/apple2_prodos_utils
+
+- cadius: <https://github.com/mach-kernel/cadius>
+- AppleCommander: <https://applecommander.github.io/>
+- apple2_prodos_utils: <https://github.com/Michaelangel007/apple2_prodos_utils>
 
 ### Alternative Emulators
-- GSPlus: https://github.com/digarok/gsplus
-- LinApple: https://github.com/linappleii/linapple
-- KEGS: https://kegs.sourceforge.net/
+
+- GSPlus: <https://github.com/digarok/gsplus>
+- LinApple: <https://github.com/linappleii/linapple>
+- KEGS: <https://kegs.sourceforge.net/>
 
 ### Apple II References
-- ProDOS 8: https://prodos8.com/
-- Apple II Memory Map: https://www.kreativekorp.com/miscpages/a2info/memorymap.shtml
+
+- ProDOS 8: <https://prodos8.com/>
+- Apple II Memory Map: <https://www.kreativekorp.com/miscpages/a2info/memorymap.shtml>
 
 ---
 

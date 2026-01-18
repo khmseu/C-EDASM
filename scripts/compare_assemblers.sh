@@ -26,7 +26,7 @@ check_cedasm() {
         cd "$PROJECT_ROOT"
         ./scripts/configure.sh
         ./scripts/build.sh
-        cd - > /dev/null
+        cd - >/dev/null
     fi
     echo -e "${GREEN}✓ C-EDASM available${NC}"
 }
@@ -34,21 +34,21 @@ check_cedasm() {
 # Check emulator dependencies
 check_emulator() {
     local missing=()
-    
-    if ! command -v mame &> /dev/null; then
+
+    if ! command -v mame &>/dev/null; then
         missing+=("mame")
     fi
-    
-    if ! command -v cadius &> /dev/null && [[ ! -x "/tmp/cadius/cadius" ]]; then
+
+    if ! command -v cadius &>/dev/null && [[ ! -x "/tmp/cadius/cadius" ]]; then
         missing+=("cadius")
     fi
-    
+
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo -e "${RED}✗ Missing dependencies: ${missing[*]}${NC}"
         echo "Run: ./scripts/setup_emulator_deps.sh"
         return 1
     fi
-    
+
     echo -e "${GREEN}✓ Emulator tools available${NC}"
     return 0
 }
@@ -69,21 +69,21 @@ assemble_cedasm() {
     local basename=$(basename "$src_file" .src)
     local output="$WORK_DIR/cedasm/${basename}.bin"
     local listing="$WORK_DIR/cedasm/${basename}.lst"
-    
+
     echo ""
     echo -e "${BLUE}Assembling with C-EDASM: $(basename "$src_file")${NC}"
-    
+
     # Run C-EDASM assembler via Python helper
     cd "$PROJECT_ROOT"
-    if python3 scripts/assemble_helper.py "$src_file" "$output" > "$listing" 2>&1; then
+    if python3 scripts/assemble_helper.py "$src_file" "$output" >"$listing" 2>&1; then
         echo -e "${GREEN}✓ C-EDASM assembly successful${NC}"
-        
+
         # Show file info
-        if [[ -f "$output" ]]; then
+        if [[ -f $output ]]; then
             local size=$(stat -f%z "$output" 2>/dev/null || stat -c%s "$output" 2>/dev/null)
             echo "  Output: $output (${size} bytes)"
         fi
-        
+
         return 0
     else
         echo -e "${RED}✗ C-EDASM assembly failed${NC}"
@@ -97,18 +97,18 @@ assemble_cedasm() {
 assemble_original() {
     local src_file="$1"
     local basename=$(basename "$src_file" .src)
-    
+
     echo ""
     echo -e "${BLUE}Assembling with original EDASM: $(basename "$src_file")${NC}"
     echo -e "${YELLOW}⚠ Note: Original EDASM assembly via emulator not yet fully automated${NC}"
     echo ""
-    
+
     # For now, this is a placeholder
     # Full implementation would:
     # 1. Create disk with source file
     # 2. Run MAME with assembly automation
     # 3. Extract output binary
-    
+
     echo "Would perform:"
     echo "  1. Create test disk: $WORK_DIR/disks/${basename}.2mg"
     echo "  2. Inject source: $src_file"
@@ -116,8 +116,8 @@ assemble_original() {
     echo "  4. Extract output to: $WORK_DIR/original/${basename}.bin"
     echo ""
     echo -e "${YELLOW}Skipping original EDASM assembly (manual step required)${NC}"
-    
-    return 1  # Not implemented yet
+
+    return 1 # Not implemented yet
 }
 
 # Compare outputs
@@ -125,36 +125,36 @@ compare_outputs() {
     local basename="$1"
     local cedasm_output="$WORK_DIR/cedasm/${basename}.bin"
     local original_output="$WORK_DIR/original/${basename}.bin"
-    
+
     echo ""
     echo -e "${CYAN}=== Comparison Results ===${NC}"
     echo ""
-    
+
     # Check if both files exist
     local cedasm_exists=false
     local original_exists=false
-    
-    if [[ -f "$cedasm_output" ]]; then
+
+    if [[ -f $cedasm_output ]]; then
         cedasm_exists=true
         local cedasm_size=$(stat -f%z "$cedasm_output" 2>/dev/null || stat -c%s "$cedasm_output" 2>/dev/null)
         echo -e "${GREEN}✓${NC} C-EDASM output: ${cedasm_size} bytes"
     else
         echo -e "${RED}✗${NC} C-EDASM output: Not found"
     fi
-    
-    if [[ -f "$original_output" ]]; then
+
+    if [[ -f $original_output ]]; then
         original_exists=true
         local original_size=$(stat -f%z "$original_output" 2>/dev/null || stat -c%s "$original_output" 2>/dev/null)
         echo -e "${GREEN}✓${NC} Original EDASM output: ${original_size} bytes"
     else
         echo -e "${YELLOW}⚠${NC} Original EDASM output: Not found (manual assembly required)"
     fi
-    
+
     echo ""
-    
-    if [[ "$cedasm_exists" == true && "$original_exists" == true ]]; then
+
+    if [[ $cedasm_exists == true && $original_exists == true ]]; then
         echo "Performing byte-by-byte comparison..."
-        
+
         if cmp -s "$cedasm_output" "$original_output"; then
             echo -e "${GREEN}✓✓✓ IDENTICAL! Outputs match perfectly! ✓✓✓${NC}"
             return 0
@@ -164,7 +164,7 @@ compare_outputs() {
             echo "Differences (first 20):"
             cmp -l "$cedasm_output" "$original_output" | head -20
             echo ""
-            
+
             # Hex dump comparison
             echo "Hex dump (first 64 bytes):"
             echo ""
@@ -173,10 +173,10 @@ compare_outputs() {
             echo ""
             echo "Original EDASM:"
             hexdump -C "$original_output" | head -5
-            
+
             return 1
         fi
-    elif [[ "$cedasm_exists" == true ]]; then
+    elif [[ $cedasm_exists == true ]]; then
         echo -e "${BLUE}C-EDASM assembly successful. Place original output at:${NC}"
         echo "  $original_output"
         echo ""
@@ -193,10 +193,10 @@ generate_report() {
     local src_file="$1"
     local basename=$(basename "$src_file" .src)
     local report_file="$WORK_DIR/report_${basename}.txt"
-    
+
     echo ""
     echo -e "${BLUE}Generating comparison report: $report_file${NC}"
-    
+
     {
         echo "EDASM Comparison Report"
         echo "======================"
@@ -235,8 +235,8 @@ generate_report() {
         else
             echo "Result: Cannot compare (missing output)"
         fi
-    } > "$report_file"
-    
+    } >"$report_file"
+
     cat "$report_file"
     echo ""
     echo -e "${GREEN}✓ Report saved: $report_file${NC}"
@@ -244,9 +244,9 @@ generate_report() {
 
 # Main comparison workflow
 main() {
-    local src_file="${1:-}"
-    
-    if [[ -z "$src_file" ]]; then
+    local src_file="${1-}"
+
+    if [[ -z $src_file ]]; then
         echo -e "${RED}Error: No source file specified${NC}"
         echo ""
         echo "Usage: $0 <source.src>"
@@ -256,35 +256,35 @@ main() {
         echo ""
         exit 1
     fi
-    
-    if [[ ! -f "$src_file" ]]; then
+
+    if [[ ! -f $src_file ]]; then
         echo -e "${RED}Error: File not found: $src_file${NC}"
         exit 1
     fi
-    
+
     # Pre-flight checks
     check_cedasm
     check_emulator || echo -e "${YELLOW}⚠ Emulator not available (C-EDASM only mode)${NC}"
-    
+
     # Setup
     setup_work_dir
-    
+
     # Assemble with both
     local basename=$(basename "$src_file" .src)
-    
+
     assemble_cedasm "$src_file"
     local cedasm_status=$?
-    
+
     # Original EDASM assembly would go here
     # assemble_original "$src_file"
     # local original_status=$?
-    
+
     # Compare
     if [[ $cedasm_status -eq 0 ]]; then
         compare_outputs "$basename"
         generate_report "$src_file"
     fi
-    
+
     echo ""
     echo -e "${CYAN}=== Comparison Complete ===${NC}"
     echo ""

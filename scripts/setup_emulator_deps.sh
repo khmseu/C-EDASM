@@ -151,14 +151,14 @@ install_mame() {
 install_cadius() {
     echo ""
     echo "Installing cadius..."
-    
+
     if cadius_version &>/dev/null; then
         local ver
         ver="$(cadius_version || true)"
         echo "✓ cadius already available: ${ver:-available}"
         return 0
     fi
-    
+
     echo "📦 Installing build dependencies..."
     # Install build tools
     if command -v apt-get &>/dev/null; then
@@ -167,7 +167,7 @@ install_cadius() {
     elif command -v brew &>/dev/null; then
         brew install cmake git >/dev/null 2>&1
     fi
-    
+
     echo "🔧 Building cadius from source..."
     (
         cd /tmp
@@ -178,7 +178,7 @@ install_cadius() {
         cd cadius
         make >/dev/null 2>&1
     )
-    
+
     # Check if cadius built successfully
     if [[ -x "/tmp/cadius/cadius" ]]; then
         echo "✓ cadius built successfully at /tmp/cadius/cadius"
@@ -193,13 +193,13 @@ install_cadius() {
 check_apple2_roms() {
     echo ""
     echo "Checking for Apple II ROM files..."
-    
+
     local rom_paths=(
         "$HOME/mame/roms"
         "/usr/local/share/games/mame/roms"
         "/usr/share/games/mame/roms"
     )
-    
+
     local rom_found=0
     for rom_path in "${rom_paths[@]}"; do
         if [[ -f "$rom_path/apple2e.zip" ]] || [[ -f "$rom_path/apple2gs.zip" ]]; then
@@ -208,7 +208,7 @@ check_apple2_roms() {
             break
         fi
     done
-    
+
     if [[ $rom_found -eq 0 ]]; then
         echo "⚠ Apple II ROM files not found"
         echo ""
@@ -229,15 +229,15 @@ check_apple2_roms() {
         echo "  - apple2gs.zip (for Apple IIGS emulation)"
         echo ""
         echo "Quick install for testing:"
-        echo "  mkdir -p \$HOME/mame/roms"
-        echo "  wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -O \$HOME/mame/roms/apple2e.zip"
+        echo '  mkdir -p $HOME/mame/roms'
+        echo '  wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -O $HOME/mame/roms/apple2e.zip'
         echo "  mame -verifyroms apple2e  # Verify installation"
         echo ""
         echo "See tests/emulator/ROM_SETUP.md for detailed instructions."
         echo ""
         return 1
     fi
-    
+
     return 0
 }
 
