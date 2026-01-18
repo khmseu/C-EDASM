@@ -32,22 +32,22 @@ Start: Need to automate EDASM testing
 
 ## Quick Comparison
 
-| Criterion | MAME | GSPlus | LinApple | Custom |
-|-----------|------|--------|----------|--------|
-| **Best for** | CI/CD automation | Interactive debugging | Quick setup | Full control |
-| **Setup time** | 1-2 hours | 30 mins | 15 mins | 3-4 weeks |
-| **Automation time** | 4-6 days | 5-7 days | 4-6 days | 4-6 weeks |
-| **Binary size** | ~150 MB | ~20 MB | ~10 MB | ~5 MB |
-| **Scripting** | Lua (full API) | None (needs patching) | None (needs patching) | Built-in |
-| **Headless mode** | Native | Needs work | Needs Xvfb | Native |
-| **Apple IIe accuracy** | Excellent | Good | Adequate | Unknown |
-| **Learning curve** | Moderate | Low | Low | High |
-| **Maintenance** | External (upstream) | External (upstream) | External (upstream) | Internal |
-| **Community support** | Excellent | Good | Good | None |
-| **.2mg support** | Yes | Spotty | No | Up to us |
-| **ProDOS fidelity** | Excellent | Good | Good | Unknown |
-| **Language card** | Complete | Complete | May be incomplete | Up to us |
-| **Documentation** | Extensive | Good | Basic | None |
+| Criterion              | MAME                | GSPlus                | LinApple              | Custom       |
+| ---------------------- | ------------------- | --------------------- | --------------------- | ------------ |
+| **Best for**           | CI/CD automation    | Interactive debugging | Quick setup           | Full control |
+| **Setup time**         | 1-2 hours           | 30 mins               | 15 mins               | 3-4 weeks    |
+| **Automation time**    | 4-6 days            | 5-7 days              | 4-6 days              | 4-6 weeks    |
+| **Binary size**        | ~150 MB             | ~20 MB                | ~10 MB                | ~5 MB        |
+| **Scripting**          | Lua (full API)      | None (needs patching) | None (needs patching) | Built-in     |
+| **Headless mode**      | Native              | Needs work            | Needs Xvfb            | Native       |
+| **Apple IIe accuracy** | Excellent           | Good                  | Adequate              | Unknown      |
+| **Learning curve**     | Moderate            | Low                   | Low                   | High         |
+| **Maintenance**        | External (upstream) | External (upstream)   | External (upstream)   | Internal     |
+| **Community support**  | Excellent           | Good                  | Good                  | None         |
+| **.2mg support**       | Yes                 | Spotty                | No                    | Up to us     |
+| **ProDOS fidelity**    | Excellent           | Good                  | Good                  | Unknown      |
+| **Language card**      | Complete            | Complete              | May be incomplete     | Up to us     |
+| **Documentation**      | Extensive           | Good                  | Basic                 | None         |
 
 ## Use Case Recommendations
 
@@ -229,7 +229,7 @@ Overall: 9-10 weeks
 
 ```
 Primary:    MAME + Lua automation
-Fallback 1: LinApple + Xvfb  
+Fallback 1: LinApple + Xvfb
 Fallback 2: GSPlus + patches
 Last resort: Custom emulator (avoid if possible)
 ```
@@ -323,6 +323,6 @@ cd cadius && make
 
 ---
 
-*Decision matrix compiled: January 2026*  
-*Based on: EMULATOR_INVESTIGATION_REPORT.md*  
-*Use this for quick reference when making emulator choices*
+_Decision matrix compiled: January 2026_  
+_Based on: EMULATOR_INVESTIGATION_REPORT.md_  
+_Use this for quick reference when making emulator choices_

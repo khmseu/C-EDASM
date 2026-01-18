@@ -8,19 +8,19 @@ Print this page and keep it handy when doing verification work!
 
 ## File Location Quick Map
 
-| EDASM Module | 6502 Source | C++ Source |
-|--------------|-------------|------------|
-| **Assembler Pass 1-2** | `ASM/ASM2.S` | `src/assembler/assembler.cpp` |
-| **Assembler Pass 3** | `ASM/ASM1.S` | `src/assembler/listing.cpp` |
-| **Directives** | `ASM/ASM3.S` | `src/assembler/assembler.cpp` |
-| **Expressions** | `ASM/ASM2.S`, `ASM/ASM3.S` | `src/assembler/expression.cpp` |
-| **Symbol Table** | `ASM/ASM2.S` | `src/assembler/symbol_table.cpp` |
-| **Opcode Table** | `ASM/ASM3.S` | `src/assembler/opcode_table.cpp` |
-| **Tokenizer** | `ASM/ASM2.S` | `src/assembler/tokenizer.cpp` |
-| **Linker** | `LINKER/LINK.S` | `src/assembler/linker.cpp` |
-| **Editor** | `EDITOR/EDITOR*.S` | `src/editor/editor.cpp` |
-| **Interpreter** | `EI/EDASMINT.S` | `src/core/app.cpp` |
-| **Constants** | `COMMONEQUS.S`, `*/EQUATES.S` | `include/edasm/constants.hpp` |
+| EDASM Module           | 6502 Source                   | C++ Source                       |
+| ---------------------- | ----------------------------- | -------------------------------- |
+| **Assembler Pass 1-2** | `ASM/ASM2.S`                  | `src/assembler/assembler.cpp`    |
+| **Assembler Pass 3**   | `ASM/ASM1.S`                  | `src/assembler/listing.cpp`      |
+| **Directives**         | `ASM/ASM3.S`                  | `src/assembler/assembler.cpp`    |
+| **Expressions**        | `ASM/ASM2.S`, `ASM/ASM3.S`    | `src/assembler/expression.cpp`   |
+| **Symbol Table**       | `ASM/ASM2.S`                  | `src/assembler/symbol_table.cpp` |
+| **Opcode Table**       | `ASM/ASM3.S`                  | `src/assembler/opcode_table.cpp` |
+| **Tokenizer**          | `ASM/ASM2.S`                  | `src/assembler/tokenizer.cpp`    |
+| **Linker**             | `LINKER/LINK.S`               | `src/assembler/linker.cpp`       |
+| **Editor**             | `EDITOR/EDITOR*.S`            | `src/editor/editor.cpp`          |
+| **Interpreter**        | `EI/EDASMINT.S`               | `src/core/app.cpp`               |
+| **Constants**          | `COMMONEQUS.S`, `*/EQUATES.S` | `include/edasm/constants.hpp`    |
 
 ---
 
@@ -129,28 +129,28 @@ diff edasm_output.lst cedasm_output.lst
 
 ## Key Differences to Remember
 
-| Feature | EDASM.SRC | C-EDASM | Why |
-|---------|-----------|---------|-----|
-| **Bitwise AND** | `^` | `^` | Same (EDASM syntax) |
-| **Bitwise XOR** | `!` | `!` | Same (EDASM syntax) |
-| **Bitwise OR** | `\|` | `\|` | Same |
-| **Symbol storage** | High-bit terminated | `std::string` | Modern C++ |
-| **Hash table** | 256 fixed buckets | `std::unordered_map` | Better performance |
-| **Text buffer** | Fixed `$0801-$9900` | `std::vector<string>` | Dynamic allocation |
-| **Zero page vars** | `$00-$FF` | Class members | Encapsulation |
-| **Error handling** | Flags + goto | Exceptions | Modern C++ |
+| Feature            | EDASM.SRC           | C-EDASM               | Why                 |
+| ------------------ | ------------------- | --------------------- | ------------------- |
+| **Bitwise AND**    | `^`                 | `^`                   | Same (EDASM syntax) |
+| **Bitwise XOR**    | `!`                 | `!`                   | Same (EDASM syntax) |
+| **Bitwise OR**     | `\|`                | `\|`                  | Same                |
+| **Symbol storage** | High-bit terminated | `std::string`         | Modern C++          |
+| **Hash table**     | 256 fixed buckets   | `std::unordered_map`  | Better performance  |
+| **Text buffer**    | Fixed `$0801-$9900` | `std::vector<string>` | Dynamic allocation  |
+| **Zero page vars** | `$00-$FF`           | Class members         | Encapsulation       |
+| **Error handling** | Flags + goto        | Exceptions            | Modern C++          |
 
 ---
 
 ## Status Symbols
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Fully implemented, equivalent functionality |
-| ⚠️ | Not needed (hardware-specific or replaced) |
-| 🔄 | Partially implemented |
-| ⭕ | Documented but not yet implemented |
-| ❌ | Intentionally not ported |
+| Symbol | Meaning                                     |
+| ------ | ------------------------------------------- |
+| ✅     | Fully implemented, equivalent functionality |
+| ⚠️     | Not needed (hardware-specific or replaced)  |
+| 🔄     | Partially implemented                       |
+| ⭕     | Documented but not yet implemented          |
+| ❌     | Intentionally not ported                    |
 
 ---
 
@@ -252,35 +252,35 @@ BUILD_TYPE=Debug ./scripts/configure.sh && ./scripts/build.sh
 
 ## Addressing Mode Quick Reference
 
-| Mode | EDASM Syntax | C++ Enum |
-|------|--------------|----------|
-| Implied | `RTS` | `AddressingMode::Implied` |
-| Accumulator | `ASL A` | `AddressingMode::Accumulator` |
-| Immediate | `LDA #$42` | `AddressingMode::Immediate` |
-| Zero Page | `LDA $42` | `AddressingMode::ZeroPage` |
-| Zero Page,X | `LDA $42,X` | `AddressingMode::ZeroPageX` |
-| Zero Page,Y | `LDX $42,Y` | `AddressingMode::ZeroPageY` |
-| Absolute | `LDA $1234` | `AddressingMode::Absolute` |
-| Absolute,X | `LDA $1234,X` | `AddressingMode::AbsoluteX` |
-| Absolute,Y | `LDA $1234,Y` | `AddressingMode::AbsoluteY` |
-| Indirect | `JMP ($1234)` | `AddressingMode::Indirect` |
+| Mode             | EDASM Syntax  | C++ Enum                          |
+| ---------------- | ------------- | --------------------------------- |
+| Implied          | `RTS`         | `AddressingMode::Implied`         |
+| Accumulator      | `ASL A`       | `AddressingMode::Accumulator`     |
+| Immediate        | `LDA #$42`    | `AddressingMode::Immediate`       |
+| Zero Page        | `LDA $42`     | `AddressingMode::ZeroPage`        |
+| Zero Page,X      | `LDA $42,X`   | `AddressingMode::ZeroPageX`       |
+| Zero Page,Y      | `LDX $42,Y`   | `AddressingMode::ZeroPageY`       |
+| Absolute         | `LDA $1234`   | `AddressingMode::Absolute`        |
+| Absolute,X       | `LDA $1234,X` | `AddressingMode::AbsoluteX`       |
+| Absolute,Y       | `LDA $1234,Y` | `AddressingMode::AbsoluteY`       |
+| Indirect         | `JMP ($1234)` | `AddressingMode::Indirect`        |
 | Indexed Indirect | `LDA ($42,X)` | `AddressingMode::IndexedIndirect` |
 | Indirect Indexed | `LDA ($42),Y` | `AddressingMode::IndirectIndexed` |
-| Relative | `BNE label` | `AddressingMode::Relative` |
+| Relative         | `BNE label`   | `AddressingMode::Relative`        |
 
 ---
 
 ## Symbol Flags Comparison
 
-| Flag | EDASM.SRC Bit | C++ Flag | Meaning |
-|------|---------------|----------|---------|
-| Undefined | bit 7 ($80) | `FLAG_UNDEFINED` | Symbol not defined |
-| Unreferenced | bit 6 ($40) | `SYM_UNREFERENCED` | Tracked in C++ (as of 2026-01-16) |
-| Relative | bit 5 ($20) | `FLAG_RELATIVE` | REL mode symbol |
-| External | bit 4 ($10) | `FLAG_EXTERNAL` | EXT declaration |
-| Entry | bit 3 ($08) | `FLAG_ENTRY` | ENT declaration |
-| Macro | bit 2 ($04) | N/A | Macros not implemented |
-| Forward ref | bit 0 ($01) | Tracked separately | Forward reference |
+| Flag         | EDASM.SRC Bit | C++ Flag           | Meaning                           |
+| ------------ | ------------- | ------------------ | --------------------------------- |
+| Undefined    | bit 7 ($80)   | `FLAG_UNDEFINED`   | Symbol not defined                |
+| Unreferenced | bit 6 ($40)   | `SYM_UNREFERENCED` | Tracked in C++ (as of 2026-01-16) |
+| Relative     | bit 5 ($20)   | `FLAG_RELATIVE`    | REL mode symbol                   |
+| External     | bit 4 ($10)   | `FLAG_EXTERNAL`    | EXT declaration                   |
+| Entry        | bit 3 ($08)   | `FLAG_ENTRY`       | ENT declaration                   |
+| Macro        | bit 2 ($04)   | N/A                | Macros not implemented            |
+| Forward ref  | bit 0 ($01)   | Tracked separately | Forward reference                 |
 
 ---
 
@@ -316,4 +316,4 @@ When verifying a feature:
 
 ---
 
-*Keep this card handy! Pin it to your wall or keep it on your second monitor.*
+_Keep this card handy! Pin it to your wall or keep it on your second monitor._

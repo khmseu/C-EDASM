@@ -26,129 +26,129 @@ This index helps answer:
 
 ### Core Assembler Routines
 
-| Feature | EDASM.SRC Location | C++ Location | Status | Priority |
-|---------|-------------------|--------------|--------|----------|
-| **Assembly initialization** | ASM2.S `InitASM` (~L7DC3) | `assembler.cpp::reset()` | ✅ Complete | ⭐⭐⭐ |
-| **Pass 1 main loop** | ASM2.S `DoPass1` (~L7E1E) | `assembler.cpp::pass1()` | ✅ Complete | ⭐⭐⭐ |
-| **Pass 2 main loop** | ASM2.S `DoPass2` (~L7F69) | `assembler.cpp::pass2()` | ✅ Complete | ⭐⭐⭐ |
-| **Pass 3 symbol listing** | ASM1.S `DoPass3` (~LD000) | `listing.cpp` (entire file) | ✅ Complete | ⭐⭐ |
-| **Tokenization** | ASM2.S `NextRec` (~L8000) | `tokenizer.cpp::tokenize()` | ✅ Complete | ⭐⭐⭐ |
-| **Mnemonic handling** | ASM2.S `HndlMnem` (~L8200) | `assembler.cpp::process_instruction()` | ✅ Complete | ⭐⭐⭐ |
-| **Operand evaluation** | ASM2.S `EvalOprnd` (~L8377) | `assembler.cpp::determine_addressing_mode()` | ✅ Complete | ⭐⭐⭐ |
-| **Expression evaluation** | ASM2.S `EvalExpr` (~L8561) | `expression.cpp::evaluate()` | ✅ Complete | ⭐⭐⭐ |
-| **Symbol lookup** | ASM2.S `FindSym` (~L88C3) | `symbol_table.cpp::lookup()` | ✅ Complete | ⭐⭐⭐ |
-| **Symbol insertion** | ASM2.S `AddNode` (~L89A9) | `symbol_table.cpp::define()` | ✅ Complete | ⭐⭐⭐ |
-| **Hash function** | ASM2.S `HashFn` (~L8955) | STL `std::unordered_map` | ✅ Complete | ⭐⭐ |
-| **Instruction length** | ASM2.S `GInstLen` (~L8458) | `assembler.cpp::get_instruction_length()` | ✅ Complete | ⭐⭐ |
-| **PC advancement** | ASM2.S `AdvPC` (~L8470) | `assembler.cpp` (inline in pass1/pass2) | ✅ Complete | ⭐⭐ |
-| **Error registration** | ASM2.S `RegAsmEW` (~L8500) | `assembler.cpp::add_error()` | ✅ Complete | ⭐⭐ |
+| Feature                     | EDASM.SRC Location          | C++ Location                                 | Status      | Priority |
+| --------------------------- | --------------------------- | -------------------------------------------- | ----------- | -------- |
+| **Assembly initialization** | ASM2.S `InitASM` (~L7DC3)   | `assembler.cpp::reset()`                     | ✅ Complete | ⭐⭐⭐   |
+| **Pass 1 main loop**        | ASM2.S `DoPass1` (~L7E1E)   | `assembler.cpp::pass1()`                     | ✅ Complete | ⭐⭐⭐   |
+| **Pass 2 main loop**        | ASM2.S `DoPass2` (~L7F69)   | `assembler.cpp::pass2()`                     | ✅ Complete | ⭐⭐⭐   |
+| **Pass 3 symbol listing**   | ASM1.S `DoPass3` (~LD000)   | `listing.cpp` (entire file)                  | ✅ Complete | ⭐⭐     |
+| **Tokenization**            | ASM2.S `NextRec` (~L8000)   | `tokenizer.cpp::tokenize()`                  | ✅ Complete | ⭐⭐⭐   |
+| **Mnemonic handling**       | ASM2.S `HndlMnem` (~L8200)  | `assembler.cpp::process_instruction()`       | ✅ Complete | ⭐⭐⭐   |
+| **Operand evaluation**      | ASM2.S `EvalOprnd` (~L8377) | `assembler.cpp::determine_addressing_mode()` | ✅ Complete | ⭐⭐⭐   |
+| **Expression evaluation**   | ASM2.S `EvalExpr` (~L8561)  | `expression.cpp::evaluate()`                 | ✅ Complete | ⭐⭐⭐   |
+| **Symbol lookup**           | ASM2.S `FindSym` (~L88C3)   | `symbol_table.cpp::lookup()`                 | ✅ Complete | ⭐⭐⭐   |
+| **Symbol insertion**        | ASM2.S `AddNode` (~L89A9)   | `symbol_table.cpp::define()`                 | ✅ Complete | ⭐⭐⭐   |
+| **Hash function**           | ASM2.S `HashFn` (~L8955)    | STL `std::unordered_map`                     | ✅ Complete | ⭐⭐     |
+| **Instruction length**      | ASM2.S `GInstLen` (~L8458)  | `assembler.cpp::get_instruction_length()`    | ✅ Complete | ⭐⭐     |
+| **PC advancement**          | ASM2.S `AdvPC` (~L8470)     | `assembler.cpp` (inline in pass1/pass2)      | ✅ Complete | ⭐⭐     |
+| **Error registration**      | ASM2.S `RegAsmEW` (~L8500)  | `assembler.cpp::add_error()`                 | ✅ Complete | ⭐⭐     |
 
 ### Directive Handlers
 
-| Directive | EDASM.SRC Location | C++ Location | Status | Notes |
-|-----------|-------------------|--------------|--------|-------|
-| **ORG** | ASM3.S (~L8A82) | `assembler.cpp::process_directive_pass1()` ORG case | ✅ Complete | Sets program counter |
-| **EQU** | ASM3.S (~L8A31) | `assembler.cpp::process_directive_pass1()` EQU case | ✅ Complete | Define constant |
-| **REL** | ASM3.S (~L9126) | `assembler.cpp::process_directive_pass1()` REL case | ✅ Complete | Relocatable mode |
-| **ENT/ENTRY** | ASM3.S (~L9144) | `assembler.cpp::process_directive_pass1()` ENT case | ✅ Complete | Entry point |
-| **EXT/EXTRN** | ASM3.S (~L91A8) | `assembler.cpp::process_directive_pass1()` EXT case | ✅ Complete | External reference |
-| **DS/.BLOCK** | ASM3.S (~L8C0E) | `assembler.cpp::process_directive_pass1()` DS case | ✅ Complete | Reserve space |
-| **DB/DFB** | ASM3.S (~L8CC3) | `assembler.cpp::process_directive_pass2()` DB case | ✅ Complete | Define byte(s) |
-| **DW** | ASM3.S (~L8D67) | `assembler.cpp::process_directive_pass2()` DW case | ✅ Complete | Define word(s) |
-| **DA** | ASM3.S (~L8D00) | `assembler.cpp::process_directive_pass2()` DA case | ✅ Complete | Define address |
-| **ASC** | ASM3.S (~L8DD2) | `assembler.cpp::process_directive_pass2()` ASC case | ✅ Complete | ASCII string |
-| **DCI** | ASM3.S (~L8E40) | `assembler.cpp::process_directive_pass2()` DCI case | ✅ Complete | DCI string (inverted last char) |
-| **DO/IFNE** | ASM3.S (~L90B7) | `assembler.cpp::process_conditional_directive()` DO case | ✅ Complete | Conditional assembly |
-| **ELSE** | ASM3.S (~L90CB) | `assembler.cpp::process_conditional_directive()` ELSE case | ✅ Complete | Alternate block |
-| **FIN** | ASM3.S (~L90D7) | `assembler.cpp::process_conditional_directive()` FIN case | ✅ Complete | End conditional |
-| **INCLUDE** | ASM3.S (~L9360) | `assembler.cpp::preprocess_includes()` | ✅ Complete | File inclusion |
-| **LST** | ASM3.S (~L8ECA) | `assembler.cpp::process_directive_pass2()` LST case | ✅ Complete | Listing control |
-| **MSB** | ASM3.S (~L8E66) | `assembler.cpp::process_directive_pass2()` MSB case | ✅ Complete | High bit control |
-| **SBTL** | ASM3.S (~L8F00) | `assembler.cpp::process_directive_pass2()` SBTL case | ✅ Complete | Subtitle |
-| **END** | ASM3.S (~L8F50) | `assembler.cpp::process_directive_pass2()` END case | ✅ Complete | End assembly |
+| Directive     | EDASM.SRC Location | C++ Location                                               | Status      | Notes                           |
+| ------------- | ------------------ | ---------------------------------------------------------- | ----------- | ------------------------------- |
+| **ORG**       | ASM3.S (~L8A82)    | `assembler.cpp::process_directive_pass1()` ORG case        | ✅ Complete | Sets program counter            |
+| **EQU**       | ASM3.S (~L8A31)    | `assembler.cpp::process_directive_pass1()` EQU case        | ✅ Complete | Define constant                 |
+| **REL**       | ASM3.S (~L9126)    | `assembler.cpp::process_directive_pass1()` REL case        | ✅ Complete | Relocatable mode                |
+| **ENT/ENTRY** | ASM3.S (~L9144)    | `assembler.cpp::process_directive_pass1()` ENT case        | ✅ Complete | Entry point                     |
+| **EXT/EXTRN** | ASM3.S (~L91A8)    | `assembler.cpp::process_directive_pass1()` EXT case        | ✅ Complete | External reference              |
+| **DS/.BLOCK** | ASM3.S (~L8C0E)    | `assembler.cpp::process_directive_pass1()` DS case         | ✅ Complete | Reserve space                   |
+| **DB/DFB**    | ASM3.S (~L8CC3)    | `assembler.cpp::process_directive_pass2()` DB case         | ✅ Complete | Define byte(s)                  |
+| **DW**        | ASM3.S (~L8D67)    | `assembler.cpp::process_directive_pass2()` DW case         | ✅ Complete | Define word(s)                  |
+| **DA**        | ASM3.S (~L8D00)    | `assembler.cpp::process_directive_pass2()` DA case         | ✅ Complete | Define address                  |
+| **ASC**       | ASM3.S (~L8DD2)    | `assembler.cpp::process_directive_pass2()` ASC case        | ✅ Complete | ASCII string                    |
+| **DCI**       | ASM3.S (~L8E40)    | `assembler.cpp::process_directive_pass2()` DCI case        | ✅ Complete | DCI string (inverted last char) |
+| **DO/IFNE**   | ASM3.S (~L90B7)    | `assembler.cpp::process_conditional_directive()` DO case   | ✅ Complete | Conditional assembly            |
+| **ELSE**      | ASM3.S (~L90CB)    | `assembler.cpp::process_conditional_directive()` ELSE case | ✅ Complete | Alternate block                 |
+| **FIN**       | ASM3.S (~L90D7)    | `assembler.cpp::process_conditional_directive()` FIN case  | ✅ Complete | End conditional                 |
+| **INCLUDE**   | ASM3.S (~L9360)    | `assembler.cpp::preprocess_includes()`                     | ✅ Complete | File inclusion                  |
+| **LST**       | ASM3.S (~L8ECA)    | `assembler.cpp::process_directive_pass2()` LST case        | ✅ Complete | Listing control                 |
+| **MSB**       | ASM3.S (~L8E66)    | `assembler.cpp::process_directive_pass2()` MSB case        | ✅ Complete | High bit control                |
+| **SBTL**      | ASM3.S (~L8F00)    | `assembler.cpp::process_directive_pass2()` SBTL case       | ✅ Complete | Subtitle                        |
+| **END**       | ASM3.S (~L8F50)    | `assembler.cpp::process_directive_pass2()` END case        | ✅ Complete | End assembly                    |
 
 ### Expression Operators
 
-| Operator | EDASM.SRC Location | C++ Location | Status | Notes |
-|----------|-------------------|--------------|--------|-------|
-| **Addition (+)** | ASM2.S/ASM3.S (~L8600) | `expression.cpp::parse_full()` case '+' | ✅ Complete | Binary operator |
-| **Subtraction (-)** | ASM2.S/ASM3.S (~L8620) | `expression.cpp::parse_full()` case '-' | ✅ Complete | Binary operator |
-| **Multiplication (*)** | ASM2.S/ASM3.S (~L8640) | `expression.cpp::parse_full()` case '*' | ✅ Complete | Binary operator |
-| **Division (/)** | ASM2.S/ASM3.S (~L8660) | `expression.cpp::parse_full()` case '/' | ✅ Complete | Binary operator |
-| **AND (^)** | ASM2.S/ASM3.S (~L8680) | `expression.cpp::parse_full()` case '^' | ✅ Complete | Bitwise AND (EDASM syntax) |
-| **OR (\|)** | ASM2.S/ASM3.S (~L8700) | `expression.cpp::parse_full()` case '\|' | ✅ Complete | Bitwise OR |
-| **XOR (!)** | ASM2.S/ASM3.S (~L8720) | `expression.cpp::parse_full()` case '!' | ✅ Complete | Bitwise XOR (EDASM syntax) |
-| **Low byte (<)** | ASM2.S/ASM3.S (~L8740) | `expression.cpp::parse_full()` byte operator | ✅ Complete | Extract low byte |
-| **High byte (>)** | ASM2.S/ASM3.S (~L8760) | `expression.cpp::parse_full()` byte operator | ✅ Complete | Extract high byte |
-| **Unary minus** | ASM2.S/ASM3.S (~L8780) | `expression.cpp::parse_simple()` | ✅ Complete | Negation |
-| **Unary plus** | ASM2.S/ASM3.S (~L8790) | `expression.cpp::parse_simple()` | ✅ Complete | Identity |
+| Operator                | EDASM.SRC Location     | C++ Location                                 | Status      | Notes                      |
+| ----------------------- | ---------------------- | -------------------------------------------- | ----------- | -------------------------- |
+| **Addition (+)**        | ASM2.S/ASM3.S (~L8600) | `expression.cpp::parse_full()` case '+'      | ✅ Complete | Binary operator            |
+| **Subtraction (-)**     | ASM2.S/ASM3.S (~L8620) | `expression.cpp::parse_full()` case '-'      | ✅ Complete | Binary operator            |
+| **Multiplication (\*)** | ASM2.S/ASM3.S (~L8640) | `expression.cpp::parse_full()` case '\*'     | ✅ Complete | Binary operator            |
+| **Division (/)**        | ASM2.S/ASM3.S (~L8660) | `expression.cpp::parse_full()` case '/'      | ✅ Complete | Binary operator            |
+| **AND (^)**             | ASM2.S/ASM3.S (~L8680) | `expression.cpp::parse_full()` case '^'      | ✅ Complete | Bitwise AND (EDASM syntax) |
+| **OR (\|)**             | ASM2.S/ASM3.S (~L8700) | `expression.cpp::parse_full()` case '\|'     | ✅ Complete | Bitwise OR                 |
+| **XOR (!)**             | ASM2.S/ASM3.S (~L8720) | `expression.cpp::parse_full()` case '!'      | ✅ Complete | Bitwise XOR (EDASM syntax) |
+| **Low byte (<)**        | ASM2.S/ASM3.S (~L8740) | `expression.cpp::parse_full()` byte operator | ✅ Complete | Extract low byte           |
+| **High byte (>)**       | ASM2.S/ASM3.S (~L8760) | `expression.cpp::parse_full()` byte operator | ✅ Complete | Extract high byte          |
+| **Unary minus**         | ASM2.S/ASM3.S (~L8780) | `expression.cpp::parse_simple()`             | ✅ Complete | Negation                   |
+| **Unary plus**          | ASM2.S/ASM3.S (~L8790) | `expression.cpp::parse_simple()`             | ✅ Complete | Identity                   |
 
 ### Symbol Table Operations
 
-| Operation | EDASM.SRC Location | C++ Location | Status | Notes |
-|-----------|-------------------|--------------|--------|-------|
-| **Hash function** | ASM2.S `HashFn` (~L8955) | STL implementation | ✅ Complete | Uses std::unordered_map |
-| **Symbol lookup** | ASM2.S `FindSym` (~L88C3) | `symbol_table.cpp::lookup()` | ✅ Complete | Hash-based lookup |
-| **Symbol definition** | ASM2.S `AddNode` (~L89A9) | `symbol_table.cpp::define()` | ✅ Complete | Insert into table |
-| **Symbol update** | ASM2.S `UpdSymVal` (~L8A00) | `symbol_table.cpp::update()` | ✅ Complete | Modify existing symbol |
-| **Symbol sorting (by name)** | ASM1.S `DoSort` (~LD1D6) | `symbol_table.cpp::sorted_by_name()` | ✅ Complete | For listing |
-| **Symbol sorting (by value)** | ASM1.S `DoSort` (~LD1D6) | `symbol_table.cpp::sorted_by_value()` | ✅ Complete | For listing |
-| **Symbol table printing** | ASM1.S `PrSymTbl` (~LD2D8) | `listing.cpp::generate_symbol_table()` | ✅ Complete | Multi-column format |
+| Operation                     | EDASM.SRC Location          | C++ Location                           | Status      | Notes                   |
+| ----------------------------- | --------------------------- | -------------------------------------- | ----------- | ----------------------- |
+| **Hash function**             | ASM2.S `HashFn` (~L8955)    | STL implementation                     | ✅ Complete | Uses std::unordered_map |
+| **Symbol lookup**             | ASM2.S `FindSym` (~L88C3)   | `symbol_table.cpp::lookup()`           | ✅ Complete | Hash-based lookup       |
+| **Symbol definition**         | ASM2.S `AddNode` (~L89A9)   | `symbol_table.cpp::define()`           | ✅ Complete | Insert into table       |
+| **Symbol update**             | ASM2.S `UpdSymVal` (~L8A00) | `symbol_table.cpp::update()`           | ✅ Complete | Modify existing symbol  |
+| **Symbol sorting (by name)**  | ASM1.S `DoSort` (~LD1D6)    | `symbol_table.cpp::sorted_by_name()`   | ✅ Complete | For listing             |
+| **Symbol sorting (by value)** | ASM1.S `DoSort` (~LD1D6)    | `symbol_table.cpp::sorted_by_value()`  | ✅ Complete | For listing             |
+| **Symbol table printing**     | ASM1.S `PrSymTbl` (~LD2D8)  | `listing.cpp::generate_symbol_table()` | ✅ Complete | Multi-column format     |
 
 ### Linker Operations
 
-| Operation | EDASM.SRC Location | C++ Location | Status | Notes |
-|-----------|-------------------|--------------|--------|-------|
-| **Phase 0: Init** | LINK.S `DoPhase0` (~L100) | `linker.cpp::link()` initialization | ✅ Complete | Setup tables |
-| **Phase 1: Parse** | LINK.S `DoPhase1` (~L500) | `linker.cpp::load_modules()` | ✅ Complete | Load REL files |
-| **Phase 2: Link** | LINK.S `DoPhase2` (~L2000) | `linker.cpp::resolve_externals()` | ✅ Complete | Symbol resolution |
-| **Phase 3: Process** | LINK.S `DoPhase3` (~L4000) | `linker.cpp::relocate_code()` | ✅ Complete | Apply relocations |
-| **Phase 4-6: Output** | LINK.S `DoPhase4` (~L6000) | `linker.cpp::generate_output()` | ✅ Complete | Write output file |
-| **ESD parsing** | LINK.S `ScanESD` (~L1200) | `linker.cpp::build_symbol_tables()` | ✅ Complete | External symbol dict |
-| **RLD parsing** | LINK.S `ScanRLD` (~L5000) | `linker.cpp::relocate_code()` | ✅ Complete | Relocation dict |
-| **Entry table scan** | LINK.S `ScanEntTbl` (~L800) | `linker.cpp::resolve_externals()` | ✅ Complete | Find entry points |
+| Operation             | EDASM.SRC Location          | C++ Location                        | Status      | Notes                |
+| --------------------- | --------------------------- | ----------------------------------- | ----------- | -------------------- |
+| **Phase 0: Init**     | LINK.S `DoPhase0` (~L100)   | `linker.cpp::link()` initialization | ✅ Complete | Setup tables         |
+| **Phase 1: Parse**    | LINK.S `DoPhase1` (~L500)   | `linker.cpp::load_modules()`        | ✅ Complete | Load REL files       |
+| **Phase 2: Link**     | LINK.S `DoPhase2` (~L2000)  | `linker.cpp::resolve_externals()`   | ✅ Complete | Symbol resolution    |
+| **Phase 3: Process**  | LINK.S `DoPhase3` (~L4000)  | `linker.cpp::relocate_code()`       | ✅ Complete | Apply relocations    |
+| **Phase 4-6: Output** | LINK.S `DoPhase4` (~L6000)  | `linker.cpp::generate_output()`     | ✅ Complete | Write output file    |
+| **ESD parsing**       | LINK.S `ScanESD` (~L1200)   | `linker.cpp::build_symbol_tables()` | ✅ Complete | External symbol dict |
+| **RLD parsing**       | LINK.S `ScanRLD` (~L5000)   | `linker.cpp::relocate_code()`       | ✅ Complete | Relocation dict      |
+| **Entry table scan**  | LINK.S `ScanEntTbl` (~L800) | `linker.cpp::resolve_externals()`   | ✅ Complete | Find entry points    |
 
 ### Editor Commands
 
-| Command | EDASM.SRC Location | C++ Location | Status | Notes |
-|---------|-------------------|--------------|--------|-------|
-| **LOAD** | EDITOR1.S (~L1000) | `editor.cpp::load()` | ✅ Complete | Load text file |
-| **SAVE** | EDITOR1.S (~L1500) | `editor.cpp::save()` | ✅ Complete | Save text file |
-| **DELETE (file)** | EDITOR1.S (~L2000) | `editor.cpp::delete_file()` | ✅ Complete | Delete file |
-| **RENAME** | EDITOR1.S (~L2500) | `editor.cpp::rename()` | ✅ Complete | Rename file |
-| **LIST** | EDITOR1.S (~L3000) | `editor.cpp::list()` | ✅ Complete | Display lines |
-| **INSERT** | EDITOR3.S (~L5000) | `editor.cpp::insert()` | ✅ Complete | Insert mode |
-| **DELETE (lines)** | EDITOR3.S (~L5500) | `editor.cpp::delete_lines()` | ✅ Complete | Delete line range |
-| **FIND** | EDITOR2.S (~L4000) | `editor.cpp::find()` | ✅ Complete | Search text |
-| **CHANGE** | EDITOR2.S (~L4500) | `editor.cpp::change()` | ✅ Complete | Search and replace |
-| **MOVE** | EDITOR2.S (~L6000) | `editor.cpp::move()` | ✅ Complete | Move lines |
-| **COPY** | EDITOR2.S (~L6500) | `editor.cpp::copy()` | ✅ Complete | Copy lines |
-| **JOIN** | EDITOR2.S (~L7000) | `editor.cpp::join()` | ✅ Complete | Join lines |
-| **SPLIT** | EDITOR2.S (~L7500) | `editor.cpp::split()` | ✅ Complete | Split line |
+| Command            | EDASM.SRC Location | C++ Location                 | Status      | Notes              |
+| ------------------ | ------------------ | ---------------------------- | ----------- | ------------------ |
+| **LOAD**           | EDITOR1.S (~L1000) | `editor.cpp::load()`         | ✅ Complete | Load text file     |
+| **SAVE**           | EDITOR1.S (~L1500) | `editor.cpp::save()`         | ✅ Complete | Save text file     |
+| **DELETE (file)**  | EDITOR1.S (~L2000) | `editor.cpp::delete_file()`  | ✅ Complete | Delete file        |
+| **RENAME**         | EDITOR1.S (~L2500) | `editor.cpp::rename()`       | ✅ Complete | Rename file        |
+| **LIST**           | EDITOR1.S (~L3000) | `editor.cpp::list()`         | ✅ Complete | Display lines      |
+| **INSERT**         | EDITOR3.S (~L5000) | `editor.cpp::insert()`       | ✅ Complete | Insert mode        |
+| **DELETE (lines)** | EDITOR3.S (~L5500) | `editor.cpp::delete_lines()` | ✅ Complete | Delete line range  |
+| **FIND**           | EDITOR2.S (~L4000) | `editor.cpp::find()`         | ✅ Complete | Search text        |
+| **CHANGE**         | EDITOR2.S (~L4500) | `editor.cpp::change()`       | ✅ Complete | Search and replace |
+| **MOVE**           | EDITOR2.S (~L6000) | `editor.cpp::move()`         | ✅ Complete | Move lines         |
+| **COPY**           | EDITOR2.S (~L6500) | `editor.cpp::copy()`         | ✅ Complete | Copy lines         |
+| **JOIN**           | EDITOR2.S (~L7000) | `editor.cpp::join()`         | ✅ Complete | Join lines         |
+| **SPLIT**          | EDITOR2.S (~L7500) | `editor.cpp::split()`        | ✅ Complete | Split line         |
 
 ### Interpreter (EI) Commands
 
-| Feature | EDASM.SRC Location | C++ Location | Status | Notes |
-|---------|-------------------|--------------|--------|-------|
-| **Main command loop** | EDASMINT.S `LB1CB` (~L100) | `app.cpp::run()` | ✅ Complete | Command dispatch |
-| **Command parsing** | EDASMINT.S (~L200) | `app.cpp::dispatch_command()` | ✅ Complete | Parse and route |
-| **EXEC command** | EDASMINT.S (~L500) | `app.cpp::exec()` | ✅ Complete | Run command file |
-| **PREFIX command** | EDASMINT.S (~L800) | `app.cpp::set_prefix()` | ✅ Complete | Change directory |
-| **CATALOG command** | EDASMINT.S (~L1000) | `app.cpp::catalog()` | ✅ Complete | List directory |
-| **Module loading** | EDASMINT.S (~L1500) | N/A | ⚠️ Not needed | Linked at compile time |
-| **Warm restart (Ctrl-Y)** | EDASMINT.S `EIWrmStrt` (~L50) | N/A | ⚠️ Not applicable | Modern OS handles |
+| Feature                   | EDASM.SRC Location            | C++ Location                  | Status            | Notes                  |
+| ------------------------- | ----------------------------- | ----------------------------- | ----------------- | ---------------------- |
+| **Main command loop**     | EDASMINT.S `LB1CB` (~L100)    | `app.cpp::run()`              | ✅ Complete       | Command dispatch       |
+| **Command parsing**       | EDASMINT.S (~L200)            | `app.cpp::dispatch_command()` | ✅ Complete       | Parse and route        |
+| **EXEC command**          | EDASMINT.S (~L500)            | `app.cpp::exec()`             | ✅ Complete       | Run command file       |
+| **PREFIX command**        | EDASMINT.S (~L800)            | `app.cpp::set_prefix()`       | ✅ Complete       | Change directory       |
+| **CATALOG command**       | EDASMINT.S (~L1000)           | `app.cpp::catalog()`          | ✅ Complete       | List directory         |
+| **Module loading**        | EDASMINT.S (~L1500)           | N/A                           | ⚠️ Not needed     | Linked at compile time |
+| **Warm restart (Ctrl-Y)** | EDASMINT.S `EIWrmStrt` (~L50) | N/A                           | ⚠️ Not applicable | Modern OS handles      |
 
 ---
 
 ## Implementation Status Legend
 
-| Symbol | Status | Meaning |
-|--------|--------|---------|
-| ✅ | Complete | Fully implemented with equivalent functionality |
-| ⚠️ | Not needed | Feature replaced by modern equivalent or not applicable |
-| 🔄 | Partial | Basic implementation exists, advanced features pending |
-| ⭕ | Not ported | Documented but not yet implemented |
-| ❌ | Won't port | Feature intentionally excluded |
+| Symbol | Status     | Meaning                                                 |
+| ------ | ---------- | ------------------------------------------------------- |
+| ✅     | Complete   | Fully implemented with equivalent functionality         |
+| ⚠️     | Not needed | Feature replaced by modern equivalent or not applicable |
+| 🔄     | Partial    | Basic implementation exists, advanced features pending  |
+| ⭕     | Not ported | Documented but not yet implemented                      |
+| ❌     | Won't port | Feature intentionally excluded                          |
 
 ---
 
@@ -170,7 +170,7 @@ This index helps answer:
 
 ### Split Buffer Mode
 
-- **Location**: EDITOR*.S SwapMode handling
+- **Location**: EDITOR\*.S SwapMode handling
 - **Status**: ⭕ Not implemented
 - **Reason**: Editor enhancement, lower priority
 - **Future**: Could support dual buffer editing

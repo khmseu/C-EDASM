@@ -27,62 +27,62 @@ MAME (Multiple Arcade Machine Emulator) is a mature, cross-platform emulator wit
 #### Strengths
 
 1. **High Fidelity Emulation**
-   - Accurate language card emulation
-   - Complete soft switch support ($C0xx range)
-   - Full ProDOS MLI compatibility
-   - Disk II controller accuracy
+    - Accurate language card emulation
+    - Complete soft switch support ($C0xx range)
+    - Full ProDOS MLI compatibility
+    - Disk II controller accuracy
 
 2. **Disk Image Support**
-   - Native support for .2mg, .po, .dsk formats
-   - Multiple disk mounting (e.g., `-flop1`, `-flop2`)
-   - Read/write operations to mounted images
+    - Native support for .2mg, .po, .dsk formats
+    - Multiple disk mounting (e.g., `-flop1`, `-flop2`)
+    - Read/write operations to mounted images
 
 3. **Automation & Headless Operation**
-   - Command-line flags for headless mode:
+    - Command-line flags for headless mode:
 
-     ```bash
-     mame apple2e -flop1 edasm_src.2mg -video none -sound none -nothrottle
-     ```
+        ```bash
+        mame apple2e -flop1 edasm_src.2mg -video none -sound none -nothrottle
+        ```
 
-   - `-autoboot_script` for Lua automation
-   - `-autoboot_delay` for timing control
-   - No X11/display server required for headless runs
+    - `-autoboot_script` for Lua automation
+    - `-autoboot_delay` for timing control
+    - No X11/display server required for headless runs
 
 4. **Lua Scripting API**
-   - **Keystroke injection**: `emu.keypost()` for simulating keyboard input
-   - **Memory access**: Read/write CPU memory and registers
-   - **Breakpoints**: Set programmatic breakpoints for specific addresses
-   - **State management**: Save/restore emulator state
-   - **Event hooks**: Frame completion, pause, reset events
-   - **Disk I/O hooks**: Intercept and manipulate disk operations
+    - **Keystroke injection**: `emu.keypost()` for simulating keyboard input
+    - **Memory access**: Read/write CPU memory and registers
+    - **Breakpoints**: Set programmatic breakpoints for specific addresses
+    - **State management**: Save/restore emulator state
+    - **Event hooks**: Frame completion, pause, reset events
+    - **Disk I/O hooks**: Intercept and manipulate disk operations
 
 5. **CI/CD Friendliness**
-   - Deterministic execution with `-nothrottle`
-   - Log file generation
-   - Exit codes for scripting
-   - Well-documented CLI interface
+    - Deterministic execution with `-nothrottle`
+    - Log file generation
+    - Exit codes for scripting
+    - Well-documented CLI interface
 
 6. **Community & Documentation**
-   - Extensive official Lua API documentation
-   - Active community with example scripts
-   - Regular updates and maintenance
-   - Cross-platform (Linux, macOS, Windows)
+    - Extensive official Lua API documentation
+    - Active community with example scripts
+    - Regular updates and maintenance
+    - Cross-platform (Linux, macOS, Windows)
 
 #### Weaknesses
 
 1. **Dependency Weight**
-   - Large binary (~100+ MB)
-   - Multiple library dependencies
-   - Longer installation time in CI environments
+    - Large binary (~100+ MB)
+    - Multiple library dependencies
+    - Longer installation time in CI environments
 
 2. **Learning Curve**
-   - Lua scripting knowledge required
-   - Complex API for advanced automation
-   - Documentation, while extensive, requires careful reading
+    - Lua scripting knowledge required
+    - Complex API for advanced automation
+    - Documentation, while extensive, requires careful reading
 
 3. **API Stability**
-   - Lua API can change between MAME versions (though rarely breaks)
-   - Scripts may need maintenance across MAME updates
+    - Lua API can change between MAME versions (though rarely breaks)
+    - Scripts may need maintenance across MAME updates
 
 #### Implementation Path
 
@@ -152,47 +152,47 @@ GSPlus is a modern fork of KEGS (Apple IIgs emulator) with improved cross-platfo
 #### Strengths
 
 1. **Lighter Weight**
-   - Smaller binary than MAME (~10-20 MB)
-   - Fewer dependencies
-   - Faster startup time
+    - Smaller binary than MAME (~10-20 MB)
+    - Fewer dependencies
+    - Faster startup time
 
 2. **CLI Configuration**
-   - `-config <file>` for programmatic configuration
-   - Predefined .gsp config files for different test scenarios
-   - Command-line disk mounting
+    - `-config <file>` for programmatic configuration
+    - Predefined .gsp config files for different test scenarios
+    - Command-line disk mounting
 
 3. **Built-in Debugger**
-   - Available with `WITH_DEBUGGER=ON` compile flag
-   - Breakpoints and watchpoints
-   - Memory inspection and modification
-   - CPU state examination
-   - Step-through execution
+    - Available with `WITH_DEBUGGER=ON` compile flag
+    - Breakpoints and watchpoints
+    - Memory inspection and modification
+    - CPU state examination
+    - Step-through execution
 
 4. **ProDOS Support**
-   - Decent ProDOS fidelity
-   - Disk image mounting
-   - Language card support
+    - Decent ProDOS fidelity
+    - Disk image mounting
+    - Language card support
 
 #### Weaknesses
 
 1. **Limited Automation API**
-   - No native scripting interface (no Lua/Python hooks)
-   - Would require stdin/socket patching for automation
-   - Screen scraping may be necessary for output verification
+    - No native scripting interface (no Lua/Python hooks)
+    - Would require stdin/socket patching for automation
+    - Screen scraping may be necessary for output verification
 
 2. **Headless Mode Limitations**
-   - No built-in headless mode
-   - Would require SDL or display patching
-   - Less suitable for CI without modifications
+    - No built-in headless mode
+    - Would require SDL or display patching
+    - Less suitable for CI without modifications
 
 3. **Spotty .2mg Support**
-   - May need conversion to .po/.dsk format
-   - Disk image compatibility can be inconsistent
+    - May need conversion to .po/.dsk format
+    - Disk image compatibility can be inconsistent
 
 4. **Automation Gaps**
-   - No programmatic keystroke injection
-   - Limited state save/restore
-   - Would need extensive patching for CI use
+    - No programmatic keystroke injection
+    - Limited state save/restore
+    - Would need extensive patching for CI use
 
 #### Potential Use Cases
 
@@ -219,45 +219,45 @@ LinApple is a Linux port of AppleWin, focusing on Apple II/IIe emulation. It's l
 #### Strengths
 
 1. **Small Footprint**
-   - Very small binary (~5-10 MB)
-   - Minimal dependencies (SDL, libcurl)
-   - Fast startup
+    - Very small binary (~5-10 MB)
+    - Minimal dependencies (SDL, libcurl)
+    - Fast startup
 
 2. **Easy to Patch**
-   - Smaller, more approachable codebase
-   - Fork-friendly for custom modifications
-   - Active community
+    - Smaller, more approachable codebase
+    - Fork-friendly for custom modifications
+    - Active community
 
 3. **CLI Flags**
-   - `--d1 <disk>` and `--d2 <disk>` for disk mounting
-   - `--autoboot` to skip splash screen
-   - Basic automation possible
+    - `--d1 <disk>` and `--d2 <disk>` for disk mounting
+    - `--autoboot` to skip splash screen
+    - Basic automation possible
 
 4. **ProDOS Support**
-   - Supports .dsk and .po formats
-   - Read/write operations work well
-   - Compatible with ProDOS 8
+    - Supports .dsk and .po formats
+    - Read/write operations work well
+    - Compatible with ProDOS 8
 
 #### Weaknesses
 
 1. **No True Headless Mode**
-   - Requires SDL window (though minimizable)
-   - X11/display server needed (or Xvfb in CI)
-   - Less elegant than MAME's headless option
+    - Requires SDL window (though minimizable)
+    - X11/display server needed (or Xvfb in CI)
+    - Less elegant than MAME's headless option
 
 2. **No .2mg Support**
-   - Would need disk image conversion
-   - May lose metadata in conversion
+    - Would need disk image conversion
+    - May lose metadata in conversion
 
 3. **Lower Fidelity**
-   - Some soft switch edge cases may not be accurate
-   - Language card support may be incomplete
-   - Could affect EDASM behavior in edge cases
+    - Some soft switch edge cases may not be accurate
+    - Language card support may be incomplete
+    - Could affect EDASM behavior in edge cases
 
 4. **No Scripting API**
-   - No Lua or Python hooks
-   - Would need socket/stdio patching for automation
-   - Similar limitations to GSPlus
+    - No Lua or Python hooks
+    - Would need socket/stdio patching for automation
+    - Similar limitations to GSPlus
 
 #### Potential Use Cases
 
@@ -284,44 +284,44 @@ Create a purpose-built emulator focused solely on EDASM testing needs.
 #### Strengths
 
 1. **Full Control**
-   - Tailored exactly to C-EDASM testing requirements
-   - No unnecessary features
-   - Tight integration with test infrastructure
+    - Tailored exactly to C-EDASM testing requirements
+    - No unnecessary features
+    - Tight integration with test infrastructure
 
 2. **Minimal Dependencies**
-   - Only implement what's needed
-   - No GUI overhead
-   - Optimized for CI execution
+    - Only implement what's needed
+    - No GUI overhead
+    - Optimized for CI execution
 
 3. **Perfect Automation**
-   - Built-in scripting from day one
-   - Custom debugging interfaces
-   - Ideal test hooks
+    - Built-in scripting from day one
+    - Custom debugging interfaces
+    - Ideal test hooks
 
 #### Weaknesses
 
 1. **High Development Cost**
-   - Estimated 4-8 weeks of full-time development
-   - Requires deep 6502 and Apple II knowledge
-   - Significant testing required
+    - Estimated 4-8 weeks of full-time development
+    - Requires deep 6502 and Apple II knowledge
+    - Significant testing required
 
 2. **Complexity of Accurate Emulation**
-   - **6502 CPU**: ~56 instructions, addressing modes (~1 week)
-   - **Memory banking**: Main/aux RAM, language card (~1 week)
-   - **ProDOS MLI**: File I/O, block device interface (~2 weeks)
-   - **Disk II controller**: Sector timing, state machine (~1-2 weeks)
-   - **Soft switches**: $C0xx range, peripheral slots (~1 week)
-   - **Testing & debugging**: Edge cases, timing (~2 weeks)
+    - **6502 CPU**: ~56 instructions, addressing modes (~1 week)
+    - **Memory banking**: Main/aux RAM, language card (~1 week)
+    - **ProDOS MLI**: File I/O, block device interface (~2 weeks)
+    - **Disk II controller**: Sector timing, state machine (~1-2 weeks)
+    - **Soft switches**: $C0xx range, peripheral slots (~1 week)
+    - **Testing & debugging**: Edge cases, timing (~2 weeks)
 
 3. **Maintenance Burden**
-   - Becomes a project of its own
-   - Bug fixes and updates needed
-   - Diverts resources from C-EDASM development
+    - Becomes a project of its own
+    - Bug fixes and updates needed
+    - Diverts resources from C-EDASM development
 
 4. **Risk**
-   - May miss edge cases that EDASM depends on
-   - Could give false positives/negatives in testing
-   - Harder to verify correctness (what validates the validator?)
+    - May miss edge cases that EDASM depends on
+    - Could give false positives/negatives in testing
+    - Harder to verify correctness (what validates the validator?)
 
 #### Recommendation
 
@@ -345,12 +345,12 @@ Regardless of emulator choice, we need tools to inject test sources and extract 
 - **Platforms**: Windows, macOS, Linux, Raspberry Pi, FreeBSD
 - **Formats**: DSK, PO, 2MG, NIB (DOS and ProDOS order)
 - **Features**:
-  - Extract files: `cadius EXTRACTVOLUME <image> <output-dir>`
-  - Inject files: `cadius ADDFILE <image> <dest-path> <file>`
-  - List contents: `cadius CATALOG <image>`
-  - Create images: `cadius CREATEVOLUME <image> <name> <size>`
-  - BASIC detokenization
-  - Disk comparison
+    - Extract files: `cadius EXTRACTVOLUME <image> <output-dir>`
+    - Inject files: `cadius ADDFILE <image> <dest-path> <file>`
+    - List contents: `cadius CATALOG <image>`
+    - Create images: `cadius CREATEVOLUME <image> <name> <size>`
+    - BASIC detokenization
+    - Disk comparison
 
 **Example Workflow:**
 
@@ -405,18 +405,18 @@ ac -p mydisk.2mg newfile.bin PRODOS
 
 ## Comparative Summary
 
-| Feature | MAME | GSPlus | LinApple | Custom |
-|---------|------|--------|----------|--------|
-| **Fidelity** | ★★★★★ | ★★★★☆ | ★★★☆☆ | ★★★☆☆ |
-| **Automation** | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | ★★★★★ |
-| **Headless** | ★★★★★ | ★☆☆☆☆ | ★★☆☆☆ | ★★★★★ |
-| **Setup Time** | ★★★☆☆ | ★★★★☆ | ★★★★★ | ★☆☆☆☆ |
-| **Learning Curve** | ★★☆☆☆ | ★★★☆☆ | ★★★★☆ | ★☆☆☆☆ |
-| **CI Friendly** | ★★★★★ | ★★☆☆☆ | ★★★☆☆ | ★★★★☆ |
-| **Disk Support** | ★★★★★ | ★★★☆☆ | ★★★☆☆ | ★★★☆☆ |
-| **Maintenance** | ★★★★★ | ★★★☆☆ | ★★★☆☆ | ★★☆☆☆ |
-| **Debugger** | ★★★★☆ | ★★★★★ | ★★☆☆☆ | ★★★★★ |
-| **Effort** | 4-6 days | 5-7 days | 4-6 days | 20-40 days |
+| Feature            | MAME     | GSPlus   | LinApple | Custom     |
+| ------------------ | -------- | -------- | -------- | ---------- |
+| **Fidelity**       | ★★★★★    | ★★★★☆    | ★★★☆☆    | ★★★☆☆      |
+| **Automation**     | ★★★★★    | ★★☆☆☆    | ★★☆☆☆    | ★★★★★      |
+| **Headless**       | ★★★★★    | ★☆☆☆☆    | ★★☆☆☆    | ★★★★★      |
+| **Setup Time**     | ★★★☆☆    | ★★★★☆    | ★★★★★    | ★☆☆☆☆      |
+| **Learning Curve** | ★★☆☆☆    | ★★★☆☆    | ★★★★☆    | ★☆☆☆☆      |
+| **CI Friendly**    | ★★★★★    | ★★☆☆☆    | ★★★☆☆    | ★★★★☆      |
+| **Disk Support**   | ★★★★★    | ★★★☆☆    | ★★★☆☆    | ★★★☆☆      |
+| **Maintenance**    | ★★★★★    | ★★★☆☆    | ★★★☆☆    | ★★☆☆☆      |
+| **Debugger**       | ★★★★☆    | ★★★★★    | ★★☆☆☆    | ★★★★★      |
+| **Effort**         | 4-6 days | 5-7 days | 4-6 days | 20-40 days |
 
 **Legend:** ★★★★★ Excellent | ★★★★☆ Good | ★★★☆☆ Adequate | ★★☆☆☆ Poor | ★☆☆☆☆ Very Poor
 
@@ -545,6 +545,6 @@ With MAME + cadius + Lua scripting, we can achieve:
 
 ---
 
-*Report compiled: January 2026*  
-*Based on: DEBUGGER_EMULATOR_PLAN.md + external research*  
-*Status: Ready for review and decision*
+_Report compiled: January 2026_  
+_Based on: DEBUGGER_EMULATOR_PLAN.md + external research_  
+_Status: Ready for review and decision_

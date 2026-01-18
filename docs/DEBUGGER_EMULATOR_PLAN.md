@@ -15,7 +15,7 @@ Summarize how to host the original Apple II EDASM inside our tooling for compari
 ## Goals
 
 - Boot original EDASM from the shipped .2mg inside an emulator.
-- Inject repo test sources (test_*.src) onto a writable ProDOS disk.
+- Inject repo test sources (test\_\*.src) onto a writable ProDOS disk.
 - Script EDASM to assemble/link and emit BIN/REL/LST outputs.
 - Extract those outputs for byte-for-byte comparison against C-EDASM results.
 - Enable headless/CI-friendly runs.
@@ -23,31 +23,31 @@ Summarize how to host the original Apple II EDASM inside our tooling for compari
 ## Emulator Options (automation-focused)
 
 - **MAME (apple2e driver) — recommended first**
-  - Pros: High fidelity (language card, soft switches, ProDOS), supports .2mg/.po/.dsk; headless mode (`-video none -sound none -nothrottle`); Lua automation (`-autoboot_script`) for keystroke injection (`emu.keypost`), memory pokes, breakpoints; can save state; supports CLI-only use.
-  - Cons: Heavier dependency; Lua scripting learning curve; embedding via libmame adds build complexity.
+    - Pros: High fidelity (language card, soft switches, ProDOS), supports .2mg/.po/.dsk; headless mode (`-video none -sound none -nothrottle`); Lua automation (`-autoboot_script`) for keystroke injection (`emu.keypost`), memory pokes, breakpoints; can save state; supports CLI-only use.
+    - Cons: Heavier dependency; Lua scripting learning curve; embedding via libmame adds build complexity.
 - **GSPlus/KEGS**
-  - Pros: Lighter than MAME; decent Apple IIgs/IIe fidelity; CLI disk attach; built-in debugger.
-  - Cons: No rich scripting API; headless/CI may require patching to feed stdin or socket events; .2mg support can be spotty.
+    - Pros: Lighter than MAME; decent Apple IIgs/IIe fidelity; CLI disk attach; built-in debugger.
+    - Cons: No rich scripting API; headless/CI may require patching to feed stdin or socket events; .2mg support can be spotty.
 - **LinApple / LinApple-Pie**
-  - Pros: Small codebase; easier to patch for deterministic runs; fast startup.
-  - Cons: Lower fidelity on edge-case soft switches; typically lacks .2mg; no native scripting/headless without SDL patching.
+    - Pros: Small codebase; easier to patch for deterministic runs; fast startup.
+    - Cons: Lower fidelity on edge-case soft switches; typically lacks .2mg; no native scripting/headless without SDL patching.
 - **Roll our own minimal emulator**
-  - Pros: Full control and tight integration.
-  - Cons: High effort/risk to reach ProDOS + Disk II + language card accuracy; not recommended unless other options fail.
+    - Pros: Full control and tight integration.
+    - Cons: High effort/risk to reach ProDOS + Disk II + language card accuracy; not recommended unless other options fail.
 
 ## Proposed Path (phased)
 
 1. **Prototype with MAME CLI + Lua**
-   - Command sketch: `mame apple2e -flop1 edasm_src.2mg -video none -sound none -nothrottle -autoboot_script run.lua`.
-   - Lua: post keys to boot ProDOS, launch EDASM, load a test source, assemble/link, save outputs. Capture files from the ProDOS image or via Lua memory/disk hooks.
+    - Command sketch: `mame apple2e -flop1 edasm_src.2mg -video none -sound none -nothrottle -autoboot_script run.lua`.
+    - Lua: post keys to boot ProDOS, launch EDASM, load a test source, assemble/link, save outputs. Capture files from the ProDOS image or via Lua memory/disk hooks.
 2. **Artifact handling**
-   - Prepare a writable .2mg containing test sources; mount as flop2 if needed.
-   - After scripted run, extract BIN/REL/LST from the .2mg for comparison (can use ProDOS image tools or MAME Lua to dump sectors).
+    - Prepare a writable .2mg containing test sources; mount as flop2 if needed.
+    - After scripted run, extract BIN/REL/LST from the .2mg for comparison (can use ProDOS image tools or MAME Lua to dump sectors).
 3. **Stabilize automation**
-   - Add timeouts/prompts detection; prefer file extraction over screen scraping.
-   - Keep scripts under tests/ (e.g., tests/emulator/run_edasm.lua) with reproducible seeds.
+    - Add timeouts/prompts detection; prefer file extraction over screen scraping.
+    - Keep scripts under tests/ (e.g., tests/emulator/run_edasm.lua) with reproducible seeds.
 4. **Evaluate alternatives if MAME is too heavy**
-   - Patch GSPlus/KEGS for stdin→keyboard and headless build; validate .2mg; or fork LinApple and add socket/stdio control plus .2mg handling.
+    - Patch GSPlus/KEGS for stdin→keyboard and headless build; validate .2mg; or fork LinApple and add socket/stdio control plus .2mg handling.
 
 ## Open Questions / Decisions
 

@@ -173,7 +173,7 @@ HERE          LOOKUP                  DOCS            GUIDES
   2. ASSEMBLER_ARCHITECTURE.md  → Learn design
   3. COMMAND_REFERENCE.md       → Command syntax
   4. 6502_INSTRUCTION_SET.md    → Opcode reference
-  
+
   For Emulator Integration:
   1. DEBUGGER_EMULATOR_PLAN.md       → Initial requirements
   2. EMULATOR_INVESTIGATION_REPORT.md → Detailed research
@@ -225,19 +225,19 @@ HERE          LOOKUP                  DOCS            GUIDES
   • Feature Lookup:          VERIFICATION_INDEX.md
   • Complete Analysis:       VERIFICATION_REPORT.md
   • Missing Features:        MISSING_FEATURES.md
-  
+
   Implementation:
   • Implementation Plan:     PORTING_PLAN.md
   • Assembler Design:        ASSEMBLER_ARCHITECTURE.md
   • Command Reference:       COMMAND_REFERENCE.md
   • Opcode Reference:        6502_INSTRUCTION_SET.md
-  
+
   Testing & Emulation:
   • Emulator Planning:       DEBUGGER_EMULATOR_PLAN.md
   • Emulator Research:       EMULATOR_INVESTIGATION_REPORT.md
   • Emulator Decision:       EMULATOR_DECISION_MATRIX.md
   • Emulator Scripts:        tests/emulator/README.md
-  
+
   General:
   • Documentation Guide:     README.md (this folder)
 
@@ -317,3 +317,4 @@ This map helps you navigate the documentation efficiently.
 Start with the Quick Ref and work your way through as needed!
 
 ────────────────────────────────────────────────────────────────────
+```

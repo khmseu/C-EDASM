@@ -279,24 +279,24 @@ The GitHub Actions workflow (`.github/workflows/emulator-tests.yml`) automatical
 To make the emulator tests production-ready:
 
 1. **Implement proper keyboard injection** (Phase 2)
-   - Use MAME's `ioport` API for keyboard input
-   - Handle Apple II keyboard matrix correctly
-   - See `tests/emulator/README.md` for details
+    - Use MAME's `ioport` API for keyboard input
+    - Handle Apple II keyboard matrix correctly
+    - See `tests/emulator/README.md` for details
 
 2. **Add state monitoring** (Phase 2)
-   - Read screen memory to detect prompts
-   - Monitor EDASM internal state
-   - Implement event-driven waiting
+    - Read screen memory to detect prompts
+    - Monitor EDASM internal state
+    - Implement event-driven waiting
 
 3. **Create comparison tools** (Phase 3)
-   - Automate byte-for-byte comparison
-   - Generate comparison reports
-   - Handle differences gracefully
+    - Automate byte-for-byte comparison
+    - Generate comparison reports
+    - Handle differences gracefully
 
 4. **Optimize for CI** (Phase 4)
-   - Cache MAME and disk images
-   - Parallelize tests
-   - Reduce execution time
+    - Cache MAME and disk images
+    - Parallelize tests
+    - Reduce execution time
 
 ## Resources
 

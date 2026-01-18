@@ -49,16 +49,16 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 - **Basic instructions test**: LDA, STA, RTS and other common opcodes
 - **Addressing modes test**: All 9 6502 addressing modes validated
 - **Forward references test**: Verifies two-pass assembly correctly resolves forward references
-- **Expression evaluation test**: Tests arithmetic (+, -, *, /), byte operators (<, >), and bitwise ops
+- **Expression evaluation test**: Tests arithmetic (+, -, \*, /), byte operators (<, >), and bitwise ops
 - **Directives test**: ORG, EQU, DB, DW, ASC, DCI, DS, END all validated
 - **Conditional assembly test**: DO/ELSE/FIN blocks properly skip/include code
 - **MSB directive test**: Verifies high-bit setting for ASCII characters
 - **All tests passing**: 100% success rate on test suite
-- **Manual validation**: All 14 test_*.src sample programs assemble successfully
+- **Manual validation**: All 14 test\_\*.src sample programs assemble successfully
 
 ### Expression Evaluation (COMPLETE!) ✨
 
-- **Arithmetic operators**: +, -, *, / (with proper precedence)
+- **Arithmetic operators**: +, -, \*, / (with proper precedence)
 - **Byte extraction**: < (low byte), > (high byte)
 - **Bitwise operators**: ^ (AND), | (OR), ! (XOR) - **EDASM syntax**
 - **Unary operators**: +, -
@@ -125,7 +125,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 ### INSERT Mode
 
 - Interactive line entry with line number prompts
-- Empty line exits INSERT mode  
+- Empty line exits INSERT mode
 - Lines can be inserted at any position or appended at end
 - Displays count of lines inserted on exit
 
@@ -200,13 +200,13 @@ C-EDASM/
 
 The original EDASM used ProDOS file types. In the Linux port, these map to extensions:
 
-| ProDOS Type | Code | Extensions | Description |
-|-------------|------|------------|-------------|
-| TXT | $04 | `.src`, `.txt` | Source code, text files |
-| BIN | $06 | `.bin`, `.obj` | Binary executable |
-| REL | $FE | `.rel` | Relocatable object |
-| SYS | $FF | `.sys` | System file |
-| - | - | `.lst` | Listing output |
+| ProDOS Type | Code | Extensions     | Description             |
+| ----------- | ---- | -------------- | ----------------------- |
+| TXT         | $04  | `.src`, `.txt` | Source code, text files |
+| BIN         | $06  | `.bin`, `.obj` | Binary executable       |
+| REL         | $FE  | `.rel`         | Relocatable object      |
+| SYS         | $FF  | `.sys`         | System file             |
+| -           | -    | `.lst`         | Listing output          |
 
 ## Implemented Features
 
@@ -223,7 +223,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 
 - **Two-pass assembly**: Symbol table building and code generation
 - **Full 6502 instruction set**: All addressing modes supported
-- **Expression evaluation**: Arithmetic (+, -, *, /), bitwise (^=AND, |=OR, !=XOR), byte extraction (<, >)
+- **Expression evaluation**: Arithmetic (+, -, \*, /), bitwise (^=AND, |=OR, !=XOR), byte extraction (<, >)
 - **Directives**: ORG, EQU, DA, DW, DB, DFB, ASC, DCI, DS, END
 - **REL support**: REL, ENT/ENTRY, EXT/EXTRN directives for relocatable code
 - **Control directives**: LST (listing control), MSB (high bit), SBTL (subtitle), **INCLUDE** (file inclusion)
@@ -256,14 +256,14 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - **2 comprehensive test suites** with 100% pass rate
 - **test_editor**: Unit tests for all editor operations (LineRange parsing, FIND, CHANGE, MOVE, COPY, JOIN, SPLIT)
 - **test_assembler_integration**: 7 integration tests covering:
-  - Basic 6502 instructions
-  - All addressing modes
-  - Forward references
-  - Expression evaluation (arithmetic, bitwise, byte ops)
-  - All directives
-  - Conditional assembly
-  - MSB directive
-- **Manual validation**: 14 test_*.src sample programs all assemble correctly
+    - Basic 6502 instructions
+    - All addressing modes
+    - Forward references
+    - Expression evaluation (arithmetic, bitwise, byte ops)
+    - All directives
+    - Conditional assembly
+    - MSB directive
+- **Manual validation**: 14 test\_\*.src sample programs all assemble correctly
 - **Linker tests**: Multi-module REL file linking verified
 - **Listing tests**: Complete listing generation with symbol tables validated
 

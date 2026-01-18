@@ -76,19 +76,19 @@ These scripts are **improved prototypes** with keyboard injection and screen mon
 To make these scripts production-ready:
 
 1. **Enhanced state verification**:
-   - Monitor EDASM internal state variables in memory
-   - Detect error messages on screen
-   - Verify file I/O completion by checking ProDOS results
+    - Monitor EDASM internal state variables in memory
+    - Detect error messages on screen
+    - Verify file I/O completion by checking ProDOS results
 
 2. **Improved error handling**:
-   - Abort on unrecoverable errors
-   - Generate detailed error reports
-   - Implement retry logic for transient failures
+    - Abort on unrecoverable errors
+    - Generate detailed error reports
+    - Implement retry logic for transient failures
 
 3. **Better timing optimization**:
-   - Fine-tune wait intervals based on testing
-   - Add adaptive timing based on MAME speed settings
-   - Implement progress indicators for long operations
+    - Fine-tune wait intervals based on testing
+    - Add adaptive timing based on MAME speed settings
+    - Implement progress indicators for long operations
 
 ### Production Implementation Requirements
 
@@ -96,43 +96,43 @@ The current implementation includes:
 
 1. **Keyboard injection** (✅ Implemented):
 
-   ```lua
-   -- Direct memory write to Apple II keyboard registers
-   function send_char(ch)
-       local apple_code = ascii_to_apple2(ch)
-       mem:write_u8(KBD_ADDR, apple_code)      -- Write to $C000
-       emu.wait(10000)
-       mem:read_u8(KBDSTRB_ADDR)               -- Clear $C010
-       emu.wait(5000)
-   end
-   ```
+    ```lua
+    -- Direct memory write to Apple II keyboard registers
+    function send_char(ch)
+        local apple_code = ascii_to_apple2(ch)
+        mem:write_u8(KBD_ADDR, apple_code)      -- Write to $C000
+        emu.wait(10000)
+        mem:read_u8(KBDSTRB_ADDR)               -- Clear $C010
+        emu.wait(5000)
+    end
+    ```
 
 2. **Screen/memory monitoring** (✅ Implemented):
 
-   ```lua
-   -- Check for ProDOS prompt by reading screen memory
-   function check_for_prodos_prompt()
-       for offset = 0x750, 0x777 do  -- Last line of screen
-           if read_screen_char(offset - TEXT_PAGE1_START) == PROMPT_CHAR then
-               return true
-           end
-       end
-       return false
-   end
-   ```
+    ```lua
+    -- Check for ProDOS prompt by reading screen memory
+    function check_for_prodos_prompt()
+        for offset = 0x750, 0x777 do  -- Last line of screen
+            if read_screen_char(offset - TEXT_PAGE1_START) == PROMPT_CHAR then
+                return true
+            end
+        end
+        return false
+    end
+    ```
 
 3. **State verification** (🚧 Partial):
-   - Detects ProDOS and EDASM prompts
-   - Uses timeout-based waiting with fallbacks
-   - TODO: Check for error messages in screen memory
-   - TODO: Monitor EDASM's internal state variables
-   - TODO: Verify file was written to disk
+    - Detects ProDOS and EDASM prompts
+    - Uses timeout-based waiting with fallbacks
+    - TODO: Check for error messages in screen memory
+    - TODO: Monitor EDASM's internal state variables
+    - TODO: Verify file was written to disk
 
 4. **Timing** (🚧 Partial):
-   - Mix of event-driven waits (prompt detection) and fixed delays
-   - Conservative timing ensures reliability
-   - TODO: Fine-tune based on actual testing
-   - TODO: Add adaptive timing for different MAME configurations
+    - Mix of event-driven waits (prompt detection) and fixed delays
+    - Conservative timing ensures reliability
+    - TODO: Fine-tune based on actual testing
+    - TODO: Add adaptive timing for different MAME configurations
 
 ## Development Roadmap
 
@@ -184,84 +184,84 @@ To test these scripts:
 
 1. Install MAME and cadius (automated):
 
-   ```bash
-   ./scripts/setup_emulator_deps.sh
-   ```
+    ```bash
+    ./scripts/setup_emulator_deps.sh
+    ```
 
-   Or manually:
+    Or manually:
 
-   ```bash
-   # On Ubuntu/Debian
-   sudo apt-get install mame
-   
-   # Install cadius (requires build tools)
-   git clone https://github.com/mach-kernel/cadius && cd cadius && make
-   
-   # Or build MAME from source
-   git clone https://github.com/mamedev/mame.git
-   cd mame
-   make
-   ```
+    ```bash
+    # On Ubuntu/Debian
+    sudo apt-get install mame
+
+    # Install cadius (requires build tools)
+    git clone https://github.com/mach-kernel/cadius && cd cadius && make
+
+    # Or build MAME from source
+    git clone https://github.com/mamedev/mame.git
+    cd mame
+    make
+    ```
 
 2. **Install Apple II ROM files** (REQUIRED):
 
-   **See [ROM_SETUP.md](ROM_SETUP.md) for comprehensive ROM installation guide.**
+    **See [ROM_SETUP.md](ROM_SETUP.md) for comprehensive ROM installation guide.**
 
-   MAME requires Apple II ROM/BIOS files to run emulation. These files are copyrighted by Apple and cannot be distributed with this project.
+    MAME requires Apple II ROM/BIOS files to run emulation. These files are copyrighted by Apple and cannot be distributed with this project.
 
-   **Legal notice**: Apple II ROM files are copyrighted. You should only use ROM files dumped from hardware you own, or obtain them from sources that have proper authorization.
+    **Legal notice**: Apple II ROM files are copyrighted. You should only use ROM files dumped from hardware you own, or obtain them from sources that have proper authorization.
 
-   **Where to obtain ROMs:**
-   - If you own Apple II hardware, dump the ROMs yourself
-   - **For testing**: Internet Archive Emularity BIOS - <https://github.com/internetarchive/emularity-bios/blob/main/apple2e.zip>
-   - ROM files may be available from preservation archives:
-     - Internet Archive (TOSEC collection): <https://archive.org/details/Apple_2_TOSEC_2012_04_23>
-     - apple2.org.za mirrors: <https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/>
+    **Where to obtain ROMs:**
+    - If you own Apple II hardware, dump the ROMs yourself
+    - **For testing**: Internet Archive Emularity BIOS - <https://github.com/internetarchive/emularity-bios/blob/main/apple2e.zip>
+    - ROM files may be available from preservation archives:
+        - Internet Archive (TOSEC collection): <https://archive.org/details/Apple_2_TOSEC_2012_04_23>
+        - apple2.org.za mirrors: <https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/>
 
-   **Required ROM sets:**
-   - `apple2e.zip` - For Apple IIe emulation
-   - `apple2gs.zip` - For Apple IIGS emulation (default system)
+    **Required ROM sets:**
+    - `apple2e.zip` - For Apple IIe emulation
+    - `apple2gs.zip` - For Apple IIGS emulation (default system)
 
-   **Installation:**
+    **Installation:**
 
-   ```bash
-   # Create ROM directory
-   mkdir -p $HOME/mame/roms
-   
-   # Quick download for testing (using wget or curl)
-   wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -O $HOME/mame/roms/apple2e.zip
-   # OR
-   curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o $HOME/mame/roms/apple2e.zip
-   
-   # Verify ROM installation
-   mame -verifyroms apple2e
-   ```
+    ```bash
+    # Create ROM directory
+    mkdir -p $HOME/mame/roms
+
+    # Quick download for testing (using wget or curl)
+    wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -O $HOME/mame/roms/apple2e.zip
+    # OR
+    curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o $HOME/mame/roms/apple2e.zip
+
+    # Verify ROM installation
+    mame -verifyroms apple2e
+    ```
 
 3. Initialize submodule (if not done):
 
-   ```bash
-   git submodule update --init --recursive
-   ```
+    ```bash
+    git submodule update --init --recursive
+    ```
 
 4. Run emulator tests:
 
-   ```bash
-   # Boot test (demonstrates MAME + ProDOS + EDASM)
-   ./scripts/run_emulator_test.sh boot
-   
-   # Assembly test (full workflow)
-   ./scripts/run_emulator_test.sh assemble
-   ```
+    ```bash
+    # Boot test (demonstrates MAME + ProDOS + EDASM)
+    ./scripts/run_emulator_test.sh boot
+
+    # Assembly test (full workflow)
+    ./scripts/run_emulator_test.sh assemble
+    ```
 
 5. Manual test (advanced):
 
-   ```bash
-   cd /home/runner/work/C-EDASM/C-EDASM
-   mame apple2e \
-     -flop1 third_party/EdAsm/EDASM_SRC.2mg \
-     -video none -sound none \
-     -autoboot_script tests/emulator/boot_test.lua
-   ```
+    ```bash
+    cd /home/runner/work/C-EDASM/C-EDASM
+    mame apple2e \
+      -flop1 third_party/EdAsm/EDASM_SRC.2mg \
+      -video none -sound none \
+      -autoboot_script tests/emulator/boot_test.lua
+    ```
 
 ## Troubleshooting
 

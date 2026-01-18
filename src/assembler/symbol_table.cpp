@@ -29,13 +29,13 @@ void SymbolTable::reset() {
 // Define or update a symbol in the table
 // Reference: ASM2.S AddNode ($89A9) - Adds symbol to hash chain
 // Symbol names are 1-16 characters per EDASM.SRC symbol format
-void SymbolTable::define(const std::string& name, uint16_t value, uint8_t flags, int line_num) {
+void SymbolTable::define(const std::string &name, uint16_t value, uint8_t flags, int line_num) {
     // Validate symbol name length (1-16 chars per EDASM.SRC)
     if (name.empty() || name.length() > 16) {
         // Silently truncate for compatibility, but ideally should error
         // For now, we'll allow it but track it
     }
-    
+
     Symbol sym;
     sym.name = name;
     sym.value = value;
@@ -48,7 +48,7 @@ void SymbolTable::define(const std::string& name, uint16_t value, uint8_t flags,
 
 // Update symbol value
 // Used during pass 1 to resolve forward references
-void SymbolTable::update_value(const std::string& name, uint16_t value) {
+void SymbolTable::update_value(const std::string &name, uint16_t value) {
     auto it = table_.find(name);
     if (it != table_.end()) {
         it->second.value = value;
@@ -57,7 +57,7 @@ void SymbolTable::update_value(const std::string& name, uint16_t value) {
 
 // Update symbol flags (ENTRY, EXTERNAL, RELATIVE, etc.)
 // Reference: ASM3.S L9144, L91A8 - ENT/ENTRY and EXT/EXTRN directives
-void SymbolTable::update_flags(const std::string& name, uint8_t flags) {
+void SymbolTable::update_flags(const std::string &name, uint8_t flags) {
     auto it = table_.find(name);
     if (it != table_.end()) {
         it->second.flags = flags;
@@ -66,7 +66,7 @@ void SymbolTable::update_flags(const std::string& name, uint8_t flags) {
 
 // Mark symbol as referenced (clear unreferenced bit)
 // Reference: Original EDASM clears bit 6 when symbol is used in Pass 2
-void SymbolTable::mark_referenced(const std::string& name) {
+void SymbolTable::mark_referenced(const std::string &name) {
     auto it = table_.find(name);
     if (it != table_.end()) {
         it->second.flags &= ~SYM_UNREFERENCED;
@@ -78,7 +78,7 @@ void SymbolTable::mark_referenced(const std::string& name) {
 // Returns pointer to symbol or nullptr if not found
 // Note: When a symbol is looked up for use (not just checking existence),
 // the unreferenced bit should be cleared to mark it as referenced
-Symbol* SymbolTable::lookup(const std::string& name) {
+Symbol *SymbolTable::lookup(const std::string &name) {
     auto it = table_.find(name);
     if (it == table_.end()) {
         return nullptr;
@@ -89,7 +89,7 @@ Symbol* SymbolTable::lookup(const std::string& name) {
     return &it->second;
 }
 
-const Symbol* SymbolTable::lookup(const std::string& name) const {
+const Symbol *SymbolTable::lookup(const std::string &name) const {
     auto it = table_.find(name);
     if (it == table_.end()) {
         return nullptr;
@@ -97,7 +97,7 @@ const Symbol* SymbolTable::lookup(const std::string& name) const {
     return &it->second;
 }
 
-std::optional<uint16_t> SymbolTable::get_value(const std::string& name) const {
+std::optional<uint16_t> SymbolTable::get_value(const std::string &name) const {
     auto sym = lookup(name);
     if (!sym || sym->is_undefined()) {
         return std::nullopt;
@@ -105,7 +105,7 @@ std::optional<uint16_t> SymbolTable::get_value(const std::string& name) const {
     return sym->value;
 }
 
-bool SymbolTable::is_defined(const std::string& name) const {
+bool SymbolTable::is_defined(const std::string &name) const {
     auto sym = lookup(name);
     return sym && !sym->is_undefined();
 }
@@ -113,7 +113,7 @@ bool SymbolTable::is_defined(const std::string& name) const {
 std::vector<Symbol> SymbolTable::all_symbols() const {
     std::vector<Symbol> result;
     result.reserve(table_.size());
-    for (const auto& [name, sym] : table_) {
+    for (const auto &[name, sym] : table_) {
         result.push_back(sym);
     }
     return result;
@@ -125,9 +125,7 @@ std::vector<Symbol> SymbolTable::all_symbols() const {
 std::vector<Symbol> SymbolTable::sorted_by_name() const {
     auto result = all_symbols();
     std::sort(result.begin(), result.end(),
-              [](const Symbol& a, const Symbol& b) {
-                  return a.name < b.name;
-              });
+              [](const Symbol &a, const Symbol &b) { return a.name < b.name; });
     return result;
 }
 
@@ -136,13 +134,12 @@ std::vector<Symbol> SymbolTable::sorted_by_name() const {
 // Used for generating address-ordered symbol listings
 std::vector<Symbol> SymbolTable::sorted_by_value() const {
     auto result = all_symbols();
-    std::sort(result.begin(), result.end(),
-              [](const Symbol& a, const Symbol& b) {
-                  if (a.value != b.value) {
-                      return a.value < b.value;
-                  }
-                  return a.name < b.name;
-              });
+    std::sort(result.begin(), result.end(), [](const Symbol &a, const Symbol &b) {
+        if (a.value != b.value) {
+            return a.value < b.value;
+        }
+        return a.name < b.name;
+    });
     return result;
 }
 

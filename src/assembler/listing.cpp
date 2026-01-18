@@ -18,25 +18,23 @@
 // I/O streams and string formatting.
 #include "edasm/assembler/listing.hpp"
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
-#include <algorithm>
 
 namespace edasm {
 
-ListingGenerator::ListingGenerator(const Options& opts)
-    : options_(opts) {
-}
+ListingGenerator::ListingGenerator(const Options &opts) : options_(opts) {}
 
-void ListingGenerator::add_line(const ListingLine& line) {
+void ListingGenerator::add_line(const ListingLine &line) {
     lines_.push_back(line);
 }
 
-void ListingGenerator::set_symbol_table(const SymbolTable& symbols) {
+void ListingGenerator::set_symbol_table(const SymbolTable &symbols) {
     symbols_ = &symbols;
 }
 
-bool ListingGenerator::write_to_file(const std::string& filename) {
+bool ListingGenerator::write_to_file(const std::string &filename) {
     std::ofstream file(filename);
     if (!file) {
         return false;
@@ -54,7 +52,7 @@ std::string ListingGenerator::to_string() const {
     oss << "----- ----  ----------   ---------------------------\n";
 
     // Write each listing line
-    for (const auto& line : lines_) {
+    for (const auto &line : lines_) {
         oss << format_listing_line(line) << "\n";
     }
 
@@ -66,7 +64,7 @@ std::string ListingGenerator::to_string() const {
     return oss.str();
 }
 
-std::string ListingGenerator::format_listing_line(const ListingLine& line) const {
+std::string ListingGenerator::format_listing_line(const ListingLine &line) const {
     std::ostringstream oss;
 
     // Line number (5 chars)
@@ -91,7 +89,7 @@ std::string ListingGenerator::format_listing_line(const ListingLine& line) const
         for (size_t i = 3; i < line.bytes.size(); i += 3) {
             oss << "\n";
             oss << "      " << format_address(line.address + i) << "  ";
-            
+
             // Get next chunk of bytes
             std::vector<uint8_t> chunk;
             for (size_t j = i; j < i + 3 && j < line.bytes.size(); ++j) {
@@ -106,7 +104,7 @@ std::string ListingGenerator::format_listing_line(const ListingLine& line) const
 
 std::string ListingGenerator::format_line_number(int line_num) const {
     std::ostringstream oss;
-    
+
     if (options_.line_numbers_bcd) {
         // BCD format: convert to BCD (from ASM2.S)
         // This is a simplified version - full BCD would be more complex
@@ -115,7 +113,7 @@ std::string ListingGenerator::format_line_number(int line_num) const {
         // Decimal format
         oss << std::setw(4) << std::setfill('0') << line_num;
     }
-    
+
     return oss.str();
 }
 
@@ -125,16 +123,18 @@ std::string ListingGenerator::format_address(uint16_t addr) const {
     return oss.str();
 }
 
-std::string ListingGenerator::format_bytes(const std::vector<uint8_t>& bytes, size_t max_bytes) const {
+std::string ListingGenerator::format_bytes(const std::vector<uint8_t> &bytes,
+                                           size_t max_bytes) const {
     std::ostringstream oss;
-    
+
     size_t count = std::min(bytes.size(), max_bytes);
     for (size_t i = 0; i < count; ++i) {
-        if (i > 0) oss << " ";
-        oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
+        if (i > 0)
+            oss << " ";
+        oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
             << static_cast<int>(bytes[i]);
     }
-    
+
     return oss.str();
 }
 
@@ -169,14 +169,14 @@ std::string ListingGenerator::generate_symbol_table() const {
     return oss.str();
 }
 
-std::string ListingGenerator::format_symbols_in_columns(
-    const std::vector<Symbol>& symbols, int columns) const {
-    
+std::string ListingGenerator::format_symbols_in_columns(const std::vector<Symbol> &symbols,
+                                                        int columns) const {
+
     std::ostringstream oss;
 
     // Calculate rows needed
     int rows = (symbols.size() + columns - 1) / columns;
-    
+
     // Column width: name (17) + "$" + value (4) + " " + flags (1-4) = ~27
     const int col_width = 27;
 
@@ -194,7 +194,7 @@ std::string ListingGenerator::format_symbols_in_columns(
     return oss.str();
 }
 
-std::string ListingGenerator::format_symbol(const Symbol& sym) const {
+std::string ListingGenerator::format_symbol(const Symbol &sym) const {
     std::ostringstream oss;
 
     // Symbol name (left-justified, 17 chars including space after)
@@ -203,18 +203,22 @@ std::string ListingGenerator::format_symbol(const Symbol& sym) const {
     // Value (hex with $ prefix, right-justified hex digits)
     oss << "$";
     // Format the value as 4-digit hex (reset alignment)
-    oss << std::right << std::hex << std::uppercase << std::setw(4) << std::setfill('0') 
+    oss << std::right << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
         << sym.value;
-    
+
     // Reset formatting for flags
     oss << std::dec << std::setfill(' ');
 
     // Flags
     std::string flags;
-    if (sym.is_relative()) flags += "R";
-    if (sym.is_external()) flags += "X";
-    if (sym.is_entry()) flags += "E";
-    if (sym.is_undefined()) flags += "U";
+    if (sym.is_relative())
+        flags += "R";
+    if (sym.is_external())
+        flags += "X";
+    if (sym.is_entry())
+        flags += "E";
+    if (sym.is_undefined())
+        flags += "U";
 
     if (!flags.empty()) {
         oss << " " << flags;

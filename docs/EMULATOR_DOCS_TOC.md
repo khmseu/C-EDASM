@@ -67,10 +67,10 @@ This investigation addresses the question: **How can we host the original Apple 
 - Decision tree (Q&A format to guide choice)
 - Quick comparison table (all options side-by-side)
 - Use case recommendations:
-  - Automated CI/CD testing → MAME
-  - Interactive debugging → GSPlus
-  - Quick prototyping → LinApple
-  - Long-term production → MAME
+    - Automated CI/CD testing → MAME
+    - Interactive debugging → GSPlus
+    - Quick prototyping → LinApple
+    - Long-term production → MAME
 - Effort estimates (detailed breakdown per option)
 - Risk assessment (LOW/MEDIUM/HIGH ratings)
 - Useful commands (ready-to-run examples)
@@ -94,10 +94,10 @@ This investigation addresses the question: **How can we host the original Apple 
 - Usage examples with command-line invocations
 - Current status (prototype phase)
 - Production requirements:
-  - Proper keyboard injection
-  - Screen/memory monitoring
-  - Error handling
-  - Robust timing
+    - Proper keyboard injection
+    - Screen/memory monitoring
+    - Error handling
+    - Robust timing
 - Development roadmap (3 phases)
 - MAME Lua API resources and references
 - Testing instructions
@@ -215,7 +215,7 @@ boot_test.lua & assemble_test.lua
 - **"How long will it take?"** → EMULATOR_DECISION_MATRIX.md (Effort Estimates)
 - **"What about ProDOS tools?"** → EMULATOR_INVESTIGATION_REPORT.md (ProDOS Disk Image Tooling section)
 - **"Original requirements?"** → DEBUGGER_EMULATOR_PLAN.md
-- **"Sample code?"** → tests/emulator/*.lua
+- **"Sample code?"** → tests/emulator/\*.lua
 - **"Risk assessment?"** → EMULATOR_DECISION_MATRIX.md (Risk Assessment section)
 - **"Commands to run?"** → EMULATOR_DECISION_MATRIX.md (Useful Commands section)
 
@@ -223,15 +223,15 @@ boot_test.lua & assemble_test.lua
 
 ## 📈 Statistics
 
-| Document | Size | Read Time | Content Type |
-|----------|------|-----------|--------------|
-| DEBUGGER_EMULATOR_PLAN.md | 4 KB | 5-10 min | Planning |
-| EMULATOR_INVESTIGATION_REPORT.md | 18 KB | 20-30 min | Analysis |
-| EMULATOR_DECISION_MATRIX.md | 8 KB | 10-15 min | Reference |
-| tests/emulator/README.md | 5 KB | 10-15 min | Guide |
-| boot_test.lua | 2 KB | 5 min | Code |
-| assemble_test.lua | 4 KB | 10 min | Code |
-| **Total** | **~41 KB** | **60-85 min** | Mixed |
+| Document                         | Size       | Read Time     | Content Type |
+| -------------------------------- | ---------- | ------------- | ------------ |
+| DEBUGGER_EMULATOR_PLAN.md        | 4 KB       | 5-10 min      | Planning     |
+| EMULATOR_INVESTIGATION_REPORT.md | 18 KB      | 20-30 min     | Analysis     |
+| EMULATOR_DECISION_MATRIX.md      | 8 KB       | 10-15 min     | Reference    |
+| tests/emulator/README.md         | 5 KB       | 10-15 min     | Guide        |
+| boot_test.lua                    | 2 KB       | 5 min         | Code         |
+| assemble_test.lua                | 4 KB       | 10 min        | Code         |
+| **Total**                        | **~41 KB** | **60-85 min** | Mixed        |
 
 ---
 
@@ -284,4 +284,4 @@ Key external links referenced in the investigation:
 
 ---
 
-*Use this table of contents as your navigation guide through the emulator investigation documentation.*
+_Use this table of contents as your navigation guide through the emulator investigation documentation._

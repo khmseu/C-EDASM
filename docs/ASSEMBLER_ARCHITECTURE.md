@@ -5,6 +5,7 @@ This document describes the EDASM assembler architecture based on analysis of `E
 ## Overview
 
 The EDASM assembler is a two-pass (optionally three-pass) 6502 assembler with these features:
+
 - Full 6502 instruction set with all addressing modes
 - Symbol table with hash-based lookup
 - Forward reference resolution
@@ -29,26 +30,30 @@ The EDASM assembler is a two-pass (optionally three-pass) 6502 assembler with th
 **Goal**: Build symbol table, track program counter
 
 **Process**:
+
 1. Initialize PC to ORG value (default $0800)
 2. For each source line:
-   - Parse label (if present)
-   - Add to symbol table with undefined value
-   - Parse mnemonic/directive
-   - Update PC based on instruction size
-   - Mark forward references
+    - Parse label (if present)
+    - Add to symbol table with undefined value
+    - Parse mnemonic/directive
+    - Update PC based on instruction size
+    - Mark forward references
 3. Record final PC as code length
 
 **Data Structures**:
+
 - Symbol table: Hash table with 256 buckets
 - Symbol nodes: Variable length records
 - PC tracking: 16-bit program counter
 
 **Symbol Definition**:
+
 ```
 LABEL   LDA #$00    ; LABEL defined with current PC value
 ```
 
 **Forward Reference**:
+
 ```
         JMP AHEAD   ; AHEAD marked as forward ref
         ...
@@ -60,19 +65,21 @@ AHEAD   RTS        ; AHEAD resolved in pass 2
 **Goal**: Generate machine code with all symbols resolved
 
 **Process**:
+
 1. Reset PC to ORG value
 2. For each source line:
-   - Parse label (verify matches pass 1)
-   - Parse mnemonic
-   - Determine addressing mode
-   - Evaluate operand expression
-   - Look up symbol values
-   - Emit opcode and operand bytes
-   - Write to output buffer/file
-   - Generate listing line (if enabled)
+    - Parse label (verify matches pass 1)
+    - Parse mnemonic
+    - Determine addressing mode
+    - Evaluate operand expression
+    - Look up symbol values
+    - Emit opcode and operand bytes
+    - Write to output buffer/file
+    - Generate listing line (if enabled)
 3. Write output file(s)
 
 **Addressing Mode Detection**:
+
 ```
 LDA #$12      ; Immediate     ($A9 $12)
 LDA $12       ; Zero Page     ($A5 $12)
@@ -86,6 +93,7 @@ LDA ($1234)   ; Indirect      ($6C $34 $12) - JMP only
 ```
 
 **Error Detection**:
+
 - Undefined symbols
 - Invalid addressing mode
 - Out of range values
@@ -97,6 +105,7 @@ LDA ($1234)   ; Indirect      ($6C $34 $12) - JMP only
 **Goal**: Sort and print symbol table
 
 **Process**:
+
 1. Compact symbol table (remove link pointers)
 2. Sort by name or value (user option)
 3. Format in 2, 4, or 6 columns
@@ -104,6 +113,7 @@ LDA ($1234)   ; Indirect      ($6C $34 $12) - JMP only
 5. Output to screen, printer, or file
 
 **Symbol Display Format**:
+
 ```
 LABEL    = $1234  R    (Relative)
 EXTERN   = $0000  X    (External)
@@ -143,6 +153,7 @@ Hash function: First character of symbol name (0-255)
 ### Symbol Operations
 
 **Insert**:
+
 1. Hash symbol name to bucket index
 2. Check if already exists (error if duplicate)
 3. Allocate node at end of symbol table
@@ -150,11 +161,13 @@ Hash function: First character of symbol name (0-255)
 5. Store name, flags, value
 
 **Lookup**:
+
 1. Hash symbol name to bucket index
 2. Walk linked list comparing names
 3. Return pointer to node or NULL
 
 **Update**:
+
 1. Lookup symbol
 2. Modify value and/or flags in place
 
@@ -183,6 +196,7 @@ public:
 ```
 
 **Unreferenced Bit Tracking** (implemented 2026-01-16):
+
 - Symbols are marked with `SYM_UNREFERENCED` flag (bit 6, $40) when created
 - The bit is cleared when symbols are used during Pass 2 evaluation
 - `mark_referenced()` explicitly clears the unreferenced bit
@@ -193,6 +207,7 @@ public:
 ### Operators Supported
 
 **Arithmetic**:
+
 - `+` Addition
 - `-` Subtraction
 - `*` Multiplication
@@ -200,16 +215,19 @@ public:
 - `MOD` Modulo
 
 **Bitwise**:
+
 - `&` AND
 - `|` OR
 - `^` XOR
 - `.NOT.` Complement
 
 **Shift**:
+
 - `<<` Shift left
 - `>>` Shift right
 
 **Relational** (for conditionals):
+
 - `=` Equal
 - `<` Less than
 - `>` Greater than
@@ -250,49 +268,61 @@ Recursive descent parser with operator precedence:
 ## Directives
 
 ### ORG - Set Origin
+
 ```
         ORG $8000
 ```
+
 Sets program counter to specified address.
 
 ### EQU - Equate
+
 ```
 CONST   EQU $1234
 ```
+
 Defines symbol with constant value (not PC-relative).
 
 ### Data Definition
 
 **DA** - Define Address (16-bit):
+
 ```
         DA LABEL1,LABEL2,$1234
 ```
 
 **DW** - Define Word (16-bit):
+
 ```
         DW $1234,$5678
 ```
 
 **DB/DFB** - Define Byte:
+
 ```
         DB $01,$02,$03
         DFB $FF
 ```
 
 **ASC** - ASCII String:
+
 ```
         ASC "Hello, World!"
         ASC 'Text'
 ```
+
 High bit cleared on all characters.
 
 **DCI** - DCI String:
+
 ```
         DCI "FILENAME"
 ```
+
 High bit set on last character (Apple II convention).
 
 **DS** - Define Storage:
+
 ```
         DS 256      ; Reserve 256 bytes
 ```
@@ -300,21 +330,25 @@ High bit set on last character (Apple II convention).
 ### Relocatable Code Directives
 
 **REL** - Start relocatable section:
+
 ```
         REL
 ```
 
 **ENT** - Entry point:
+
 ```
         ENT START   ; Declare START as entry
 ```
 
 **EXT** - External reference:
+
 ```
         EXT ROUTINE ; Declare ROUTINE as external
 ```
 
 **END** - End of source:
+
 ```
         END
 ```
@@ -322,12 +356,14 @@ High bit set on last character (Apple II convention).
 ### Listing Control
 
 **LST** - Listing on/off:
+
 ```
         LST ON      ; Enable listing
         LST OFF     ; Disable listing
 ```
 
 **SBTL** - Subtitle:
+
 ```
         SBTL "Module Name"
 ```
@@ -335,20 +371,25 @@ High bit set on last character (Apple II convention).
 ### File Management Directives
 
 **INCLUDE** - Include source file:
+
 ```
         INCLUDE "macros.src"
 ```
+
 Inserts contents of specified file at this point in assembly.
 
 **CHN** - Chain to source file (implemented 2026-01-16):
+
 ```
         CHN "module2.src"
 ```
+
 Closes current source file and continues assembly from chained file. Lines after CHN are not assembled. Cannot be used within INCLUDE files.
 
 ### Conditional Assembly
 
 **MSB** - High bit control:
+
 ```
         MSB ON      ; Set bit 7 on strings
         MSB OFF     ; Clear bit 7 on strings
@@ -359,6 +400,7 @@ Closes current source file and continues assembly from chained file. Lines after
 ### BIN Format
 
 Simple binary with 4-byte header:
+
 ```
 +0: Load address low byte
 +1: Load address high byte
@@ -370,6 +412,7 @@ Simple binary with 4-byte header:
 ### REL Format (Relocatable)
 
 Complex format with:
+
 - Header with code length
 - Code image
 - Relocation bitmap (which addresses need adjusting)
@@ -379,6 +422,7 @@ Complex format with:
 ### SYS Format
 
 System file with:
+
 - Load address: $2000
 - Entry point at $2000
 - Code bytes
@@ -386,6 +430,7 @@ System file with:
 ### LST Format (Listing)
 
 Text file with:
+
 ```
 Line# Addr  Bytes        Source
 ----- ----  ----------   ---------------------------
@@ -413,6 +458,7 @@ Symbol table appended at end.
 ### Tokenization
 
 Split source line into components:
+
 ```cpp
 struct SourceLine {
     std::string label;      // Optional
@@ -425,6 +471,7 @@ struct SourceLine {
 ### Opcode Table
 
 Use map or array for opcode lookup:
+
 ```cpp
 struct OpcodeEntry {
     std::string mnemonic;
@@ -439,6 +486,7 @@ std::unordered_map<std::string, std::vector<OpcodeEntry>> opcodes_;
 ### Code Emission
 
 Accumulate bytes in buffer:
+
 ```cpp
 std::vector<uint8_t> code_buffer_;
 uint16_t program_counter_ = 0x0800;
@@ -457,6 +505,7 @@ void emit_word(uint16_t word) {
 ### Listing Generation
 
 Format each line:
+
 ```cpp
 std::string format_listing_line(
     int line_number,
