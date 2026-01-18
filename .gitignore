@@ -14,3 +14,5 @@ CMakeFiles/
 Testing/
 third_party/EdAsm/.git/
 tmp/
+
+.fake
