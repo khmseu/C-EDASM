@@ -272,10 +272,10 @@ cmd_setup_original() {
 
     echo ""
     echo "To test with MAME:"
-    echo "  mame apple2e -flop1 ${BOOT_DISK} -flop2 ${work_disk} -window"
+    echo "  mame apple2gs -flop1 ${BOOT_DISK} -flop3 ${work_disk} -window"
     echo ""
     echo "In EDASM:"
-    echo "  1. Access work disk (Ctrl+Apple+2)"
+    echo "  1. Access work disk (Slot 5, Drive 1: PR#5 then CATALOG or Ctrl+Apple+3)"
     echo "  2. RUN EDASM.SYSTEM"
     echo "  3. Load and assemble test files"
 }
@@ -301,9 +301,9 @@ cmd_emulator_test() {
     log "Work disk: ${work_disk}"
 
     # Run MAME (will open window for manual testing)
-    mame apple2e \
+    mame apple2gs \
         -flop1 "${BOOT_DISK}" \
-        -flop2 "${work_disk}" \
+        -flop3 "${work_disk}" \
         -window ||
         true
 
