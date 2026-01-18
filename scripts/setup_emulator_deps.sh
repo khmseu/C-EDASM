@@ -276,10 +276,10 @@ main() {
         echo "Next steps:"
         echo "  1. Ensure EdAsm submodule is initialized: git submodule update --init --recursive"
         if [[ ${ROM_OK} -eq 0 ]]; then
-            echo "  2. Run emulator tests: ./scripts/run_emulator_test.sh"
+            echo "  2. Run emulator tests: ./scripts/edasm_test_suite.sh emulator-test"
         else
             echo "  2. Install Apple II ROM files (see instructions above)"
-            echo "  3. Run emulator tests: ./scripts/run_emulator_test.sh"
+            echo "  3. Run emulator tests: ./scripts/edasm_test_suite.sh emulator-test"
         fi
         echo "  4. See tests/emulator/README.md for more details"
         return 0

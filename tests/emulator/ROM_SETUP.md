@@ -187,10 +187,10 @@ After ROM installation:
 ./scripts/setup_emulator_deps.sh
 
 # Test emulator
-./scripts/run_emulator_test.sh boot
+./scripts/edasm_test_suite.sh emulator-test
 
 # Full assembly test
-./scripts/run_emulator_test.sh assemble
+./scripts/edasm_test_suite.sh full-comparison
 ```
 
 ## References

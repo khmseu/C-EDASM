@@ -247,10 +247,10 @@ To test these scripts:
 
     ```bash
     # Boot test (demonstrates MAME + ProDOS + EDASM)
-    ./scripts/run_emulator_test.sh boot
+    ./scripts/edasm_test_suite.sh emulator-test
 
     # Assembly test (full workflow)
-    ./scripts/run_emulator_test.sh assemble
+    ./scripts/edasm_test_suite.sh full-comparison
     ```
 
 5. Manual test (advanced):
