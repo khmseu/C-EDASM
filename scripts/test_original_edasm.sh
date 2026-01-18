@@ -18,7 +18,7 @@ NC='\033[0m'
 WORK_DIR="${PROJECT_ROOT}/tmp/edasm_test"
 ORIGINAL_EDASM_DISK="${PROJECT_ROOT}/third_party/artifacts/new_edasm.2mg"
 TEST_SOURCE="${PROJECT_ROOT}/tests/test_simple.src"
-BOOT_DISK="${WORK_DIR}/boot.2mg"
+BOOT_DISK="${PROJECT_ROOT}/third_party/artifacts/minimal_boot.po"
 WORK_DISK="${WORK_DIR}/work.2mg"
 RESULTS_DIR="${WORK_DIR}/results"
 
@@ -64,12 +64,18 @@ setup_work_env() {
     # Create work directory
     mkdir -p "${WORK_DIR}" "${RESULTS_DIR}"
 
-    # Create ProDOS boot disk (140KB)
+    # Check boot disk exists
+    if [[ ! -f "${BOOT_DISK}" ]]; then
+        echo -e "${RED}Error: Boot disk not found: ${BOOT_DISK}${NC}"
+        echo "The minimal boot disk should be available in third_party/artifacts/"
+        exit 1
+    else
+        echo -e "${GREEN}✓ Boot disk found: ${BOOT_DISK}${NC}"
+    fi
+
+    # Get cadius command
     local cadius_cmd
     cadius_cmd="$(get_cadius)"
-
-    echo "Creating ProDOS boot disk..."
-    "${cadius_cmd}" CREATEVOLUME "${BOOT_DISK}" "BOOT" 140KB
 
     # Create work disk with EDASM and source files
     echo "Creating work disk with EDASM system..."

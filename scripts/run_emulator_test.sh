@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEST_WORK_DIR="${TEST_WORK_DIR:-${PROJECT_ROOT}/tmp/edasm-emulator-test}"
 EDASM_DISK="${PROJECT_ROOT}/third_party/EdAsm/EDASM_SRC.2mg"
-PRODOS_DISK="${PRODOS_DISK:-${PROJECT_ROOT}/tmp/prodos.po}"
+PRODOS_DISK="${PRODOS_DISK:-${PROJECT_ROOT}/third_party/artifacts/minimal_boot.po}"
 PRODOS_URL="${PRODOS_URL:-https://releases.prodos8.com/ProDOS_2_4_3.po}"
 MAME_SYSTEM="${MAME_SYSTEM:-apple2gs}"
 MAME_SECONDS="${MAME_SECONDS-}"
@@ -65,25 +65,21 @@ check_submodule() {
     return 0
 }
 
-# Ensure a ProDOS boot disk is available (download if missing)
+# Ensure a ProDOS boot disk is available (create minimal boot disk if missing)
 ensure_prodos_disk() {
     if [[ -f ${PRODOS_DISK} ]]; then
         echo -e "${GREEN}✓ ProDOS boot disk present${NC}"
         return 0
     fi
 
-    echo "ProDOS disk not found; downloading from ${PRODOS_URL} ..."
+    echo "ProDOS boot disk not found; creating minimal boot disk..."
     mkdir -p "$(dirname "${PRODOS_DISK}")"
-    local curl_opts=("-L" "--fail")
-    if [[ ${PRODOS_INSECURE:-0} == "1" ]]; then
-        curl_opts+=("-k")
-    fi
-
-    if curl "${curl_opts[@]}" "${PRODOS_URL}" -o "${PRODOS_DISK}"; then
-        echo -e "${GREEN}✓ ProDOS boot disk downloaded to ${PRODOS_DISK}${NC}"
+    
+    if "${PROJECT_ROOT}/scripts/create_boot_disk.sh" "" "${PRODOS_DISK}"; then
+        echo -e "${GREEN}✓ Minimal ProDOS boot disk created at ${PRODOS_DISK}${NC}"
         return 0
     else
-        echo -e "${RED}Error: Failed to download ProDOS disk${NC}"
+        echo -e "${RED}Error: Failed to create ProDOS boot disk${NC}"
         return 1
     fi
 }
