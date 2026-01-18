@@ -15,9 +15,11 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-SOURCE_DISK="${1:-/home/kai/mame/roms/apple2/prodos.po}"
+SOURCE_DISK="${1:-}"
 TARGET_DISK="${2:-${PROJECT_ROOT}/tmp/minimal_boot.po}"
 TEMP_DIR="${PROJECT_ROOT}/tmp/boot_creation"
+PRODOS_URL="https://releases.prodos8.com/ProDOS_2_4_3.po"
+DEFAULT_PRODOS_PATH="${PROJECT_ROOT}/tmp/ProDOS_2_4_3.po"
 
 # Get cadius command
 get_cadius() {
@@ -30,13 +32,56 @@ get_cadius() {
 
 # Check if source disk exists
 check_source_disk() {
-    if [[ ! -f "$SOURCE_DISK" ]]; then
+    # If no source disk provided, use default location or download
+    if [[ -z "$SOURCE_DISK" ]]; then
+        if [[ -f "$DEFAULT_PRODOS_PATH" ]]; then
+            SOURCE_DISK="$DEFAULT_PRODOS_PATH"
+            echo -e "${GREEN}✓ Using existing ProDOS disk: $SOURCE_DISK${NC}"
+        else
+            echo -e "${YELLOW}No source disk provided, downloading ProDOS 2.4.3...${NC}"
+            download_prodos_disk
+            SOURCE_DISK="$DEFAULT_PRODOS_PATH"
+        fi
+    elif [[ ! -f "$SOURCE_DISK" ]]; then
         echo -e "${RED}Error: Source ProDOS disk not found: $SOURCE_DISK${NC}"
-        echo "Please provide the path to prodos.po as first argument"
-        echo "Example: $0 /path/to/prodos.po /path/to/output.po"
+        echo "Will attempt to download default ProDOS disk instead..."
+        download_prodos_disk
+        SOURCE_DISK="$DEFAULT_PRODOS_PATH"
+    else
+        echo -e "${GREEN}✓ Source disk found: $SOURCE_DISK${NC}"
+    fi
+}
+
+# Download ProDOS 2.4.3 from official releases
+download_prodos_disk() {
+    echo -e "${BLUE}Downloading ProDOS 2.4.3 from ${PRODOS_URL}...${NC}"
+    
+    mkdir -p "$(dirname "$DEFAULT_PRODOS_PATH")"
+    
+    if command -v curl &>/dev/null; then
+        # Try with SSL verification first, then without if it fails
+        if curl -L --fail "$PRODOS_URL" -o "$DEFAULT_PRODOS_PATH" 2>/dev/null || \
+           curl -L --fail --insecure "$PRODOS_URL" -o "$DEFAULT_PRODOS_PATH"; then
+            echo -e "${GREEN}✓ ProDOS disk downloaded successfully${NC}"
+        else
+            echo -e "${RED}✗ Failed to download ProDOS disk with curl${NC}"
+            exit 1
+        fi
+    elif command -v wget &>/dev/null; then
+        # Try with SSL verification first, then without if it fails
+        if wget "$PRODOS_URL" -O "$DEFAULT_PRODOS_PATH" 2>/dev/null || \
+           wget --no-check-certificate "$PRODOS_URL" -O "$DEFAULT_PRODOS_PATH"; then
+            echo -e "${GREEN}✓ ProDOS disk downloaded successfully${NC}"
+        else
+            echo -e "${RED}✗ Failed to download ProDOS disk with wget${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}✗ Neither curl nor wget available for download${NC}"
+        echo "Please download ProDOS manually from: $PRODOS_URL"
+        echo "Save it as: $DEFAULT_PRODOS_PATH"
         exit 1
     fi
-    echo -e "${GREEN}✓ Source disk found: $SOURCE_DISK${NC}"
 }
 
 # Create working directory
@@ -160,7 +205,7 @@ Create Minimal ProDOS Boot Disk
 Usage: $0 [source_prodos.po] [target_boot.po]
 
 Arguments:
-  source_prodos.po  Path to source ProDOS disk (default: /home/kai/mame/roms/apple2/prodos.po)
+  source_prodos.po  Path to source ProDOS disk (optional - will download ProDOS 2.4.3 if not provided)
   target_boot.po    Path for new minimal boot disk (default: tmp/minimal_boot.po)
 
 This script creates a minimal ProDOS boot disk with only essential files:
@@ -169,9 +214,13 @@ This script creates a minimal ProDOS boot disk with only essential files:
   - QUIT.SYSTEM (quit utility)
   - BASIC.SYSTEM (BASIC interpreter)
 
+If no source disk is provided, ProDOS 2.4.3 will be automatically downloaded from:
+https://releases.prodos8.com/ProDOS_2_4_3.po
+
 Example:
-  $0
-  $0 /path/to/prodos.po /path/to/myboot.po
+  $0                                    # Download ProDOS 2.4.3 and create boot disk
+  $0 /path/to/prodos.po                 # Use specific ProDOS disk
+  $0 /path/to/prodos.po /path/to/boot.po # Custom source and target
 
 EOF
 }
