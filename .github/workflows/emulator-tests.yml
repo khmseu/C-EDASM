@@ -29,13 +29,13 @@ jobs:
 
             - name: Fetch Apple II ROMs (emularity-bios)
               run: |
-                  ROM_DIR="$HOME/mame/roms"
-                  mkdir -p "$ROM_DIR"
-                  curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o "$ROM_DIR/apple2e.zip"
-                  curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2gs.zip -o "$ROM_DIR/apple2gs.zip"
-                  mkdir -p "$HOME/.mame"
-                  ln -s "$ROM_DIR" "$HOME/.mame/roms" 2>/dev/null || true
-                  mame -rompath "$ROM_DIR" -verifyroms apple2gs || mame -verifyroms apple2gs
+                  ROM_DIR="${HOME}/mame/roms"
+                  mkdir -p "${ROM_DIR}"
+                  curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -o "${ROM_DIR}/apple2e.zip"
+                  curl -L https://github.com/internetarchive/emularity-bios/raw/main/apple2gs.zip -o "${ROM_DIR}/apple2gs.zip"
+                  mkdir -p "${HOME}/.mame"
+                  ln -s "${ROM_DIR}" "${HOME}/.mame/roms" 2>/dev/null || true
+                  mame -rompath "${ROM_DIR}" -verifyroms apple2gs || mame -verifyroms apple2gs
 
             - name: Install cadius
               run: |
@@ -65,7 +65,7 @@ jobs:
 
             - name: Test emulator setup (boot test)
               run: |
-                  export PATH="$PATH:$HOME/go/bin"
+                  export PATH="${PATH}:${HOME}/go/bin"
                   ./scripts/edasm_test_suite.sh emulator-test
               continue-on-error: true # Expected to skip in CI without display/GPU
 
@@ -80,11 +80,11 @@ jobs:
             - name: Summary
               if: always()
               run: |
-                  echo "## Emulator Test Status" >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "ℹ️ **Note**: Emulator tests require display/GPU hardware support." >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "MAME-based tests are expected to be skipped in standard GitHub Actions runners." >> $GITHUB_STEP_SUMMARY
-                  echo "Tests will run successfully on systems with proper graphics support." >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "For details and manual testing instructions, see \`tests/emulator/README.md\`." >> $GITHUB_STEP_SUMMARY
+                  echo "## Emulator Test Status" >> ${GITHUB_STEP_SUMMARY}
+                  echo "" >> ${GITHUB_STEP_SUMMARY}
+                  echo "ℹ️ **Note**: Emulator tests require display/GPU hardware support." >> ${GITHUB_STEP_SUMMARY}
+                  echo "" >> ${GITHUB_STEP_SUMMARY}
+                  echo "MAME-based tests are expected to be skipped in standard GitHub Actions runners." >> ${GITHUB_STEP_SUMMARY}
+                  echo "Tests will run successfully on systems with proper graphics support." >> ${GITHUB_STEP_SUMMARY}
+                  echo "" >> ${GITHUB_STEP_SUMMARY}
+                  echo "For details and manual testing instructions, see \`tests/emulator/README.md\`." >> ${GITHUB_STEP_SUMMARY}
