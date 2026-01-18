@@ -44,19 +44,19 @@ If you own Apple II hardware, you can dump the ROMs using:
 **Note**: These sources host ROM files for preservation purposes. Legal status varies by jurisdiction.
 
 1. **Internet Archive - Emularity BIOS Collection** (Recommended for testing)
-    - Direct link to apple2e.zip: https://github.com/internetarchive/emularity-bios/blob/main/apple2e.zip
-    - Full repository: https://github.com/internetarchive/emularity-bios
+    - Direct link to apple2e.zip: <https://github.com/internetarchive/emularity-bios/blob/main/apple2e.zip>
+    - Full repository: <https://github.com/internetarchive/emularity-bios>
     - Contains ready-to-use ROM files for various systems
     - Maintained by Internet Archive for emulation purposes
     - **Quick download**: Click "Download" button on the file page
 
 2. **Internet Archive - TOSEC Collection**
-    - URL: https://archive.org/details/Apple_2_TOSEC_2012_04_23
+    - URL: <https://archive.org/details/Apple_2_TOSEC_2012_04_23>
     - Contains comprehensive Apple II ROM collections
     - Download individual ROM sets or the complete archive
 
 3. **apple2.org.za Mirror**
-    - URL: https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/
+    - URL: <https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/>
     - Maintained archive of Apple II emulator resources
     - Individual ROM files available
 
@@ -77,7 +77,7 @@ mkdir -p $HOME/mame/roms
 
 ### Step 2: Download and Copy ROM Files
 
-#### Quick Method (Recommended for testing):
+#### Quick Method (Recommended for testing)
 
 ```bash
 # Download apple2e.zip from Internet Archive Emularity BIOS
@@ -88,7 +88,7 @@ wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip
 cp apple2e.zip $HOME/mame/roms/
 ```
 
-#### Alternative Method:
+#### Alternative Method
 
 ```bash
 # If you obtained ROM files from another source
@@ -195,9 +195,9 @@ After ROM installation:
 
 ## References
 
-- MAME Documentation: https://docs.mamedev.org/
-- MAME Apple II Driver: https://wiki.mamedev.org/index.php/Driver:Apple_II
-- Apple II Documentation Project: http://www.apple2.org/
+- MAME Documentation: <https://docs.mamedev.org/>
+- MAME Apple II Driver: <https://wiki.mamedev.org/index.php/Driver:Apple_II>
+- Apple II Documentation Project: <http://www.apple2.org/>
 
 ## Support
 
