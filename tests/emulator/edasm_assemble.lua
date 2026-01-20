@@ -13,10 +13,22 @@ local BASIC_PROMPT_CHAR = 0xDD -- ']' character in Apple II
 local EDASM_PROMPT_CHAR = 0xBA -- ':' character in EdAsm
 
 local start_time = nil
-local screen_change_callback = nil
 local screen_tap_handler = nil
-local waiting_for_change = false
 local last_screen_content = nil
+
+-- State machine constants
+local STATE_INIT = 0
+local STATE_WAITING_FOR_PRODOS = 1
+local STATE_STARTING_EDASM = 2
+local STATE_WAITING_FOR_EDASM = 3
+local STATE_LOADING_FILE = 4
+local STATE_ASSEMBLING = 5
+local STATE_SAVING = 6
+local STATE_QUITTING = 7
+local STATE_COMPLETE = 8
+
+local current_state = STATE_INIT
+local automation_complete = false
 
 -- Initialize timer
 local function start_timer()
@@ -100,15 +112,63 @@ local function get_screen_content()
     return content
 end
 
--- Memory tap callback for screen changes
+-- Memory tap callback for screen changes - contains state machine
 local function on_screen_memory_write(offset, data, mask)
-    if waiting_for_change then
-        local current_content = get_screen_content()
-        if current_content ~= last_screen_content then
-            last_screen_content = current_content
-            if screen_change_callback then
-                screen_change_callback()
+    local current_content = get_screen_content()
+    if current_content ~= last_screen_content then
+        last_screen_content = current_content
+
+        -- State machine based on screen changes
+        if current_state == STATE_WAITING_FOR_PRODOS then
+            if check_for_prompt(BASIC_PROMPT_CHAR) then
+                print_elapsed("✓ ProDOS prompt detected")
+                read_text_screen("prodos_ready")
+                current_state = STATE_STARTING_EDASM
+                print_elapsed("Starting EDASM.SYSTEM...")
+                send_string("RUN EDASM.SYSTEM,S5")
+                send_return()
             end
+
+        elseif current_state == STATE_STARTING_EDASM then
+            read_text_screen("edasm_starting")
+            current_state = STATE_WAITING_FOR_EDASM
+
+        elseif current_state == STATE_WAITING_FOR_EDASM then
+            if check_for_prompt(EDASM_PROMPT_CHAR) then
+                print_elapsed("✓ EDASM prompt detected")
+                read_text_screen("edasm_ready")
+                current_state = STATE_LOADING_FILE
+                print_elapsed("Loading SIMPLE.SRC...")
+                send_string("L SIMPLE.SRC")
+                send_return()
+            end
+
+        elseif current_state == STATE_LOADING_FILE then
+            read_text_screen("file_loaded")
+            current_state = STATE_ASSEMBLING
+            print_elapsed("Assembling...")
+            send_string("A")
+            send_return()
+
+        elseif current_state == STATE_ASSEMBLING then
+            read_text_screen("assembled")
+            current_state = STATE_SAVING
+            print_elapsed("Saving binary...")
+            send_string("S SIMPLE.BIN")
+            send_return()
+
+        elseif current_state == STATE_SAVING then
+            read_text_screen("saved")
+            current_state = STATE_QUITTING
+            print_elapsed("Quitting EDASM...")
+            send_string("Q")
+            send_return()
+
+        elseif current_state == STATE_QUITTING then
+            read_text_screen("final_state")
+            current_state = STATE_COMPLETE
+            automation_complete = true
+            print_elapsed("EDASM assembly sequence complete")
         end
     end
 end
@@ -298,24 +358,57 @@ local function on_start()
     manager.machine.natkeyboard.in_use = true
     print_elapsed("Natural keyboard mode enabled")
 
-    local prodos_ready = wait_for_prodos()
-    if prodos_ready then
-        -- Run EDASM.SYSTEM
-        print_elapsed("Starting EDASM.SYSTEM...")
-        send_string("RUN EDASM.SYSTEM,S5")
-        send_return()
-        wait_for_screen_change_tap(10000, "EDASM startup")
+-- Check if a prompt is visible on screen (line starting with prompt_char and otherwise blank)
+local function check_for_prompt(prompt_char)
+    -- Check all lines for a line that starts with prompt_char and is otherwise blank
+    for line = 0, 23 do
+        local line_offset = (line % 8) * 128 + math.floor(line / 8) * 40
 
-        local edasm_ready = wait_for_edasm()
-        if edasm_ready then
-            run_edasm_assembly()
-        else
-            print_elapsed("Could not detect EdAsm prompt")
-            read_text_screen("final_state")
+        -- Read first character of the line
+        local first_char = mem:read_u8(TEXT_PAGE1_START + line_offset)
+
+        if first_char == prompt_char or first_char == (prompt_char & 0x7F) then
+            -- Check if rest of line is blank (spaces or control chars)
+            local is_blank = true
+            for col = 1, 39 do
+                local char = mem:read_u8(TEXT_PAGE1_START + line_offset + col)
+                char = char & 0x7F -- Clear high bit
+                if char ~= 32 and char ~= 0 then -- Not space or null
+                    is_blank = false
+                    break
+                end
+            end
+
+            if is_blank then
+                return true
+            end
         end
-    else
-        print_elapsed("Could not detect ProDOS prompt")
-        read_text_screen("final_state")
+    end
+    return false
+end
+
+-- Main execution - now purely event-driven
+local function on_start()
+    start_timer()
+    print_elapsed("EDASM Assembly Automation Started")
+
+    -- Enable natural keyboard mode for proper input handling
+    manager.machine.natkeyboard.in_use = true
+    print_elapsed("Natural keyboard mode enabled")
+
+    -- Install screen memory tap and initialize
+    install_screen_tap()
+    last_screen_content = get_screen_content()
+
+    -- Wait for initial boot, then start state machine
+    emu.wait(emu.attotime.from_usec(2000000)) -- Initial 2s boot wait
+    read_text_screen("initial_boot")
+    current_state = STATE_WAITING_FOR_PRODOS
+    print_elapsed("Waiting for ProDOS prompt...")
+
+    -- Single long wait - all work happens in callbacks now
+    while not automation_complete do
+        emu.wait(emu.attotime.from_usec(1000000)) -- 1 second intervals
     end
 
     -- Cleanup
