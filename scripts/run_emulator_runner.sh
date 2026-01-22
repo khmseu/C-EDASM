@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT}/build"
 
-if [[ $# -gt 0 ]]; then
-  BINARY_PATH="$1"
-  shift
-else
-  BINARY_PATH="third_party/artifacts/edasm/EDASM/edasm/EDASM.SYSTEM#FF0000"
-fi
+BINARY_PATH="third_party/artifacts/edasm/EDASM/edasm/EDASM.SYSTEM#FF0000"
 
 # Ensure the build directory is configured before building.
 if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
