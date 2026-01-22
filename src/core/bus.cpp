@@ -43,14 +43,16 @@ void Bus::write(uint16_t addr, uint8_t value) {
 }
 
 uint16_t Bus::read_word(uint16_t addr) {
+    // Note: On 6502, word reads wrap within page for zero page addresses
+    // For simplicity, we allow reads across page boundaries here
     uint8_t lo = read(addr);
-    uint8_t hi = read(addr + 1);
+    uint8_t hi = read(static_cast<uint16_t>(addr + 1)); // Cast handles overflow to 0x0000
     return static_cast<uint16_t>(lo) | (static_cast<uint16_t>(hi) << 8);
 }
 
 void Bus::write_word(uint16_t addr, uint16_t value) {
     write(addr, static_cast<uint8_t>(value & 0xFF));
-    write(addr + 1, static_cast<uint8_t>((value >> 8) & 0xFF));
+    write(static_cast<uint16_t>(addr + 1), static_cast<uint8_t>((value >> 8) & 0xFF)); // Cast handles overflow
 }
 
 bool Bus::load_binary(uint16_t addr, const std::vector<uint8_t>& data) {
@@ -89,13 +91,15 @@ void Bus::set_write_trap(uint16_t addr, WriteTrapHandler handler) {
 }
 
 void Bus::set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler) {
-    for (uint16_t addr = start; addr <= end; ++addr) {
+    // Handle potential overflow when end = 0xFFFF
+    for (uint32_t addr = start; addr <= end; ++addr) {
         read_traps_[addr] = handler;
     }
 }
 
 void Bus::set_write_trap_range(uint16_t start, uint16_t end, WriteTrapHandler handler) {
-    for (uint16_t addr = start; addr <= end; ++addr) {
+    // Handle potential overflow when end = 0xFFFF
+    for (uint32_t addr = start; addr <= end; ++addr) {
         write_traps_[addr] = handler;
     }
 }

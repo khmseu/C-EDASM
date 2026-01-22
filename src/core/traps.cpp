@@ -48,7 +48,7 @@ std::string TrapManager::dump_cpu_state(const CPUState& cpu) {
     oss << " [";
     if (cpu.P & StatusFlags::N) oss << "N"; else oss << "-";
     if (cpu.P & StatusFlags::V) oss << "V"; else oss << "-";
-    if (cpu.P & StatusFlags::U) oss << "-"; else oss << "-"; // U always set
+    oss << "U"; // U flag always set on 6502
     if (cpu.P & StatusFlags::B) oss << "B"; else oss << "-";
     if (cpu.P & StatusFlags::D) oss << "D"; else oss << "-";
     if (cpu.P & StatusFlags::I) oss << "I"; else oss << "-";
