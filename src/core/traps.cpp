@@ -1,4 +1,6 @@
 #include "edasm/traps.hpp"
+#include <chrono>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -213,7 +215,57 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     std::cout << "    JSR ^ CM  PL  PH  --  --  --" << std::endl;
     std::cout << std::endl;
 
-    // Read parameter list
+    // Fast-path for GET_TIME ($82): no parameter list, write to $BF90-$BF93 and return success
+    if (call_num == 0x82) {
+        // Compute date/time from host
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        std::tm tm{};
+        localtime_r(&t, &tm);
+
+        // ProDOS encoding:
+        // DATE (BF91:BF90): year (7 bits, since 1900), month (4 bits), day (5 bits)
+        //   BF91: bits7-1 year, bit0 = month bit3
+        //   BF90: bits7-5 month bits2-0, bits4-0 day
+        uint8_t year = static_cast<uint8_t>(tm.tm_year);     // years since 1900, 0-127 valid
+        uint8_t month = static_cast<uint8_t>(tm.tm_mon + 1); // 1-12
+        uint8_t day = static_cast<uint8_t>(tm.tm_mday);      // 1-31
+        uint8_t bf91 = static_cast<uint8_t>((year << 1) | ((month >> 3) & 0x01));
+        uint8_t bf90 = static_cast<uint8_t>(((month & 0x07) << 5) | (day & 0x1F));
+
+        // TIME (BF93:BF92): hour (0-23), minute (0-59)
+        uint8_t hour = static_cast<uint8_t>(tm.tm_hour);  // 0-23
+        uint8_t minute = static_cast<uint8_t>(tm.tm_min); // 0-59
+
+        bus.write(0xBF91, bf91);
+        bus.write(0xBF90, bf90);
+        bus.write(0xBF93, hour);
+        bus.write(0xBF92, minute);
+
+        std::cout << "GET_TIME: wrote date/time to $BF90-$BF93" << std::endl;
+        std::cout << "  Year (since 1900): " << std::dec << static_cast<int>(year) << std::endl;
+        std::cout << "  Month: " << static_cast<int>(month) << std::endl;
+        std::cout << "  Day: " << static_cast<int>(day) << std::endl;
+        std::cout << "  Hour: " << static_cast<int>(hour) << std::endl;
+        std::cout << "  Minute: " << static_cast<int>(minute) << std::endl;
+
+        // ProDOS successful return: C clear, A=0, Z set, return to caller (JSR+3) and unwind stack
+        cpu.A = 0;
+        cpu.P &= ~StatusFlags::C;
+        cpu.P &= ~StatusFlags::N;
+        cpu.P &= ~StatusFlags::V;
+        cpu.P |= StatusFlags::Z;
+        cpu.P |= StatusFlags::U; // ensure U stays set
+
+        // Mimic RTS from MLI: pop return address and continue after operands
+        cpu.SP = static_cast<uint8_t>(cpu.SP + 2); // discard pushed return
+        cpu.PC =
+            static_cast<uint16_t>((ret_addr + 1) + 3); // JSR+3: skip command byte and param pointer
+
+        return true; // continue execution
+    }
+
+    // Read parameter list (not used for GET_TIME)
     if (param_list >= 0x0200 && param_list < 0xFFFF) {
         uint8_t param_count = mem[param_list];
         std::cout << "Parameter List at $" << std::setw(4) << param_list << ":" << std::endl;
@@ -273,6 +325,29 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     write_memory_dump(bus, "memory_dump.bin");
 
     return false; // Halt execution
+}
+
+bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
+    // SETNORM ($FE84): Set InvFlg ($32) to $FF (normal video mode) and Y to $FF
+    // InvFlg is at zero page $32
+    bus.write(0x32, 0xFF);
+    cpu.Y = 0xff;
+
+    std::cout << "MONITOR SETNORM: Set InvFlg ($32) to $FF, Y to $FF" << std::endl;
+
+    // Monitor routines use JSR/RTS, so pop return address and continue
+    // RTS pulls from stack: increment SP, read lo byte, increment SP, read hi byte
+    cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
+    uint8_t ret_lo = bus.read(0x0100 | cpu.SP);
+    cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
+    uint8_t ret_hi = bus.read(0x0100 | cpu.SP);
+    uint16_t ret_addr = (ret_hi << 8) | ret_lo;
+
+    // JSR stores PC of last byte of instruction on stack
+    // RTS adds 1 to get to next instruction
+    cpu.PC = static_cast<uint16_t>(ret_addr + 1);
+
+    return true; // Continue execution
 }
 
 std::string TrapManager::decode_prodos_call(uint8_t call_num) {

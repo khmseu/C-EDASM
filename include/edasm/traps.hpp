@@ -34,6 +34,9 @@ class TrapManager {
     // ProDOS MLI trap handler: decode and log MLI calls (only for $BF00)
     static bool prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc);
 
+    // Monitor ROM trap handler: SETNORM ($FE84) - sets InvFlg ($32) to $FF
+    static bool monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc);
+
     // Create a logging trap handler
     static TrapHandler create_logging_handler(const std::string &name);
 

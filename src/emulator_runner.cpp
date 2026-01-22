@@ -84,8 +84,10 @@ int main(int argc, char *argv[]) {
 
     // Install general trap handler with ProDOS MLI handler at $BF00
     TrapManager::install_address_handler(0xBF00, TrapManager::prodos_mli_trap_handler);
+    TrapManager::install_address_handler(0xFE84, TrapManager::monitor_setnorm_trap_handler);
     cpu.set_trap_handler(TrapManager::general_trap_handler);
     std::cout << "  General trap handler installed with ProDOS MLI at $BF00" << std::endl;
+    std::cout << "  Monitor ROM SETNORM handler installed at $FE84" << std::endl;
 
     std::cout << std::endl << "Starting execution..." << std::endl;
     std::cout << "Maximum instructions: " << std::dec << max_instructions << std::endl;
