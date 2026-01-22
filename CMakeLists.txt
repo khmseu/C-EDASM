@@ -10,6 +10,10 @@ find_package(Curses REQUIRED)
 add_library(edasm
   src/core/app.cpp
   src/core/screen.cpp
+  src/core/bus.cpp
+  src/core/cpu.cpp
+  src/core/traps.cpp
+  src/core/host_shims.cpp
   src/assembler/assembler.cpp
   src/assembler/symbol_table.cpp
   src/assembler/tokenizer.cpp
@@ -48,6 +52,10 @@ target_link_libraries(test_linker PRIVATE edasm)
 # Test assembler with REL output
 add_executable(test_asm_rel src/test_asm_rel.cpp)
 target_link_libraries(test_asm_rel PRIVATE edasm)
+
+# Emulator runner for testing original EDASM.SYSTEM
+add_executable(emulator_runner src/emulator_runner.cpp)
+target_link_libraries(emulator_runner PRIVATE edasm)
 
 enable_testing()
 add_subdirectory(tests)
