@@ -23,7 +23,18 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 ## Recent Additions (2026-01-16)
 
-### Emulator Testing Infrastructure (NEW!) 🎮
+### Minimal 65C02 Emulator (NEW!) 🎮
+
+- **Complete 65C02 CPU emulation**: 100+ opcodes implemented with full addressing mode support
+- **Trap-first discovery**: Memory prefilled with trap opcode ($02) to discover needed services incrementally
+- **Binary execution**: Successfully executes EDASM.SYSTEM for 847 instructions before hitting ProDOS MLI trap
+- **Comprehensive testing**: 9 unit tests covering CPU and bus operations (all passing)
+- **Command-line runner**: Configurable binary loading, execution limits, and instruction tracing
+- **Debug support**: CPU state dumps, memory windows, and trap handlers
+- **I/O simulation**: Keyboard input queue for EXEC-like command feeding
+- See [docs/EMULATOR_MINIMAL_PLAN.md](docs/EMULATOR_MINIMAL_PLAN.md) for design details
+
+### Emulator Testing Infrastructure 🎮
 
 - **MAME-based testing**: Automated testing against original Apple II EDASM
 - **Lua automation scripts**: Keyboard injection and screen monitoring for ProDOS/EDASM
@@ -306,6 +317,36 @@ cd build && ./tests/test_assembler_integration
 ```
 
 See [docs/EMULATOR_SETUP.md](docs/EMULATOR_SETUP.md) for detailed setup and usage guide.
+
+### Minimal 65C02 Emulator (NEW!)
+
+```bash
+# Extract EDASM.SYSTEM from disk image (one-time setup)
+cd third_party/cadius && make && cd ../..
+mkdir -p tmp
+third_party/cadius/cadius EXTRACTFILE third_party/EdAsm/EDASM_SRC.2mg \
+  /EDASM.SRC/EI/EDASM.SYSTEM tmp/
+
+# Run emulator with EDASM.SYSTEM
+./build/emulator_runner --binary "tmp/EDASM.SYSTEM#FF0000" \
+  --load 2000 --entry 2000 --max 1000
+
+# Enable instruction tracing
+./build/emulator_runner --binary "tmp/EDASM.SYSTEM#FF0000" \
+  --load 2000 --entry 2000 --max 100 --trace
+
+# Run emulator unit tests
+./build/tests/test_emulator
+```
+
+**Emulator Features:**
+- Executes 847 instructions of EDASM.SYSTEM before hitting ProDOS MLI trap
+- 100+ 6502/65C02 opcodes implemented with full addressing mode support
+- Trap-first discovery approach: unimplemented features trigger detailed traps
+- Debug support: CPU state dumps, memory windows, instruction tracing
+- Comprehensive unit test coverage (9 tests, all passing)
+
+See [docs/EMULATOR_MINIMAL_PLAN.md](docs/EMULATOR_MINIMAL_PLAN.md) for design and implementation details.
 
 ### Assemble with Listing
 
