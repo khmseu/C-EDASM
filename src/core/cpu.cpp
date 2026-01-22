@@ -300,35 +300,35 @@ bool CPU::execute_instruction(uint8_t opcode) {
             break;
         }
         
-        // SBC immediate
+        // SBC immediate (carry acts as "not borrow")
         case 0xE9: {
             uint8_t operand = fetch_byte();
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
             break;
         }
         
-        // SBC absolute
+        // SBC absolute (carry acts as "not borrow")
         case 0xED: {
             uint16_t addr = fetch_word();
             uint8_t operand = bus_.read(addr);
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
             break;
         }
         
-        // SBC zero page
+        // SBC zero page (carry acts as "not borrow")
         case 0xE5: {
             uint8_t addr = fetch_byte();
             uint8_t operand = bus_.read(addr);
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
@@ -822,7 +822,10 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // LDA (indirect,X)
         case 0xA1: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A = bus_.read(addr);
             update_nz(state_.A);
             break;
@@ -886,7 +889,10 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // STA (indirect,X)
         case 0x81: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             bus_.write(addr, state_.A);
             break;
         }
@@ -940,7 +946,10 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // ADC (indirect,X)
         case 0x61: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             uint8_t operand = bus_.read(addr);
             uint16_t result = state_.A + operand + (get_flag(StatusFlags::C) ? 1 : 0);
             set_flag(StatusFlags::C, result > 0xFF);
@@ -963,50 +972,53 @@ bool CPU::execute_instruction(uint8_t opcode) {
             break;
         }
         
-        // SBC absolute,X
+        // SBC absolute,X (carry acts as "not borrow")
         case 0xFD: {
             uint16_t addr = fetch_word();
             uint8_t operand = bus_.read(addr + state_.X);
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
             break;
         }
         
-        // SBC absolute,Y
+        // SBC absolute,Y (carry acts as "not borrow")
         case 0xF9: {
             uint16_t addr = fetch_word();
             uint8_t operand = bus_.read(addr + state_.Y);
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
             break;
         }
         
-        // SBC (indirect,X)
+        // SBC (indirect,X) (carry acts as "not borrow")
         case 0xE1: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             uint8_t operand = bus_.read(addr);
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
             break;
         }
         
-        // SBC (indirect),Y
+        // SBC (indirect),Y (carry acts as "not borrow")
         case 0xF1: {
             uint8_t zp_addr = fetch_byte();
             uint16_t addr = bus_.read_word(zp_addr);
             uint8_t operand = bus_.read(addr + state_.Y);
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
@@ -1032,7 +1044,10 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // AND (indirect,X)
         case 0x21: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A &= bus_.read(addr);
             update_nz(state_.A);
             break;
@@ -1066,7 +1081,10 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // ORA (indirect,X)
         case 0x01: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A |= bus_.read(addr);
             update_nz(state_.A);
             break;
@@ -1100,7 +1118,10 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // EOR (indirect,X)
         case 0x41: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A ^= bus_.read(addr);
             update_nz(state_.A);
             break;
@@ -1138,7 +1159,10 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // CMP (indirect,X)
         case 0xC1: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word((zp_addr + state_.X) & 0xFF);
+            uint8_t addr_zp = (zp_addr + state_.X) & 0xFF;
+            uint8_t lo = bus_.read(addr_zp);
+            uint8_t hi = bus_.read((addr_zp + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             uint8_t operand = bus_.read(addr);
             uint16_t result = state_.A - operand;
             set_flag(StatusFlags::C, state_.A >= operand);
@@ -1394,12 +1418,12 @@ bool CPU::execute_instruction(uint8_t opcode) {
             break;
         }
         
-        // SBC zero page,X
+        // SBC zero page,X (carry acts as "not borrow")
         case 0xF5: {
             uint8_t addr = fetch_byte();
             uint8_t operand = bus_.read((addr + state_.X) & 0xFF);
-            uint16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
-            set_flag(StatusFlags::C, result < 0x100);
+            int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
+            set_flag(StatusFlags::C, result >= 0);
             set_flag(StatusFlags::V, ((state_.A ^ operand) & (state_.A ^ result) & 0x80) != 0);
             state_.A = static_cast<uint8_t>(result);
             update_nz(state_.A);
