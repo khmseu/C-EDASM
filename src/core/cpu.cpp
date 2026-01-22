@@ -834,7 +834,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // LDA (indirect),Y
         case 0xB1: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A = bus_.read(addr + state_.Y);
             update_nz(state_.A);
             break;
@@ -900,7 +902,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // STA (indirect),Y
         case 0x91: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             bus_.write(addr + state_.Y, state_.A);
             break;
         }
@@ -962,7 +966,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // ADC (indirect),Y
         case 0x71: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             uint8_t operand = bus_.read(addr + state_.Y);
             uint16_t result = state_.A + operand + (get_flag(StatusFlags::C) ? 1 : 0);
             set_flag(StatusFlags::C, result > 0xFF);
@@ -1015,7 +1021,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // SBC (indirect),Y (carry acts as "not borrow")
         case 0xF1: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             uint8_t operand = bus_.read(addr + state_.Y);
             int16_t result = state_.A - operand - (get_flag(StatusFlags::C) ? 0 : 1);
             set_flag(StatusFlags::C, result >= 0);
@@ -1056,7 +1064,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // AND (indirect),Y
         case 0x31: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A &= bus_.read(addr + state_.Y);
             update_nz(state_.A);
             break;
@@ -1093,7 +1103,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // ORA (indirect),Y
         case 0x11: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A |= bus_.read(addr + state_.Y);
             update_nz(state_.A);
             break;
@@ -1130,7 +1142,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // EOR (indirect),Y
         case 0x51: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             state_.A ^= bus_.read(addr + state_.Y);
             update_nz(state_.A);
             break;
@@ -1173,7 +1187,9 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // CMP (indirect),Y
         case 0xD1: {
             uint8_t zp_addr = fetch_byte();
-            uint16_t addr = bus_.read_word(zp_addr);
+            uint8_t lo = bus_.read(zp_addr);
+            uint8_t hi = bus_.read((zp_addr + 1) & 0xFF);
+            uint16_t addr = lo | (static_cast<uint16_t>(hi) << 8);
             uint8_t operand = bus_.read(addr + state_.Y);
             uint16_t result = state_.A - operand;
             set_flag(StatusFlags::C, state_.A >= operand);
