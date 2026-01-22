@@ -1,0 +1,137 @@
+
+========================================================================
+ Session Overview
+========================================================================
+  mame 0.264
+  driver : apple2e (Apple //e)
+  year   : 1983
+  maker  : Apple Computer
+  parent : 0
+  compat : apple2
+  source : ../../../../../src/mame/apple/apple2e.cpp
+  rotation: <nil>
+  statuses: not_working=false save=true no_sound=false no_cocktail=false
+
+========================================================================
+ Video & Sound Managers
+========================================================================
+  video speed=1.0% throttled=false frameskip=0
+  sound muted=false ui_mute=false
+  output manager ready
+
+========================================================================
+ Memory Overview
+========================================================================
+  shares
+    <none>
+  banks
+    <none>
+  regions
+    :sl6:diskiing:wozfdc:diskii_rom_p6 size=256 bytes bitwidth=8 device=<none>
+    :sl6:diskiing:diskii_rom size=256 bytes bitwidth=8 device=<none>
+    :sl4:mockingboard:sc01:internal size=512 bytes bitwidth=64 device=<none>
+    :keyboard size=2048 bytes bitwidth=8 device=<none>
+    :maincpu size=65536 bytes bitwidth=8 device=<none>
+    :gfx1 size=8192 bytes bitwidth=8 device=<none>
+
+========================================================================
+ Device Tree
+========================================================================
+  : [Apple //e/apple2e] owner=<root> configured=true started=true
+  :maincpu [MOS Technology 6502/m6502] owner=: configured=true started=true
+    spaces: program(8-bit little)
+    states: A, CURFLAGS, CURPC, GENPC, IR, P, PC, SP ...+2
+  :scantimer [Timer/timer] owner=: configured=true started=true
+  :acceltimer [Timer/timer] owner=: configured=true started=true
+  :a2video [Apple II video (composite/RGB)/a2video_comprgb] owner=: configured=true started=true
+  :a2common [Apple II Common Components/apple2com] owner=: configured=true started=true
+  :screen [Video Screen/screen] owner=: configured=true started=true
+  :mono [Speaker/speaker] owner=: configured=true started=true
+  :speaker [Filtered DAC/speaker_sound_device] owner=: configured=true started=true
+  :nsc [Dallas DS1315 Phantom Time Chip/ds1315] owner=: configured=true started=true
+  :ram [RAM/ram] owner=: configured=true started=true
+  :ay3600 [AY-5-3600 Keyboard Encoder/ay3600] owner=: configured=true started=true
+  :repttmr [Timer/timer] owner=: configured=true started=true
+  :a2bus [Apple II Bus/a2bus] owner=: configured=true started=true
+  :sl1 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl2 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl3 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl4 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl4:mockingboard [Sweet Micro Systems Mockingboard Sound/Speech I/a2mockbd] owner=:sl4 configured=true started=true
+  :sl4:mockingboard:via1 [MOS 6522 VIA/mos6522] owner=:sl4:mockingboard configured=true started=true
+  :sl4:mockingboard:lspeaker [Speaker/speaker] owner=:sl4:mockingboard configured=true started=true
+  :sl4:mockingboard:rspeaker [Speaker/speaker] owner=:sl4:mockingboard configured=true started=true
+  :sl4:mockingboard:ay1 [AY-3-8913 PSG/ay8913] owner=:sl4:mockingboard configured=true started=true
+  :sl4:mockingboard:ay2 [AY-3-8913 PSG/ay8913] owner=:sl4:mockingboard configured=true started=true
+  :sl4:mockingboard:via2 [MOS 6522 VIA/mos6522] owner=:sl4:mockingboard configured=true started=true
+  :sl4:mockingboard:sc01 [Votrax SC-01-A/votrsc01a] owner=:sl4:mockingboard configured=true started=true
+  :sl5 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl6 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl6:diskiing [Apple Disk II NG controller (16-sector)/a2diskiing] owner=:sl6 configured=true started=true
+  :sl6:diskiing:wozfdc [Apple Disk II floppy controller/d2fdc] owner=:sl6:diskiing configured=true started=true
+  :sl6:diskiing:wozfdc:phaselatch [Fairchild 9334 Addressable Latch/f9334] owner=:sl6:diskiing:wozfdc configured=true started=true
+  :sl6:diskiing:0 [Floppy drive connector abstraction/floppy_connector] owner=:sl6:diskiing configured=true started=true
+  :sl6:diskiing:0:525 [5.25" single density floppy drive/floppy_525_sd] owner=:sl6:diskiing:0 configured=true started=true
+  :sl6:diskiing:0:525:flopsndout [Speaker/speaker] owner=:sl6:diskiing:0:525 configured=true started=true
+  :sl6:diskiing:0:525:floppysound [Floppy sound/flopsnd] owner=:sl6:diskiing:0:525 configured=true started=true
+  :sl6:diskiing:1 [Floppy drive connector abstraction/floppy_connector] owner=:sl6:diskiing configured=true started=true
+  :sl6:diskiing:1:525 [5.25" single density floppy drive/floppy_525_sd] owner=:sl6:diskiing:1 configured=true started=true
+  :sl6:diskiing:1:525:flopsndout [Speaker/speaker] owner=:sl6:diskiing:1:525 configured=true started=true
+  :sl6:diskiing:1:525:floppysound [Floppy sound/flopsnd] owner=:sl6:diskiing:1:525 configured=true started=true
+  :sl7 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :auxbus [Apple IIe AUX Bus/a2eauxslot] owner=: configured=true started=true
+  :aux [Apple IIe AUX Slot/a2eauxslot_slot] owner=: configured=true started=true
+  :aux:ext80 [Apple IIe Extended 80-Column Card/a2eext80] owner=:aux configured=true started=true
+  :gameio [Apple II Game I/O Connector/a2gameio] owner=: configured=true started=true
+  :flop_a2_clean [Software List/software_list] owner=: configured=true started=true
+  :flop_a2_orig [Software List/software_list] owner=: configured=true started=true
+  :flop_a2_misc [Software List/software_list] owner=: configured=true started=true
+  :tape [Cassette/cassette_image] owner=: configured=true started=true
+
+========================================================================
+ Screen Devices
+========================================================================
+  :screen [560x192] refresh=60.000000000276 orientation=0deg (none)
+
+========================================================================
+ Palette Devices
+========================================================================
+  :a2video entries=16 indirect=0 shadows=false highlights=false
+
+========================================================================
+ Sound Devices
+========================================================================
+  <enumerator missing>
+
+========================================================================
+ Slot Devices
+========================================================================
+  :sl1 fixed=false selectable=true options=4dparprn, 4play, a2sd, aesms, aevm80, alfam2, ap16, ap16alt ...+68
+  :sl2 fixed=false selectable=true options=4dparprn, 4play, a2sd, aesms, aevm80, alfam2, ap16, ap16alt ...+68
+  :sl3 fixed=false selectable=true options=4dparprn, 4play, a2sd, aesms, aevm80, alfam2, ap16, ap16alt ...+68
+  :sl4 fixed=false selectable=true options=4dparprn, 4play, a2sd, aesms, aevm80, alfam2, ap16, ap16alt ...+68
+  :sl5 fixed=false selectable=true options=4dparprn, 4play, a2sd, aesms, aevm80, alfam2, ap16, ap16alt ...+68
+  :sl6 fixed=false selectable=true options=4dparprn, 4play, a2sd, aesms, aevm80, alfam2, ap16, ap16alt ...+68
+  :sl6:diskiing:0 fixed=false selectable=true options=525
+  :sl6:diskiing:1 fixed=false selectable=true options=525
+  :sl7 fixed=false selectable=true options=4dparprn, 4play, a2sd, aesms, aevm80, alfam2, ap16, ap16alt ...+68
+  :aux fixed=false selectable=true options=ext80, rw3, std80
+  :gameio fixed=false selectable=true options=compeyes, gizmo, joy, paddles
+
+========================================================================
+ Media Image Devices
+========================================================================
+  :sl6:diskiing:0:525 [floppydisk1] exists=false type=floppydisk file=<nil>
+  :sl6:diskiing:1:525 [floppydisk2] exists=false type=floppydisk file=<nil>
+  :tape [cassette] exists=false type=cassette file=<nil>
+
+========================================================================
+ Cassette Devices
+========================================================================
+  :tape motor=true playing=false recording=false length=0.0 position=0.0
+
+========================================================================
+ Inventory Complete
+========================================================================
+  Inventory dump complete.
+Average speed: 899.85% (99 seconds)

@@ -1,0 +1,150 @@
+
+========================================================================
+ Session Overview
+========================================================================
+  mame 0.264
+  driver : apple2gs (Apple IIgs (ROM03))
+  year   : 1989
+  maker  : Apple Computer
+  parent : 0
+  compat : apple2
+  source : ../../../../../src/mame/apple/apple2gs.cpp
+  rotation: <nil>
+  statuses: not_working=false save=true no_sound=false no_cocktail=false
+
+========================================================================
+ Video & Sound Managers
+========================================================================
+  video speed=1.0% throttled=false frameskip=0
+  sound muted=false ui_mute=false
+  output manager ready
+
+========================================================================
+ Memory Overview
+========================================================================
+  shares
+    :docram size=65536 bytes bitwidth=8 endianness=little
+  banks
+    :doc:bank entry=0
+  regions
+    :maincpu size=524288 bytes bitwidth=8 device=<none>
+    :gfx1 size=4096 bytes bitwidth=8 device=<none>
+    :adbmicro size=4096 bytes bitwidth=8 device=<none>
+
+========================================================================
+ Device Tree
+========================================================================
+  : [Apple IIgs (ROM03)/apple2gs] owner=<root> configured=true started=true
+  :maincpu [WDC W65C816/w65c816] owner=: configured=true started=true
+    spaces: program(8-bit little), vectors(8-bit little)
+    states: A, CURFLAGS, CURPC, D, DB, E, GENPC, IRQ ...+7
+  :scantimer [Timer/timer] owner=: configured=true started=true
+  :acceltimer [Timer/timer] owner=: configured=true started=true
+  :adbmicro [Mitsubishi M50741/m50741] owner=: configured=true started=true
+    spaces: program(8-bit little)
+    states: A, CURFLAGS, CURPC, GENPC, IR, P, PC, SP ...+2
+  :macadb [Mac ADB HLE/macadb] owner=: configured=true started=true
+  :rtc [Apple 343-0042-B clock/PRAM/rtc3430042] owner=: configured=true started=true
+  :a2video [Apple II video/a2video] owner=: configured=true started=true
+  :a2common [Apple II Common Components/apple2com] owner=: configured=true started=true
+  :gameio [Apple II Game I/O Connector/a2gameio] owner=: configured=true started=true
+  :screen [Video Screen/screen] owner=: configured=true started=true
+  :palette [palette/palette] owner=: configured=true started=true
+  :mono [Speaker/speaker] owner=: configured=true started=true
+  :speaker [Filtered DAC/speaker_sound_device] owner=: configured=true started=true
+  :lspeaker [Speaker/speaker] owner=: configured=true started=true
+  :rspeaker [Speaker/speaker] owner=: configured=true started=true
+  :doc [Ensoniq ES5503/es5503] owner=: configured=true started=true
+    spaces: rom(8-bit little)
+  :ram [RAM/ram] owner=: configured=true started=true
+  :c3bank [Address Map Bank/address_map_bank] owner=: configured=true started=true
+    spaces: program(8-bit little)
+  :scc [Zilog Z85C30 SCC/scc85c30] owner=: configured=true started=true
+  :scc:cha [Z80 SCC Channel/z80scc_channel] owner=:scc configured=true started=true
+  :scc:chb [Z80 SCC Channel/z80scc_channel] owner=:scc configured=true started=true
+  :printer [RS-232 Port/rs232] owner=: configured=true started=true
+  :modem [RS-232 Port/rs232] owner=: configured=true started=true
+  :a2bus [Apple II Bus/a2bus] owner=: configured=true started=true
+  :sl1 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl2 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl3 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl4 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl5 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl6 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :sl7 [Apple II Slot/a2bus_slot] owner=: configured=true started=true
+  :fdc [Apple IWM floppy controller/iwm] owner=: configured=true started=true
+  :fdc:0 [Floppy drive connector abstraction/floppy_connector] owner=:fdc configured=true started=true
+  :fdc:0:525 [5.25" single density floppy drive/floppy_525_sd] owner=:fdc:0 configured=true started=true
+  :fdc:0:525:flopsndout [Speaker/speaker] owner=:fdc:0:525 configured=true started=true
+  :fdc:0:525:floppysound [Floppy sound/flopsnd] owner=:fdc:0:525 configured=true started=true
+  :fdc:1 [Floppy drive connector abstraction/floppy_connector] owner=:fdc configured=true started=true
+  :fdc:1:525 [5.25" single density floppy drive/floppy_525_sd] owner=:fdc:1 configured=true started=true
+  :fdc:1:525:flopsndout [Speaker/speaker] owner=:fdc:1:525 configured=true started=true
+  :fdc:1:525:floppysound [Floppy sound/flopsnd] owner=:fdc:1:525 configured=true started=true
+  :fdc:2 [Floppy drive connector abstraction/floppy_connector] owner=:fdc configured=true started=true
+  :fdc:2:35dd [Apple/Sony 3.5 DD (400/800K GCR)/mfd51w] owner=:fdc:2 configured=true started=true
+  :fdc:2:35dd:flopsndout [Speaker/speaker] owner=:fdc:2:35dd configured=true started=true
+  :fdc:2:35dd:floppysound [Floppy sound/flopsnd] owner=:fdc:2:35dd configured=true started=true
+  :fdc:3 [Floppy drive connector abstraction/floppy_connector] owner=:fdc configured=true started=true
+  :fdc:3:35dd [Apple/Sony 3.5 DD (400/800K GCR)/mfd51w] owner=:fdc:3 configured=true started=true
+  :fdc:3:35dd:flopsndout [Speaker/speaker] owner=:fdc:3:35dd configured=true started=true
+  :fdc:3:35dd:floppysound [Floppy sound/flopsnd] owner=:fdc:3:35dd configured=true started=true
+  :flop_gs_clean [Software List/software_list] owner=: configured=true started=true
+  :flop_gs_orig [Software List/software_list] owner=: configured=true started=true
+  :flop_gs_misc [Software List/software_list] owner=: configured=true started=true
+  :flop_a2_clean [Software List/software_list] owner=: configured=true started=true
+  :flop_a2_orig [Software List/software_list] owner=: configured=true started=true
+  :flop_a2_misc [Software List/software_list] owner=: configured=true started=true
+
+========================================================================
+ Screen Devices
+========================================================================
+  :screen [704x231] refresh=60.0 orientation=0deg (none)
+
+========================================================================
+ Palette Devices
+========================================================================
+  :a2video entries=16 indirect=0 shadows=false highlights=false
+  :palette entries=256 indirect=0 shadows=false highlights=false
+
+========================================================================
+ Sound Devices
+========================================================================
+  <enumerator missing>
+
+========================================================================
+ Slot Devices
+========================================================================
+  :gameio fixed=false selectable=true options=compeyes, gizmo, joy, paddles
+  :printer fixed=false selectable=true options=dec_loopback, ie15, keyboard, loopback, mockingboard, null_modem, patch, printer ...+7
+  :modem fixed=false selectable=true options=dec_loopback, ie15, keyboard, loopback, mockingboard, null_modem, patch, printer ...+7
+  :sl1 fixed=false selectable=true options=4dparprn, 4play, aesms, aevm80, alfam2, ap16, ap16alt, applicard ...+59
+  :sl2 fixed=false selectable=true options=4dparprn, 4play, aesms, aevm80, alfam2, ap16, ap16alt, applicard ...+59
+  :sl3 fixed=false selectable=true options=4dparprn, 4play, aesms, aevm80, alfam2, ap16, ap16alt, applicard ...+59
+  :sl4 fixed=false selectable=true options=4dparprn, 4play, aesms, aevm80, alfam2, ap16, ap16alt, applicard ...+59
+  :sl5 fixed=false selectable=true options=4dparprn, 4play, aesms, aevm80, alfam2, ap16, ap16alt, applicard ...+59
+  :sl6 fixed=false selectable=true options=4dparprn, 4play, aesms, aevm80, alfam2, ap16, ap16alt, applicard ...+59
+  :sl7 fixed=false selectable=true options=4dparprn, 4play, aesms, aevm80, alfam2, ap16, ap16alt, applicard ...+59
+  :fdc:0 fixed=false selectable=true options=525
+  :fdc:1 fixed=false selectable=true options=525
+  :fdc:2 fixed=false selectable=true options=35dd, 35hd, 35sd
+  :fdc:3 fixed=false selectable=true options=35dd, 35hd, 35sd
+
+========================================================================
+ Media Image Devices
+========================================================================
+  :fdc:0:525 [floppydisk1] exists=true type=floppydisk file=/bigdata/KAI/projects/C-EDASM/third_party/artifacts/minimal_boot.po
+  :fdc:1:525 [floppydisk2] exists=false type=floppydisk file=<nil>
+  :fdc:2:35dd [floppydisk3] exists=true type=floppydisk file=/bigdata/KAI/projects/C-EDASM/third_party/artifacts/new_edasm.2mg
+  :fdc:3:35dd [floppydisk4] exists=false type=floppydisk file=<nil>
+
+========================================================================
+ Cassette Devices
+========================================================================
+  <none>
+
+========================================================================
+ Inventory Complete
+========================================================================
+  Inventory dump complete.
+Average speed: 460.56% (99 seconds)
