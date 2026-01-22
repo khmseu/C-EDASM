@@ -1,4 +1,5 @@
 #include "edasm/traps.hpp"
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -44,6 +45,10 @@ bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
     log_cpu_state(cpu, bus, trap_pc);
     log_memory_window(bus, trap_pc, 32);
     std::cerr << "=== HALTING ===" << std::endl;
+
+    // Write memory dump before halting
+    write_memory_dump(bus, "memory_dump.bin");
+
     return false; // Halt execution
 }
 
@@ -126,6 +131,27 @@ std::string TrapManager::dump_memory(const Bus &bus, uint16_t addr, size_t size)
     }
 
     return oss.str();
+}
+
+bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename) {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error: Failed to open " << filename << " for writing" << std::endl;
+        return false;
+    }
+
+    const uint8_t *mem = bus.data();
+    file.write(reinterpret_cast<const char *>(mem), Bus::MEMORY_SIZE);
+
+    if (!file) {
+        std::cerr << "Error: Failed to write memory dump" << std::endl;
+        return false;
+    }
+
+    file.close();
+    std::cout << "Memory dump written to: " << filename << " (" << Bus::MEMORY_SIZE << " bytes)"
+              << std::endl;
+    return true;
 }
 
 bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
@@ -242,6 +268,10 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
     std::cout << std::endl;
     std::cout << "=== HALTING - ProDOS MLI not implemented ===" << std::endl;
+
+    // Write memory dump before halting
+    write_memory_dump(bus, "memory_dump.bin");
+
     return false; // Halt execution
 }
 

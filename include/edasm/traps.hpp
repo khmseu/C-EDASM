@@ -45,6 +45,9 @@ class TrapManager {
     static std::string dump_cpu_state(const CPUState &cpu);
     static std::string dump_memory(const Bus &bus, uint16_t addr, size_t size = 16);
 
+    // Write full memory dump to binary file
+    static bool write_memory_dump(const Bus &bus, const std::string &filename);
+
   private:
     // Helper for ProDOS MLI decoding
     static std::string decode_prodos_call(uint8_t call_num);
