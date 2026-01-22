@@ -18,4 +18,4 @@ fi
 
 cmake --build "${BUILD_DIR}" --target emulator_runner
 
-"${BUILD_DIR}/emulator_runner" --binary "${BINARY_PATH}" "$@"
+"${BUILD_DIR}/emulator_runner" --binary "${BINARY_PATH}" "$@" |& tee tests/emulator_runner.log
