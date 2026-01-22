@@ -7,7 +7,8 @@
     "settings": {
         "chat.tools.terminal.autoApprove": {
             "./scripts/edasm_test_suite.sh": true,
-            "./scripts/edasm_test_suite.sh": true,
+            "./scripts/run_emulator_runner.sh": true,
+            "scripts/run_emulator_runner.sh": true,
         },
     },
 }
