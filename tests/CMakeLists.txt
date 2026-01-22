@@ -17,6 +17,16 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+add_executable(test_emulator test_emulator.cpp)
+target_link_libraries(test_emulator PRIVATE edasm)
+target_include_directories(test_emulator PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_emulator
+  COMMAND test_emulator
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Add tests for the main test executables
 add_test(
   NAME test_asm_simple
@@ -73,6 +83,6 @@ set_tests_properties(test_asm_rel_module1 test_asm_rel_module2 test_linker_modul
   LABELS "linker"
 )
 
-set_tests_properties(test_editor test_assembler_integration PROPERTIES
+set_tests_properties(test_editor test_assembler_integration test_emulator PROPERTIES
   LABELS "unit"
 )
