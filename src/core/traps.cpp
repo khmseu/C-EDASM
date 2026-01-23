@@ -1,10 +1,14 @@
 #include "edasm/traps.hpp"
 #include <chrono>
 #include <ctime>
+#include <errno.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits.h>
 #include <sstream>
+#include <string.h>
+#include <unistd.h>
 
 namespace edasm {
 
@@ -263,6 +267,85 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             static_cast<uint16_t>((ret_addr + 1) + 3); // JSR+3: skip command byte and param pointer
 
         return true; // continue execution
+    }
+
+    // Implement GET_PREFIX ($C7): return system prefix bracketed by slashes
+    // ProDOS spec: prefix bracketed by slashes, length byte first, e.g. $7/APPLE/
+    if (call_num == 0xC7) {
+        if (!(param_list >= 0x0200 && param_list < 0xFFFF)) {
+            std::cerr << "GET_PREFIX: parameter list pointer out of range: $" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            return false;
+        }
+
+        uint8_t param_count = mem[param_list];
+        if (param_count < 1) {
+            std::cerr << "GET_PREFIX: parameter count < 1 (" << std::dec
+                      << static_cast<int>(param_count) << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            return false;
+        }
+
+        uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
+        if (buf_ptr >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_PREFIX: buffer pointer out of range: $" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << buf_ptr << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            return false;
+        }
+
+        std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << buf_ptr << std::endl;
+
+        // Get current working directory
+        char cwd_buf[PATH_MAX] = {0};
+        if (!::getcwd(cwd_buf, sizeof(cwd_buf))) {
+            std::cerr << "GET_PREFIX: getcwd failed: " << ::strerror(errno) << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            return false;
+        }
+
+        // ProDOS format: length byte + /path/ (bracketed by slashes)
+        // Maximum prefix length is 64 characters per spec
+        // getcwd() already returns absolute path starting with /
+        std::string prefix_str = cwd_buf;
+        prefix_str += "/";
+
+        // Limit to 64 chars including length byte (63 chars max for path+slashes)
+        if (prefix_str.length() > 64) {
+            std::cerr << "GET_PREFIX: prefix too long (" << prefix_str.length()
+                      << " chars exceeds 64 byte limit)" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            return false;
+        }
+
+        // Write length byte followed by prefix string (with high bits cleared)
+        uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
+        bus.write(buf_ptr, prefix_len);
+        std::cout << "GET_PREFIX: writing prefix length=" << std::dec
+                  << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
+                  << std::endl;
+
+        for (size_t i = 0; i < prefix_str.length(); ++i) {
+            uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F; // Clear high bit
+            bus.write(static_cast<uint16_t>(buf_ptr + 1 + i), ch);
+        }
+
+        // ProDOS successful return
+        cpu.A = 0;
+        cpu.P &= ~StatusFlags::C;
+        cpu.P &= ~StatusFlags::N;
+        cpu.P &= ~StatusFlags::V;
+        cpu.P |= StatusFlags::Z;
+        cpu.P |= StatusFlags::U;
+
+        // Mimic RTS from MLI: pop return address and continue after operands
+        cpu.SP = static_cast<uint8_t>(cpu.SP + 2);
+        cpu.PC = static_cast<uint16_t>((ret_addr + 1) + 3);
+
+        return true;
     }
 
     // Read parameter list (not used for GET_TIME)
