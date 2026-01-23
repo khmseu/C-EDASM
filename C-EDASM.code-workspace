@@ -11,6 +11,8 @@
             "scripts/run_emulator_runner.sh": true,
             "./build/emulator_runner": true,
             "touch": true,
+            "pushd": true,
+            "popd": true,
         },
     },
 }
