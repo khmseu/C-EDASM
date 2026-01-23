@@ -484,13 +484,24 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
         s_prefix_prodos = normalize_prodos_path(prodos_path);
 
-        std::string stripped = s_prefix_prodos;
-        while (!stripped.empty() && stripped.front() == '/')
-            stripped.erase(stripped.begin());
-        std::filesystem::path host_candidate = std::filesystem::path(current_prefix()) / stripped;
-        std::error_code ec;
-        std::filesystem::path canonical = std::filesystem::weakly_canonical(host_candidate, ec);
-        std::string host_path = (ec ? host_candidate : canonical).string();
+        // Check if this is an absolute path (starts with /)
+        bool is_absolute = !prodos_path.empty() && prodos_path.front() == '/';
+        
+        std::string host_path;
+        if (is_absolute) {
+            // For absolute paths, use the path as-is (it's already a Linux path)
+            host_path = prodos_path;
+        } else {
+            // For relative paths, resolve relative to current prefix
+            std::string stripped = s_prefix_prodos;
+            while (!stripped.empty() && stripped.front() == '/')
+                stripped.erase(stripped.begin());
+            std::filesystem::path host_candidate = std::filesystem::path(current_prefix()) / stripped;
+            std::error_code ec;
+            std::filesystem::path canonical = std::filesystem::weakly_canonical(host_candidate, ec);
+            host_path = (ec ? host_candidate : canonical).string();
+        }
+        
         if (!host_path.empty() && host_path.back() != '/')
             host_path.push_back('/');
         s_prefix_host = host_path;
@@ -631,75 +642,373 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             return false;
         }
 
-        FILE *fp = std::fopen(host_path.c_str(), "rb");
+        // Try opening for read/write first, fallback to read-only
+        FILE *fp = std::fopen(host_path.c_str(), "r+b");
+        if (!fp) {
+            fp = std::fopen(host_path.c_str(), "rb");
+        }
         if (!fp) {
             std::cerr << "OPEN ($C8): file not found: " << host_path << " (ERR_FILE_NOT_FOUND)"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x46; // File not found
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        // Get file size
+        std::fseek(fp, 0, SEEK_END);
+        long file_size = std::ftell(fp);
+        std::fseek(fp, 0, SEEK_SET);
+
+        // Store file entry
+        FileEntry &entry = s_file_table[ref];
+        entry.used = true;
+        entry.fp = fp;
+        entry.host_path = host_path;
+        entry.mark = 0;
+        entry.file_size = static_cast<uint32_t>(file_size);
+
+        // Write refnum back to caller's parameter
+        bus.write(refnum_ptr, static_cast<uint8_t>(ref));
+
+        if (s_trace_enabled) {
+            std::cout << "OPEN ($C8): opened " << host_path << " as refnum " << ref
+                      << ", file_size=" << file_size << std::endl;
+        }
+
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    // Implement READ ($CA)
+    if (call_num == 0xCA) {
+        if (param_list + 7 >= Bus::MEMORY_SIZE) {
+            std::cerr << "READ ($CA): param_list + 7 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
                       << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
             return false;
         }
 
-        if (call_num == 0xC7) {
-            if (!(param_list >= 0x0200 && param_list < 0xFFFF)) {
-                std::cerr << "GET_PREFIX ($C7): invalid param_list address ($" << std::hex
-                          << std::uppercase << std::setw(4) << std::setfill('0') << param_list
-                          << ")" << std::endl;
-                write_memory_dump(bus, "memory_dump.bin");
-                log_call_details("error");
-                return false;
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t data_buffer = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        uint16_t request_count = read_word_mem(mem, static_cast<uint16_t>(param_list + 4));
+        uint16_t trans_count_ptr = static_cast<uint16_t>(param_list + 6);
+
+        if (s_trace_enabled) {
+            std::cout << "READ ($CA): refnum=" << std::dec << static_cast<int>(refnum)
+                      << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
+                      << std::setfill('0') << data_buffer << ", request_count=" << std::dec
+                      << request_count << std::endl;
+        }
+
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            std::cerr << "READ ($CA): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x43; // Invalid reference number
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        if (data_buffer + request_count > Bus::MEMORY_SIZE) {
+            std::cerr << "READ ($CA): buffer overflow (data_buffer=$" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << data_buffer << ", request_count="
+                      << std::dec << request_count << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x56; // Bad buffer address
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        if (!entry->fp) {
+            std::cerr << "READ ($CA): file not open" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x43; // Invalid reference number
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        // Seek to current mark position
+        if (std::fseek(entry->fp, static_cast<long>(entry->mark), SEEK_SET) != 0) {
+            std::cerr << "READ ($CA): fseek failed" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x27; // I/O error
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        // Read from file
+        uint16_t bytes_to_read = request_count;
+        uint32_t bytes_available = entry->file_size - entry->mark;
+        if (bytes_to_read > bytes_available) {
+            bytes_to_read = static_cast<uint16_t>(bytes_available);
+        }
+
+        uint16_t actual_read = 0;
+        if (bytes_to_read > 0) {
+            std::vector<uint8_t> buffer(bytes_to_read);
+            size_t n = std::fread(buffer.data(), 1, bytes_to_read, entry->fp);
+            actual_read = static_cast<uint16_t>(n);
+
+            // Write to memory
+            for (uint16_t i = 0; i < actual_read; ++i) {
+                bus.write(static_cast<uint16_t>(data_buffer + i), buffer[i]);
             }
 
-            uint8_t param_count = mem[param_list];
-            if (param_count < 1) {
-                std::cerr << "GET_PREFIX ($C7): param_count < 1 (" << std::dec
-                          << static_cast<int>(param_count) << ")" << std::endl;
-                write_memory_dump(bus, "memory_dump.bin");
-                log_call_details("error");
-                return false;
-            }
+            // Update mark
+            entry->mark += actual_read;
+        }
 
-            uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
-            if (buf_ptr >= Bus::MEMORY_SIZE) {
-                std::cerr << "GET_PREFIX ($C7): buf_ptr >= MEMORY_SIZE (buf_ptr=$" << std::hex
-                          << std::uppercase << std::setw(4) << std::setfill('0') << buf_ptr << ")"
-                          << std::endl;
-                write_memory_dump(bus, "memory_dump.bin");
-                log_call_details("error");
-                return false;
-            }
+        // Write trans_count
+        bus.write(trans_count_ptr, static_cast<uint8_t>(actual_read & 0xFF));
+        bus.write(static_cast<uint16_t>(trans_count_ptr + 1),
+                  static_cast<uint8_t>((actual_read >> 8) & 0xFF));
 
+        if (s_trace_enabled) {
+            std::cout << "READ ($CA): read " << std::dec << actual_read << " bytes, new mark="
+                      << entry->mark << std::endl;
+        }
+
+        // Return EOF error only if zero bytes were transferred
+        if (actual_read == 0 && request_count > 0) {
+            cpu.A = 0x4C; // End of file
+            cpu.P |= StatusFlags::C;
+        } else {
+            set_success(cpu);
+        }
+
+        return_to_caller();
+        return true;
+    }
+
+    // Implement WRITE ($CB)
+    if (call_num == 0xCB) {
+        if (param_list + 7 >= Bus::MEMORY_SIZE) {
+            std::cerr << "WRITE ($CB): param_list + 7 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t data_buffer = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        uint16_t request_count = read_word_mem(mem, static_cast<uint16_t>(param_list + 4));
+        uint16_t trans_count_ptr = static_cast<uint16_t>(param_list + 6);
+
+        if (s_trace_enabled) {
+            std::cout << "WRITE ($CB): refnum=" << std::dec << static_cast<int>(refnum)
+                      << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
+                      << std::setfill('0') << data_buffer << ", request_count=" << std::dec
+                      << request_count << std::endl;
+        }
+
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            std::cerr << "WRITE ($CB): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x43; // Invalid reference number
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        if (data_buffer + request_count > Bus::MEMORY_SIZE) {
+            std::cerr << "WRITE ($CB): buffer overflow (data_buffer=$" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << data_buffer << ", request_count="
+                      << std::dec << request_count << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x56; // Bad buffer address
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        if (!entry->fp) {
+            std::cerr << "WRITE ($CB): file not open" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x43; // Invalid reference number
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        // Seek to current mark position
+        if (std::fseek(entry->fp, static_cast<long>(entry->mark), SEEK_SET) != 0) {
+            std::cerr << "WRITE ($CB): fseek failed" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x27; // I/O error
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        // Read from memory and write to file
+        std::vector<uint8_t> buffer(request_count);
+        for (uint16_t i = 0; i < request_count; ++i) {
+            buffer[i] = mem[data_buffer + i];
+        }
+
+        size_t actual_written = std::fwrite(buffer.data(), 1, request_count, entry->fp);
+        uint16_t trans_count = static_cast<uint16_t>(actual_written);
+
+        // Update mark and file size if necessary
+        entry->mark += trans_count;
+        if (entry->mark > entry->file_size) {
+            entry->file_size = entry->mark;
+        }
+
+        // Write trans_count
+        bus.write(trans_count_ptr, static_cast<uint8_t>(trans_count & 0xFF));
+        bus.write(static_cast<uint16_t>(trans_count_ptr + 1),
+                  static_cast<uint8_t>((trans_count >> 8) & 0xFF));
+
+        if (s_trace_enabled) {
+            std::cout << "WRITE ($CB): wrote " << std::dec << trans_count
+                      << " bytes, new mark=" << entry->mark << ", file_size=" << entry->file_size
+                      << std::endl;
+        }
+
+        if (trans_count < request_count) {
+            cpu.A = 0x48; // Overrun error: not enough disk space
+            cpu.P |= StatusFlags::C;
+        } else {
+            set_success(cpu);
+        }
+
+        return_to_caller();
+        return true;
+    }
+
+    // Implement CLOSE ($CC)
+    if (call_num == 0xCC) {
+        if (param_list + 1 >= Bus::MEMORY_SIZE) {
+            std::cerr << "CLOSE ($CC): param_list + 1 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+
+        uint8_t refnum = mem[param_list + 1];
+
+        if (s_trace_enabled) {
+            std::cout << "CLOSE ($CC): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
+        }
+
+        // Special case: refnum == 0 means close all files at or above current level
+        // For simplicity, we'll close all files
+        if (refnum == 0) {
+            for (size_t i = 1; i < s_file_table.size(); ++i) {
+                if (s_file_table[i].used) {
+                    close_entry(s_file_table[i]);
+                }
+            }
             if (s_trace_enabled) {
-                std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase
-                          << std::setw(4) << std::setfill('0') << buf_ptr << std::endl;
+                std::cout << "CLOSE ($CC): closed all files" << std::endl;
             }
-
-            std::string prefix_str = s_prefix_prodos;
-            if (prefix_str.length() > 64) {
-                std::cerr << "GET_PREFIX ($C7): prefix too long (" << std::dec
-                          << prefix_str.length() << " chars exceeds 64 byte limit)" << std::endl;
-                write_memory_dump(bus, "memory_dump.bin");
-                log_call_details("error");
-                return false;
-            }
-
-            uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
-            bus.write(buf_ptr, prefix_len);
-            if (s_trace_enabled) {
-                std::cout << "GET_PREFIX: writing prefix length=" << std::dec
-                          << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
-                          << std::endl;
-            }
-
-            for (size_t i = 0; i < prefix_str.length(); ++i) {
-                uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F;
-                bus.write(static_cast<uint16_t>(buf_ptr + 1 + i), ch);
-            }
-
             set_success(cpu);
             return_to_caller();
             return true;
         }
+
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            std::cerr << "CLOSE ($CC): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x43; // Invalid reference number
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        if (s_trace_enabled) {
+            std::cout << "CLOSE ($CC): closing " << entry->host_path << std::endl;
+        }
+
+        close_entry(*entry);
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    // Implement FLUSH ($CD)
+    if (call_num == 0xCD) {
+        if (param_list + 1 >= Bus::MEMORY_SIZE) {
+            std::cerr << "FLUSH ($CD): param_list + 1 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+
+        uint8_t refnum = mem[param_list + 1];
+
+        if (s_trace_enabled) {
+            std::cout << "FLUSH ($CD): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
+        }
+
+        // Special case: refnum == 0 means flush all files at or above current level
+        if (refnum == 0) {
+            for (size_t i = 1; i < s_file_table.size(); ++i) {
+                if (s_file_table[i].used && s_file_table[i].fp) {
+                    std::fflush(s_file_table[i].fp);
+                }
+            }
+            if (s_trace_enabled) {
+                std::cout << "FLUSH ($CD): flushed all files" << std::endl;
+            }
+            set_success(cpu);
+            return_to_caller();
+            return true;
+        }
+
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            std::cerr << "FLUSH ($CD): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            cpu.A = 0x43; // Invalid reference number
+            cpu.P |= StatusFlags::C;
+            return_to_caller();
+            return true;
+        }
+
+        if (entry->fp) {
+            std::fflush(entry->fp);
+        }
+
+        if (s_trace_enabled) {
+            std::cout << "FLUSH ($CD): flushed " << entry->host_path << std::endl;
+        }
+
+        set_success(cpu);
         return_to_caller();
         return true;
     }
