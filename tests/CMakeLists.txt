@@ -27,6 +27,16 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+add_executable(test_io_traps test_io_traps.cpp)
+target_link_libraries(test_io_traps PRIVATE edasm)
+target_include_directories(test_io_traps PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_io_traps
+  COMMAND test_io_traps
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Add tests for the main test executables
 add_test(
   NAME test_asm_simple
