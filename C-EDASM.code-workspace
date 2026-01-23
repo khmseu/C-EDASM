@@ -9,6 +9,8 @@
             "./scripts/edasm_test_suite.sh": true,
             "./scripts/run_emulator_runner.sh": true,
             "scripts/run_emulator_runner.sh": true,
+            "./build/emulator_runner": true,
+            "touch": true,
         },
     },
 }
