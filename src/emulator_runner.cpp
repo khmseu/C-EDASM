@@ -12,104 +12,254 @@ using namespace edasm;
 
 namespace {
 
-// Minimal 6502 instruction length table: 1-byte implied/accumulator, 3-byte absolute/JMP, else
-// 2-byte
-size_t guess_instruction_length(uint8_t opcode) {
-    switch (opcode) {
-    // Implied/accumulator (1 byte)
-    case 0x00: // BRK
-    case 0x08: // PHP
-    case 0x0A: // ASL A
-    case 0x18: // CLC
-    case 0x28: // PLP
-    case 0x2A: // ROL A
-    case 0x38: // SEC
-    case 0x40: // RTI
-    case 0x48: // PHA
-    case 0x4A: // LSR A
-    case 0x58: // CLI
-    case 0x60: // RTS
-    case 0x68: // PLA
-    case 0x6A: // ROR A
-    case 0x78: // SEI
-    case 0x88: // DEY
-    case 0x8A: // TXA
-    case 0x98: // TYA
-    case 0x9A: // TXS
-    case 0xA8: // TAY
-    case 0xAA: // TAX
-    case 0xB8: // CLV
-    case 0xBA: // TSX
-    case 0xC8: // INY
-    case 0xCA: // DEX
-    case 0xD8: // CLD
-    case 0xE8: // INX
-    case 0xEA: // NOP
-    case 0xF8: // SED
-        return 1;
+// 6502 Opcode disassembly table - maps opcode byte to mnemonic and addressing mode
+struct OpcodeInfo {
+    const char *mnemonic;
+    int bytes;
+    enum {
+        Implied,
+        Accumulator,
+        Immediate,
+        ZeroPage,
+        ZeroPageX,
+        ZeroPageY,
+        Absolute,
+        AbsoluteX,
+        AbsoluteY,
+        Indirect,
+        IndexedIndirect,
+        IndirectIndexed,
+        Relative
+    } mode;
+};
 
-    // Absolute/absolute indexed/JMP (3 bytes)
-    case 0x0D:
-    case 0x0E:
-    case 0x1D:
-    case 0x1E:
-    case 0x20: // JSR
-    case 0x2C:
-    case 0x2D:
-    case 0x2E:
-    case 0x3D:
-    case 0x3E:
-    case 0x4C: // JMP abs
-    case 0x4D:
-    case 0x4E:
-    case 0x5D:
-    case 0x5E:
-    case 0x6C: // JMP (abs)
-    case 0x6D:
-    case 0x6E:
-    case 0x7D:
-    case 0x7E:
-    case 0x8C:
-    case 0x8D:
-    case 0x8E:
-    case 0x9D:
-    case 0xAC:
-    case 0xAD:
-    case 0xAE:
-    case 0xBC:
-    case 0xBD:
-    case 0xBE:
-    case 0xCC:
-    case 0xCD:
-    case 0xCE:
-    case 0xEC:
-    case 0xED:
-    case 0xEE:
-    case 0xFD:
-    case 0xFE:
-        return 3;
-
-    default:
-        return 2; // Immediate/zero page/branch, and unknowns fallback to 2-byte view
-    }
-}
+// Complete 6502 opcode table (256 entries)
+static const OpcodeInfo opcode_table[256] = {
+    // 0x00-0x0F
+    {"BRK", 1, OpcodeInfo::Implied},       {"ORA", 2, OpcodeInfo::IndexedIndirect},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"ORA", 2, OpcodeInfo::ZeroPage},
+    {"ASL", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"PHP", 1, OpcodeInfo::Implied},       {"ORA", 2, OpcodeInfo::Immediate},
+    {"ASL", 1, OpcodeInfo::Accumulator},   {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"ORA", 3, OpcodeInfo::Absolute},
+    {"ASL", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0x10-0x1F
+    {"BPL", 2, OpcodeInfo::Relative},      {"ORA", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"ORA", 2, OpcodeInfo::ZeroPageX},
+    {"ASL", 2, OpcodeInfo::ZeroPageX},     {"???", 1, OpcodeInfo::Implied},
+    {"CLC", 1, OpcodeInfo::Implied},       {"ORA", 3, OpcodeInfo::AbsoluteY},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"ORA", 3, OpcodeInfo::AbsoluteX},
+    {"ASL", 3, OpcodeInfo::AbsoluteX},     {"???", 1, OpcodeInfo::Implied},
+    // 0x20-0x2F
+    {"JSR", 3, OpcodeInfo::Absolute},      {"AND", 2, OpcodeInfo::IndexedIndirect},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"BIT", 2, OpcodeInfo::ZeroPage},      {"AND", 2, OpcodeInfo::ZeroPage},
+    {"ROL", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"PLP", 1, OpcodeInfo::Implied},       {"AND", 2, OpcodeInfo::Immediate},
+    {"ROL", 1, OpcodeInfo::Accumulator},   {"???", 1, OpcodeInfo::Implied},
+    {"BIT", 3, OpcodeInfo::Absolute},      {"AND", 3, OpcodeInfo::Absolute},
+    {"ROL", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0x30-0x3F
+    {"BMI", 2, OpcodeInfo::Relative},      {"AND", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"AND", 2, OpcodeInfo::ZeroPageX},
+    {"ROL", 2, OpcodeInfo::ZeroPageX},     {"???", 1, OpcodeInfo::Implied},
+    {"SEC", 1, OpcodeInfo::Implied},       {"AND", 3, OpcodeInfo::AbsoluteY},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"AND", 3, OpcodeInfo::AbsoluteX},
+    {"ROL", 3, OpcodeInfo::AbsoluteX},     {"???", 1, OpcodeInfo::Implied},
+    // 0x40-0x4F
+    {"RTI", 1, OpcodeInfo::Implied},       {"EOR", 2, OpcodeInfo::IndexedIndirect},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"EOR", 2, OpcodeInfo::ZeroPage},
+    {"LSR", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"PHA", 1, OpcodeInfo::Implied},       {"EOR", 2, OpcodeInfo::Immediate},
+    {"LSR", 1, OpcodeInfo::Accumulator},   {"???", 1, OpcodeInfo::Implied},
+    {"JMP", 3, OpcodeInfo::Absolute},      {"EOR", 3, OpcodeInfo::Absolute},
+    {"LSR", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0x50-0x5F
+    {"BVC", 2, OpcodeInfo::Relative},      {"EOR", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"EOR", 2, OpcodeInfo::ZeroPageX},
+    {"LSR", 2, OpcodeInfo::ZeroPageX},     {"???", 1, OpcodeInfo::Implied},
+    {"CLI", 1, OpcodeInfo::Implied},       {"EOR", 3, OpcodeInfo::AbsoluteY},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"EOR", 3, OpcodeInfo::AbsoluteX},
+    {"LSR", 3, OpcodeInfo::AbsoluteX},     {"???", 1, OpcodeInfo::Implied},
+    // 0x60-0x6F
+    {"RTS", 1, OpcodeInfo::Implied},       {"ADC", 2, OpcodeInfo::IndexedIndirect},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"ADC", 2, OpcodeInfo::ZeroPage},
+    {"ROR", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"PLA", 1, OpcodeInfo::Implied},       {"ADC", 2, OpcodeInfo::Immediate},
+    {"ROR", 1, OpcodeInfo::Accumulator},   {"???", 1, OpcodeInfo::Implied},
+    {"JMP", 3, OpcodeInfo::Indirect},      {"ADC", 3, OpcodeInfo::Absolute},
+    {"ROR", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0x70-0x7F
+    {"BVS", 2, OpcodeInfo::Relative},      {"ADC", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"ADC", 2, OpcodeInfo::ZeroPageX},
+    {"ROR", 2, OpcodeInfo::ZeroPageX},     {"???", 1, OpcodeInfo::Implied},
+    {"SEI", 1, OpcodeInfo::Implied},       {"ADC", 3, OpcodeInfo::AbsoluteY},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"ADC", 3, OpcodeInfo::AbsoluteX},
+    {"ROR", 3, OpcodeInfo::AbsoluteX},     {"???", 1, OpcodeInfo::Implied},
+    // 0x80-0x8F
+    {"???", 1, OpcodeInfo::Implied},       {"STA", 2, OpcodeInfo::IndexedIndirect},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"STY", 2, OpcodeInfo::ZeroPage},      {"STA", 2, OpcodeInfo::ZeroPage},
+    {"STX", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"DEY", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"TXA", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"STY", 3, OpcodeInfo::Absolute},      {"STA", 3, OpcodeInfo::Absolute},
+    {"STX", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0x90-0x9F
+    {"BCC", 2, OpcodeInfo::Relative},      {"STA", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"STY", 2, OpcodeInfo::ZeroPageX},     {"STA", 2, OpcodeInfo::ZeroPageX},
+    {"STX", 2, OpcodeInfo::ZeroPageY},     {"???", 1, OpcodeInfo::Implied},
+    {"TYA", 1, OpcodeInfo::Implied},       {"STA", 3, OpcodeInfo::AbsoluteY},
+    {"TXS", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"STA", 3, OpcodeInfo::AbsoluteX},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    // 0xA0-0xAF
+    {"LDY", 2, OpcodeInfo::Immediate},     {"LDA", 2, OpcodeInfo::IndexedIndirect},
+    {"LDX", 2, OpcodeInfo::Immediate},     {"???", 1, OpcodeInfo::Implied},
+    {"LDY", 2, OpcodeInfo::ZeroPage},      {"LDA", 2, OpcodeInfo::ZeroPage},
+    {"LDX", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"TAY", 1, OpcodeInfo::Implied},       {"LDA", 2, OpcodeInfo::Immediate},
+    {"TAX", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"LDY", 3, OpcodeInfo::Absolute},      {"LDA", 3, OpcodeInfo::Absolute},
+    {"LDX", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0xB0-0xBF
+    {"BCS", 2, OpcodeInfo::Relative},      {"LDA", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"LDY", 2, OpcodeInfo::ZeroPageX},     {"LDA", 2, OpcodeInfo::ZeroPageX},
+    {"LDX", 2, OpcodeInfo::ZeroPageY},     {"???", 1, OpcodeInfo::Implied},
+    {"CLV", 1, OpcodeInfo::Implied},       {"LDA", 3, OpcodeInfo::AbsoluteY},
+    {"TSX", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"LDY", 3, OpcodeInfo::AbsoluteX},     {"LDA", 3, OpcodeInfo::AbsoluteX},
+    {"LDX", 3, OpcodeInfo::AbsoluteY},     {"???", 1, OpcodeInfo::Implied},
+    // 0xC0-0xCF
+    {"CPY", 2, OpcodeInfo::Immediate},     {"CMP", 2, OpcodeInfo::IndexedIndirect},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"CPY", 2, OpcodeInfo::ZeroPage},      {"CMP", 2, OpcodeInfo::ZeroPage},
+    {"DEC", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"INY", 1, OpcodeInfo::Implied},       {"CMP", 2, OpcodeInfo::Immediate},
+    {"DEX", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"CPY", 3, OpcodeInfo::Absolute},      {"CMP", 3, OpcodeInfo::Absolute},
+    {"DEC", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0xD0-0xDF
+    {"BNE", 2, OpcodeInfo::Relative},      {"CMP", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"CMP", 2, OpcodeInfo::ZeroPageX},
+    {"DEC", 2, OpcodeInfo::ZeroPageX},     {"???", 1, OpcodeInfo::Implied},
+    {"CLD", 1, OpcodeInfo::Implied},       {"CMP", 3, OpcodeInfo::AbsoluteY},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"CMP", 3, OpcodeInfo::AbsoluteX},
+    {"DEC", 3, OpcodeInfo::AbsoluteX},     {"???", 1, OpcodeInfo::Implied},
+    // 0xE0-0xEF
+    {"CPX", 2, OpcodeInfo::Immediate},     {"SBC", 2, OpcodeInfo::IndexedIndirect},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"CPX", 2, OpcodeInfo::ZeroPage},      {"SBC", 2, OpcodeInfo::ZeroPage},
+    {"INC", 2, OpcodeInfo::ZeroPage},      {"???", 1, OpcodeInfo::Implied},
+    {"INX", 1, OpcodeInfo::Implied},       {"SBC", 2, OpcodeInfo::Immediate},
+    {"NOP", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"CPX", 3, OpcodeInfo::Absolute},      {"SBC", 3, OpcodeInfo::Absolute},
+    {"INC", 3, OpcodeInfo::Absolute},      {"???", 1, OpcodeInfo::Implied},
+    // 0xF0-0xFF
+    {"BEQ", 2, OpcodeInfo::Relative},      {"SBC", 2, OpcodeInfo::IndirectIndexed},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"SBC", 2, OpcodeInfo::ZeroPageX},
+    {"INC", 2, OpcodeInfo::ZeroPageX},     {"???", 1, OpcodeInfo::Implied},
+    {"SED", 1, OpcodeInfo::Implied},       {"SBC", 3, OpcodeInfo::AbsoluteY},
+    {"???", 1, OpcodeInfo::Implied},       {"???", 1, OpcodeInfo::Implied},
+    {"???", 1, OpcodeInfo::Implied},       {"SBC", 3, OpcodeInfo::AbsoluteX},
+    {"INC", 3, OpcodeInfo::AbsoluteX},     {"???", 1, OpcodeInfo::Implied},
+};
 
 std::string format_disassembly(const Bus &bus, uint16_t pc) {
     const uint8_t *mem = bus.data();
     uint8_t opcode = mem[pc];
-    size_t length = guess_instruction_length(opcode);
+    const OpcodeInfo &info = opcode_table[opcode];
 
     std::ostringstream oss;
-    oss << "PC=$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << pc
-        << "  OP=" << std::setw(2) << static_cast<int>(opcode) << "  bytes:";
+    oss << std::hex << std::uppercase << std::setfill('0');
 
-    // Clamp to a short preview window to keep logs compact
-    size_t preview_len = std::min<size_t>(length, 3);
-    for (size_t i = 0; i < preview_len; ++i) {
-        oss << ' ' << std::setw(2) << static_cast<int>(mem[pc + static_cast<uint16_t>(i)]);
+    // Format: $ADDR: BYTES         MNEMONIC OPERAND
+    oss << "$" << std::setw(4) << pc << ": ";
+
+    // Output opcode bytes (padded to 9 characters for alignment)
+    std::string bytes_str;
+    for (int i = 0; i < info.bytes; ++i) {
+        if (i > 0)
+            bytes_str += " ";
+        char buf[3];
+        snprintf(buf, sizeof(buf), "%02X", mem[pc + i]);
+        bytes_str += buf;
+    }
+    // Pad bytes string to 9 characters
+    while (bytes_str.length() < 9) {
+        bytes_str += " ";
+    }
+    oss << bytes_str << " ";
+
+    // Output mnemonic (fixed width for alignment, space-padded)
+    oss << std::setfill(' ') << std::left << std::setw(4) << info.mnemonic << std::right
+        << std::setfill('0');
+
+    // Format operand based on addressing mode
+    if (info.bytes > 1) {
+        uint8_t arg1 = mem[pc + 1];
+        uint8_t arg2 = (info.bytes > 2) ? mem[pc + 2] : 0;
+        uint16_t addr = arg1 | (arg2 << 8);
+
+        switch (info.mode) {
+        case OpcodeInfo::Immediate:
+            oss << "#$" << std::setw(2) << static_cast<int>(arg1);
+            break;
+        case OpcodeInfo::ZeroPage:
+            oss << "$" << std::setw(2) << static_cast<int>(arg1);
+            break;
+        case OpcodeInfo::ZeroPageX:
+            oss << "$" << std::setw(2) << static_cast<int>(arg1) << ",X";
+            break;
+        case OpcodeInfo::ZeroPageY:
+            oss << "$" << std::setw(2) << static_cast<int>(arg1) << ",Y";
+            break;
+        case OpcodeInfo::Absolute:
+            oss << "$" << std::setw(4) << addr;
+            break;
+        case OpcodeInfo::AbsoluteX:
+            oss << "$" << std::setw(4) << addr << ",X";
+            break;
+        case OpcodeInfo::AbsoluteY:
+            oss << "$" << std::setw(4) << addr << ",Y";
+            break;
+        case OpcodeInfo::Indirect:
+            oss << "($" << std::setw(4) << addr << ")";
+            break;
+        case OpcodeInfo::IndexedIndirect:
+            oss << "($" << std::setw(2) << static_cast<int>(arg1) << ",X)";
+            break;
+        case OpcodeInfo::IndirectIndexed:
+            oss << "($" << std::setw(2) << static_cast<int>(arg1) << "),Y";
+            break;
+        case OpcodeInfo::Relative: {
+            // Calculate target address for branch
+            int8_t offset = static_cast<int8_t>(arg1);
+            uint16_t target = static_cast<uint16_t>(pc + 2 + offset);
+            oss << "$" << std::setw(4) << target;
+            break;
+        }
+        default:
+            break;
+        }
     }
 
-    oss << "  (len~" << length << ")";
     return oss.str();
 }
 
