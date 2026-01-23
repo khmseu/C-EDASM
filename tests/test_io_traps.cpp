@@ -8,6 +8,7 @@
 #include "edasm/host_shims.hpp"
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 using namespace edasm;
 
@@ -118,6 +119,47 @@ bool test_game_io() {
     return true;
 }
 
+// Test text screen logging on $C000 access
+bool test_text_screen_logging() {
+    Bus bus;
+    HostShims shims;
+
+    shims.install_io_traps(bus);
+
+    // Capture stdout
+    std::ostringstream oss;
+    std::streambuf *old_buf = std::cout.rdbuf(oss.rdbuf());
+
+    // Write to text page 1 and trigger keyboard read trap
+    bus.write(0x0400, 'A');
+    bus.read(0xC000); // Should log screen snapshot
+
+    std::cout.rdbuf(old_buf);
+    const std::string first_log = oss.str();
+
+    if (first_log.find("Text screen snapshot") == std::string::npos) {
+        std::cerr << "Expected text screen snapshot log on keyboard read" << std::endl;
+        return false;
+    }
+    if (first_log.find('A') == std::string::npos) {
+        std::cerr << "Expected character 'A' in logged screen" << std::endl;
+        return false;
+    }
+
+    // Ensure subsequent reads do not log when screen is unchanged
+    std::ostringstream oss2;
+    old_buf = std::cout.rdbuf(oss2.rdbuf());
+    bus.read(0xC000);
+    std::cout.rdbuf(old_buf);
+
+    if (!oss2.str().empty()) {
+        std::cerr << "Unexpected additional screen log without changes" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 // Test full I/O range coverage
 bool test_full_io_range() {
     Bus bus;
@@ -190,6 +232,10 @@ int main() {
 
     result = test_game_io();
     print_test_result("test_game_io", result);
+    all_passed = all_passed && result;
+
+    result = test_text_screen_logging();
+    print_test_result("test_text_screen_logging", result);
     all_passed = all_passed && result;
 
     result = test_full_io_range();

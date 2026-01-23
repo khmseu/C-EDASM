@@ -1,5 +1,8 @@
 #include "edasm/host_shims.hpp"
 
+#include <iomanip>
+#include <iostream>
+
 namespace edasm {
 
 // Apple II keyboard memory locations
@@ -7,10 +10,12 @@ constexpr uint16_t KBD = 0xC000;     // Keyboard data
 constexpr uint16_t KBDSTRB = 0xC010; // Keyboard strobe clear
 
 HostShims::HostShims()
-    : current_pos_(0), kbd_data_(0), kbd_strobe_(false), text_mode_(true), mixed_mode_(false),
-      page2_(false), hires_(false) {}
+    : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_data_(0), kbd_strobe_(false),
+      text_mode_(true), mixed_mode_(false), page2_(false), hires_(false) {}
 
 void HostShims::install_io_traps(Bus &bus) {
+    bus_ = &bus;
+
     // Install I/O traps for full $C000-$C7FF range
     bus.set_read_trap_range(0xC000, 0xC7FF, [this](uint16_t addr, uint8_t &value) {
         return this->handle_io_read(addr, value);
@@ -18,6 +23,13 @@ void HostShims::install_io_traps(Bus &bus) {
 
     bus.set_write_trap_range(0xC000, 0xC7FF, [this](uint16_t addr, uint8_t value) {
         return this->handle_io_write(addr, value);
+    });
+
+    // Install write trap for text page 1 ($0400-$07FF)
+    bus.set_write_trap_range(0x0400, 0x07FF, [this](uint16_t addr, uint8_t value) {
+        // Mark screen as dirty but allow normal write to proceed
+        screen_dirty_ = true;
+        return false;
     });
 }
 
@@ -53,6 +65,11 @@ char HostShims::get_next_char() {
 }
 
 bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
+    if (screen_dirty_ && bus_) {
+        log_text_screen();
+        screen_dirty_ = false;
+    }
+
     // Read keyboard data register
     if (kbd_strobe_) {
         // Key available - return with high bit set
@@ -266,6 +283,33 @@ bool HostShims::handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_
     }
 
     return true;
+}
+
+void HostShims::log_text_screen() {
+    if (!bus_) {
+        return;
+    }
+
+    const uint16_t base = page2_ ? 0x0800 : 0x0400;
+
+    std::cout << "[HostShims] Text screen snapshot (page " << (page2_ ? 2 : 1) << ")\n";
+
+    for (int row = 0; row < 24; ++row) {
+        std::cout << std::setw(2) << row << ": ";
+        for (int col = 0; col < 40; ++col) {
+            const uint16_t addr =
+                static_cast<uint16_t>(base + (row % 8) * 128 + (row / 8) * 40 + col);
+            uint8_t byte = bus_->read(addr);
+            char ch = static_cast<char>(byte & 0x7F);
+            if (ch < 0x20 || ch > 0x7E) {
+                ch = '.';
+            }
+            std::cout << ch;
+        }
+        std::cout << '\n';
+    }
+
+    std::cout.flush();
 }
 
 } // namespace edasm
