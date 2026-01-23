@@ -3,6 +3,7 @@
 #include "edasm/host_shims.hpp"
 #include "edasm/traps.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -452,15 +453,25 @@ int main(int argc, char *argv[]) {
 
     // Load monitor ROM into upper 8KB
     const uint16_t rom_base = 0xF800;
-    const std::string rom_path =
+    const std::string rom_rel_path =
         "third_party/artifacts/Apple II plus ROM Pages F8-FF - 341-0020 - Autostart Monitor.bin";
-    std::cout << "  Loading monitor ROM: " << rom_path << std::endl;
-    if (bus.load_binary_from_file(rom_base, rom_path)) {
+
+    std::error_code exe_ec;
+    std::filesystem::path exe_dir = std::filesystem::weakly_canonical(argv[0], exe_ec);
+    if (exe_ec) {
+        exe_dir = std::filesystem::path(argv[0]);
+    }
+    exe_dir = exe_dir.parent_path();
+
+    std::filesystem::path rom_path = exe_dir.parent_path() / rom_rel_path;
+
+    std::cout << "  Loading monitor ROM: " << rom_path.string() << std::endl;
+    if (bus.load_binary_from_file(rom_base, rom_path.string())) {
         std::cout << "  Monitor ROM mapped at $F800-$FFFF" << std::endl;
         bus.set_write_trap_range(rom_base, 0xFFFF, [](uint16_t, uint8_t) { return true; });
         std::cout << "  ROM writes are trapped (read-only region)" << std::endl;
     } else {
-        std::cerr << "Error: Failed to load monitor ROM from " << rom_path << std::endl;
+        std::cerr << "Error: Failed to load monitor ROM from " << rom_path.string() << std::endl;
     }
 
     // Install host shims
