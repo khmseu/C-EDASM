@@ -28,6 +28,9 @@ class HostShims {
     // Get next character from input queue (returns 0 if empty)
     char get_next_char();
 
+    // Check if emulator should stop (set when first screen char is 'E')
+    bool should_stop() const;
+
   private:
     std::queue<std::string> input_lines_;
     std::string current_line_;
@@ -35,6 +38,7 @@ class HostShims {
 
     Bus *bus_;
     bool screen_dirty_;
+    bool stop_requested_;
 
     // General I/O range handlers for $C000-$C7FF
     bool handle_io_read(uint16_t addr, uint8_t &value);

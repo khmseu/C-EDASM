@@ -4,6 +4,38 @@
 
 The emulator now implements comprehensive read and write traps for the Apple II I/O address range $C000-$C7FF. This allows the emulator to intercept and handle I/O operations without requiring actual hardware.
 
+## Text Screen Monitoring
+
+### Automatic Screen Logging and Stop on 'E' Character
+
+The emulator monitors writes to the text screen memory ($0400-$07FF) and implements special behavior:
+
+- **Screen Change Detection**: Any write to text screen memory marks the screen as "dirty"
+- **'E' Character Detection**: When the first screen character ($0400) is set to 'E' (ASCII 0x45 or 0x65), the emulator:
+  1. Immediately logs the current text screen state to stdout
+  2. Sets a stop flag that can be checked via `HostShims::should_stop()`
+  3. Prints a message: "[HostShims] First screen character set to 'E' - logging and stopping"
+
+This feature is useful for debugging and capturing specific program states during emulation.
+
+**Example Usage:**
+```cpp
+Bus bus;
+CPU cpu(bus);
+HostShims shims;
+shims.install_io_traps(bus);
+
+while (running) {
+    running = cpu.step();
+    
+    // Check if 'E' was written to first screen position
+    if (shims.should_stop()) {
+        std::cout << "Emulator stopped by screen monitor" << std::endl;
+        break;
+    }
+}
+```
+
 ## Architecture
 
 ### Address Range Coverage
