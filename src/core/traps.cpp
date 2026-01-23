@@ -1,16 +1,127 @@
 #include "edasm/traps.hpp"
+#include <algorithm>
+#include <array>
 #include <chrono>
+#include <cstdio>
 #include <ctime>
 #include <errno.h>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits.h>
+#include <optional>
 #include <sstream>
 #include <string.h>
+#include <system_error>
 #include <unistd.h>
+#include <vector>
 
 namespace edasm {
+
+namespace {
+
+struct FileEntry {
+    bool used = false;
+    FILE *fp = nullptr;
+    std::string host_path;
+    uint32_t mark = 0;      // current file position
+    uint32_t file_size = 0; // bytes
+};
+
+constexpr size_t kMaxFiles = 16; // ProDOS refnums are 1-15; slot 0 unused
+std::array<FileEntry, kMaxFiles> s_file_table{};
+
+uint16_t read_word_mem(const uint8_t *mem, uint16_t addr) {
+    return static_cast<uint16_t>(mem[addr] | (mem[addr + 1] << 8));
+}
+
+std::string current_prefix() {
+    char cwd_buf[PATH_MAX] = {0};
+    if (!::getcwd(cwd_buf, sizeof(cwd_buf))) {
+        return "/"; // fallback
+    }
+    std::string prefix = cwd_buf;
+    prefix += "/";
+    return prefix;
+}
+
+std::string s_prefix_host = current_prefix();
+std::string s_prefix_prodos = "/"; // leading slash, trailing slash maintained
+
+std::string normalize_prodos_path(const std::string &path) {
+    std::string normalized = path;
+    if (normalized.empty() || normalized.front() != '/') {
+        normalized = "/" + normalized;
+    }
+    if (normalized.back() != '/') {
+        normalized.push_back('/');
+    }
+    return normalized;
+}
+
+std::string prodos_path_to_host(const std::string &prodos_path) {
+    bool absolute = !prodos_path.empty() && prodos_path.front() == '/';
+
+    std::string clean = prodos_path;
+    while (!clean.empty() && clean.front() == '/') {
+        clean.erase(clean.begin());
+    }
+
+    std::filesystem::path base =
+        absolute ? std::filesystem::path(current_prefix()) : std::filesystem::path(s_prefix_host);
+    std::filesystem::path host = base / clean;
+    return host.string();
+}
+
+int alloc_refnum() {
+    for (size_t i = 1; i < s_file_table.size(); ++i) {
+        if (!s_file_table[i].used) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+FileEntry *get_refnum(uint8_t refnum) {
+    if (refnum == 0 || refnum >= s_file_table.size())
+        return nullptr;
+    return s_file_table[refnum].used ? &s_file_table[refnum] : nullptr;
+}
+
+void close_entry(FileEntry &entry) {
+    if (entry.fp) {
+        std::fclose(entry.fp);
+        entry.fp = nullptr;
+    }
+    entry.used = false;
+    entry.host_path.clear();
+    entry.mark = 0;
+    entry.file_size = 0;
+}
+
+void set_success(CPUState &cpu) {
+    cpu.A = 0;
+    cpu.P &= ~StatusFlags::C;
+    cpu.P &= ~StatusFlags::N;
+    cpu.P &= ~StatusFlags::V;
+    cpu.P |= StatusFlags::Z;
+    cpu.P |= StatusFlags::U;
+}
+
+void set_error(CPUState &cpu, uint8_t err) {
+    cpu.A = err;
+    cpu.P |= StatusFlags::C;
+    cpu.P &= ~StatusFlags::Z;
+    cpu.P |= StatusFlags::U;
+}
+
+constexpr uint8_t ERR_PATH_NOT_FOUND = 0x4B;
+constexpr uint8_t ERR_FILE_NOT_FOUND = 0x46;
+constexpr uint8_t ERR_TOO_MANY_FILES = 0x52;
+constexpr uint8_t ERR_ILLEGAL_PARAM = 0x2C;
+
+} // namespace
 
 // Static trace flag
 bool TrapManager::s_trace_enabled = false;
@@ -172,14 +283,6 @@ bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename)
 }
 
 bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
-    // This handler is only called for $BF00
-    if (s_trace_enabled) {
-        std::cout << std::endl;
-        std::cout << "=== PRODOS MLI CALL DETECTED at PC=$BF00 ===" << std::endl;
-        std::cout << dump_cpu_state(cpu) << std::endl;
-        std::cout << std::endl;
-    }
-
     // When JSR $BF00 is executed, the return address-1 is pushed onto the stack
     // Stack pointer points to the next free location, so:
     // $01SP+1 = high byte of return address
@@ -195,38 +298,48 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     uint8_t sp = cpu.SP;
     const uint8_t *mem = bus.data();
 
-    // Get return address from stack
     uint8_t ret_lo = mem[stack_base + sp + 1];
     uint8_t ret_hi = mem[stack_base + sp + 2];
-    uint16_t ret_addr = (ret_hi << 8) | ret_lo;
+    uint16_t ret_addr = static_cast<uint16_t>((ret_hi << 8) | ret_lo);
+    uint16_t call_site = static_cast<uint16_t>(ret_addr + 1);
 
-    // The actual return point is +1 from what's on the stack
-    uint16_t call_site = ret_addr + 1;
+    uint8_t call_num = mem[call_site];
+    uint8_t param_lo = mem[call_site + 1];
+    uint8_t param_hi = mem[call_site + 2];
+    uint16_t param_list = static_cast<uint16_t>((param_hi << 8) | param_lo);
 
-    if (s_trace_enabled) {
+    auto return_to_caller = [&]() {
+        cpu.SP = static_cast<uint8_t>(cpu.SP + 2);
+        cpu.PC = static_cast<uint16_t>((ret_addr + 1) + 3);
+    };
+
+    bool call_details_logged = false;
+    auto log_call_details = [&](const std::string &reason) {
+        if (call_details_logged)
+            return;
+        if (!s_trace_enabled && reason != "halt")
+            return;
+
+        call_details_logged = true;
+
+        std::cout << std::endl;
+        std::cout << "=== PRODOS MLI CALL DETECTED at PC=$BF00 ===" << std::endl;
+        std::cout << dump_cpu_state(cpu) << std::endl;
+        std::cout << std::endl;
+
         std::cout << "Stack Analysis:" << std::endl;
         std::cout << "  SP=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
                   << static_cast<int>(sp) << std::endl;
         std::cout << "  Return address on stack: $" << std::setw(4) << ret_addr << std::endl;
-
         std::cout << "  JSR call site: $" << std::setw(4) << (call_site - 3) << std::endl;
         std::cout << "  Parameters start at: $" << std::setw(4) << call_site << std::endl;
         std::cout << std::endl;
-    }
 
-    // Read MLI call parameters
-    uint8_t call_num = mem[call_site];
-    uint8_t param_lo = mem[call_site + 1];
-    uint8_t param_hi = mem[call_site + 2];
-    uint16_t param_list = (param_hi << 8) | param_lo;
-
-    if (s_trace_enabled) {
         std::cout << "MLI Call Information:" << std::endl;
         std::cout << "  Command number: $" << std::setw(2) << static_cast<int>(call_num) << " ("
                   << decode_prodos_call(call_num) << ")" << std::endl;
         std::cout << "  Parameter list pointer: $" << std::setw(4) << param_list << std::endl;
 
-        // Show memory around call site for debugging
         std::cout << "  Memory at call site ($" << std::setw(4) << (call_site - 3)
                   << "):" << std::endl;
         std::cout << "    ";
@@ -236,29 +349,73 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         std::cout << std::endl;
         std::cout << "    JSR ^ CM  PL  PH  --  --  --" << std::endl;
         std::cout << std::endl;
-    }
 
-    // Fast-path for GET_TIME ($82): no parameter list, write to $BF90-$BF93 and return success
+        if (param_list < Bus::MEMORY_SIZE) {
+            uint8_t param_count = mem[param_list];
+            std::cout << "Parameter List at $" << std::setw(4) << param_list << ":" << std::endl;
+            std::cout << "  Parameter count: " << std::dec << static_cast<int>(param_count)
+                      << std::endl;
+
+            std::cout << "  Parameters (hex):";
+            size_t bytes_to_show = std::min<size_t>(param_count * 2, 24);
+            for (size_t i = 1; i <= bytes_to_show && (param_list + i) < Bus::MEMORY_SIZE; ++i) {
+                if ((i - 1) % 8 == 0)
+                    std::cout << std::endl << "    ";
+                std::cout << " " << std::hex << std::setw(2) << std::setfill('0')
+                          << static_cast<int>(mem[param_list + i]);
+            }
+            std::cout << std::endl;
+
+            if (call_num == 0x82 && param_count >= 1 && (param_list + 2) < Bus::MEMORY_SIZE) {
+                std::cout << std::endl << "  GET_TIME call parameters:" << std::endl;
+                std::cout << "    Date/time buffer pointer: $" << std::hex << std::setw(4)
+                          << (mem[param_list + 1] | (mem[param_list + 2] << 8)) << std::endl;
+            } else if (call_num == 0xC0 && (param_list + 2) < Bus::MEMORY_SIZE) {
+                std::cout << std::endl << "  CREATE call parameters:" << std::endl;
+                uint16_t pathname_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
+                std::cout << "    Pathname pointer: $" << std::hex << std::setw(4) << pathname_ptr
+                          << std::endl;
+
+                if (pathname_ptr < Bus::MEMORY_SIZE) {
+                    uint8_t path_len = mem[pathname_ptr];
+                    std::cout << "    Pathname length: " << std::dec << static_cast<int>(path_len)
+                              << std::endl;
+                    std::cout << "    Pathname: \"";
+                    for (int i = 1;
+                         i <= path_len && i <= 64 && (pathname_ptr + i) < Bus::MEMORY_SIZE; ++i) {
+                        char c = mem[pathname_ptr + i];
+                        std::cout << c;
+                    }
+                    std::cout << "\"" << std::endl;
+                    std::cout << "    Access: $" << std::hex << std::setw(2)
+                              << static_cast<int>(mem[param_list + 3]) << std::endl;
+                    std::cout << "    File type: $" << std::setw(2)
+                              << static_cast<int>(mem[param_list + 4]) << std::endl;
+                    std::cout << "    Storage type: $" << std::setw(2)
+                              << static_cast<int>(mem[param_list + 6]) << std::endl;
+                }
+            }
+        } else {
+            std::cout << "Parameter list pointer out of range; skipping list dump" << std::endl;
+        }
+    };
+
+    log_call_details("trace");
+
     if (call_num == 0x82) {
-        // Compute date/time from host
         auto now = std::chrono::system_clock::now();
         std::time_t t = std::chrono::system_clock::to_time_t(now);
         std::tm tm{};
         localtime_r(&t, &tm);
 
-        // ProDOS encoding:
-        // DATE (BF91:BF90): year (7 bits, since 1900), month (4 bits), day (5 bits)
-        //   BF91: bits7-1 year, bit0 = month bit3
-        //   BF90: bits7-5 month bits2-0, bits4-0 day
-        uint8_t year = static_cast<uint8_t>(tm.tm_year);     // years since 1900, 0-127 valid
-        uint8_t month = static_cast<uint8_t>(tm.tm_mon + 1); // 1-12
-        uint8_t day = static_cast<uint8_t>(tm.tm_mday);      // 1-31
+        uint8_t year = static_cast<uint8_t>(tm.tm_year);
+        uint8_t month = static_cast<uint8_t>(tm.tm_mon + 1);
+        uint8_t day = static_cast<uint8_t>(tm.tm_mday);
         uint8_t bf91 = static_cast<uint8_t>((year << 1) | ((month >> 3) & 0x01));
         uint8_t bf90 = static_cast<uint8_t>(((month & 0x07) << 5) | (day & 0x1F));
 
-        // TIME (BF93:BF92): hour (0-23), minute (0-59)
-        uint8_t hour = static_cast<uint8_t>(tm.tm_hour);  // 0-23
-        uint8_t minute = static_cast<uint8_t>(tm.tm_min); // 0-59
+        uint8_t hour = static_cast<uint8_t>(tm.tm_hour);
+        uint8_t minute = static_cast<uint8_t>(tm.tm_min);
 
         bus.write(0xBF91, bf91);
         bus.write(0xBF90, bf90);
@@ -274,30 +431,72 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             std::cout << "  Minute: " << static_cast<int>(minute) << std::endl;
         }
 
-        // ProDOS successful return: C clear, A=0, Z set, return to caller (JSR+3) and unwind stack
         cpu.A = 0;
         cpu.P &= ~StatusFlags::C;
         cpu.P &= ~StatusFlags::N;
         cpu.P &= ~StatusFlags::V;
         cpu.P |= StatusFlags::Z;
-        cpu.P |= StatusFlags::U; // ensure U stays set
+        cpu.P |= StatusFlags::U;
 
-        // Mimic RTS from MLI: pop return address and continue after operands
-        cpu.SP = static_cast<uint8_t>(cpu.SP + 2); // discard pushed return
-        cpu.PC =
-            static_cast<uint16_t>((ret_addr + 1) + 3); // JSR+3: skip command byte and param pointer
+        cpu.SP = static_cast<uint8_t>(cpu.SP + 2);
+        cpu.PC = static_cast<uint16_t>((ret_addr + 1) + 3);
 
-        return true; // continue execution
+        return true;
     }
 
-    // Implement GET_PREFIX ($C7): return system prefix bracketed by slashes
-    // ProDOS spec: prefix bracketed by slashes, length byte first, e.g. $7/APPLE/
+    // Implement SET_PREFIX ($C6)
+    if (call_num == 0xC6) {
+        if (param_list + 2 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+
+        uint16_t pathname_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 1));
+        if (pathname_ptr >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+
+        uint8_t path_len = mem[pathname_ptr];
+        if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+
+        std::string prodos_path;
+        prodos_path.reserve(path_len);
+        for (uint8_t i = 0; i < path_len; ++i) {
+            prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
+        }
+
+        s_prefix_prodos = normalize_prodos_path(prodos_path);
+
+        std::string stripped = s_prefix_prodos;
+        while (!stripped.empty() && stripped.front() == '/')
+            stripped.erase(stripped.begin());
+        std::filesystem::path host_candidate = std::filesystem::path(current_prefix()) / stripped;
+        std::error_code ec;
+        std::filesystem::path canonical = std::filesystem::weakly_canonical(host_candidate, ec);
+        std::string host_path = (ec ? host_candidate : canonical).string();
+        if (!host_path.empty() && host_path.back() != '/')
+            host_path.push_back('/');
+        s_prefix_host = host_path;
+
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
     if (call_num == 0xC7) {
         if (!(param_list >= 0x0200 && param_list < 0xFFFF)) {
             std::cerr << "GET_PREFIX: parameter list pointer out of range: $" << std::hex
                       << std::uppercase << std::setw(4) << std::setfill('0') << param_list
                       << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
             return false;
         }
 
@@ -306,6 +505,7 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             std::cerr << "GET_PREFIX: parameter count < 1 (" << std::dec
                       << static_cast<int>(param_count) << ")" << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
             return false;
         }
 
@@ -314,6 +514,7 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             std::cerr << "GET_PREFIX: buffer pointer out of range: $" << std::hex << std::uppercase
                       << std::setw(4) << std::setfill('0') << buf_ptr << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
             return false;
         }
 
@@ -322,29 +523,25 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
                       << std::setfill('0') << buf_ptr << std::endl;
         }
 
-        // Get current working directory
         char cwd_buf[PATH_MAX] = {0};
         if (!::getcwd(cwd_buf, sizeof(cwd_buf))) {
             std::cerr << "GET_PREFIX: getcwd failed: " << ::strerror(errno) << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
             return false;
         }
 
-        // ProDOS format: length byte + /path/ (bracketed by slashes)
-        // Maximum prefix length is 64 characters per spec
-        // getcwd() already returns absolute path starting with /
         std::string prefix_str = cwd_buf;
         prefix_str += "/";
 
-        // Limit to 64 chars including length byte (63 chars max for path+slashes)
         if (prefix_str.length() > 64) {
             std::cerr << "GET_PREFIX: prefix too long (" << prefix_str.length()
                       << " chars exceeds 64 byte limit)" << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
             return false;
         }
 
-        // Write length byte followed by prefix string (with high bits cleared)
         uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
         bus.write(buf_ptr, prefix_len);
         if (s_trace_enabled) {
@@ -354,11 +551,10 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         }
 
         for (size_t i = 0; i < prefix_str.length(); ++i) {
-            uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F; // Clear high bit
+            uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F;
             bus.write(static_cast<uint16_t>(buf_ptr + 1 + i), ch);
         }
 
-        // ProDOS successful return
         cpu.A = 0;
         cpu.P &= ~StatusFlags::C;
         cpu.P &= ~StatusFlags::N;
@@ -366,97 +562,314 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         cpu.P |= StatusFlags::Z;
         cpu.P |= StatusFlags::U;
 
-        // Mimic RTS from MLI: pop return address and continue after operands
         cpu.SP = static_cast<uint8_t>(cpu.SP + 2);
         cpu.PC = static_cast<uint16_t>((ret_addr + 1) + 3);
 
         return true;
     }
 
-    // Read parameter list (not used for GET_TIME)
-    if (param_list >= 0x0200 && param_list < 0xFFFF) {
-        uint8_t param_count = mem[param_list];
-        std::cout << "Parameter List at $" << std::setw(4) << param_list << ":" << std::endl;
-        std::cout << "  Parameter count: " << std::dec << static_cast<int>(param_count)
-                  << std::endl;
-
-        // Show the parameter bytes
-        std::cout << "  Parameters (hex):";
-        for (int i = 1; i <= param_count && i <= 16; ++i) {
-            if (i % 8 == 1)
-                std::cout << std::endl << "    ";
-            std::cout << " " << std::hex << std::setw(2) << std::setfill('0')
-                      << static_cast<int>(mem[param_list + i]);
+    // Implement OPEN ($C8)
+    if (call_num == 0xC8) {
+        if (param_list + 6 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
         }
-        std::cout << std::endl;
 
-        // For certain calls, decode specific parameters
-        if (call_num == 0x82) { // GET_TIME
-            std::cout << std::endl << "  GET_TIME call parameters:" << std::endl;
-            std::cout << "    This call retrieves the current date/time from ProDOS" << std::endl;
-            std::cout << "    Parameter count should be 1 (4 bytes for date/time result)"
-                      << std::endl;
-            if (param_count == 1) {
-                std::cout << "    Date/time buffer pointer: $" << std::hex << std::setw(4)
-                          << (mem[param_list + 1] | (mem[param_list + 2] << 8)) << std::endl;
+        uint16_t pathname_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 1));
+        uint16_t refnum_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 3));
+        uint16_t iobuf_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 5));
+        (void)iobuf_ptr; // unused for now
+
+        if (pathname_ptr >= Bus::MEMORY_SIZE || refnum_ptr >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+
+        uint8_t path_len = mem[pathname_ptr];
+        if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+
+        std::string prodos_path;
+        prodos_path.reserve(path_len);
+        for (uint8_t i = 0; i < path_len; ++i) {
+            prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
+        }
+
+        std::string host_path = prodos_path_to_host(prodos_path);
+
+        int ref = alloc_refnum();
+        if (ref < 0) {
+            set_error(cpu, ERR_TOO_MANY_FILES);
+            return_to_caller();
+            return true;
+        }
+
+        FILE *fp = std::fopen(host_path.c_str(), "rb");
+        if (!fp) {
+            set_error(cpu, ERR_FILE_NOT_FOUND);
+            return_to_caller();
+            return true;
+        }
+
+        if (call_num == 0xC7) {
+            if (!(param_list >= 0x0200 && param_list < 0xFFFF)) {
+                set_error(cpu, ERR_ILLEGAL_PARAM);
+                return_to_caller();
+                return true;
             }
-        } else if (call_num == 0xC0) { // CREATE
-            std::cout << std::endl << "  CREATE call parameters:" << std::endl;
-            uint16_t pathname_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
-            std::cout << "    Pathname pointer: $" << std::hex << std::setw(4) << pathname_ptr
-                      << std::endl;
 
-            if (pathname_ptr >= 0x0200 && pathname_ptr < 0xFFFF) {
-                uint8_t path_len = mem[pathname_ptr];
-                std::cout << "    Pathname length: " << std::dec << static_cast<int>(path_len)
+            uint8_t param_count = mem[param_list];
+            if (param_count < 1) {
+                set_error(cpu, ERR_ILLEGAL_PARAM);
+                return_to_caller();
+                return true;
+            }
+
+            uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
+            if (buf_ptr >= Bus::MEMORY_SIZE) {
+                set_error(cpu, ERR_ILLEGAL_PARAM);
+                return_to_caller();
+                return true;
+            }
+
+            if (s_trace_enabled) {
+                std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase
+                          << std::setw(4) << std::setfill('0') << buf_ptr << std::endl;
+            }
+
+            std::string prefix_str = s_prefix_prodos;
+            if (prefix_str.length() > 64) {
+                set_error(cpu, ERR_ILLEGAL_PARAM);
+                return_to_caller();
+                return true;
+            }
+
+            uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
+            bus.write(buf_ptr, prefix_len);
+            if (s_trace_enabled) {
+                std::cout << "GET_PREFIX: writing prefix length=" << std::dec
+                          << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
                           << std::endl;
-                std::cout << "    Pathname: \"";
-                for (int i = 1; i <= path_len && i <= 64; ++i) {
-                    char c = mem[pathname_ptr + i];
-                    std::cout << c;
-                }
-                std::cout << "\"" << std::endl;
-                std::cout << "    Access: $" << std::hex << std::setw(2)
-                          << static_cast<int>(mem[param_list + 3]) << std::endl;
-                std::cout << "    File type: $" << std::setw(2)
-                          << static_cast<int>(mem[param_list + 4]) << std::endl;
-                std::cout << "    Storage type: $" << std::setw(2)
-                          << static_cast<int>(mem[param_list + 6]) << std::endl;
             }
+
+            for (size_t i = 0; i < prefix_str.length(); ++i) {
+                uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F;
+                bus.write(static_cast<uint16_t>(buf_ptr + 1 + i), ch);
+            }
+
+            set_success(cpu);
+            return_to_caller();
+            return true;
         }
+        return_to_caller();
+        return true;
     }
 
-    // Log unimplemented calls (or all calls if trace is enabled)
+    // Implement SET_MARK ($CE)
+    if (call_num == 0xCE) {
+        if (param_list + 3 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        uint16_t new_mark = read_word_mem(mem, mark_ptr);
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        entry->mark = std::min<uint32_t>(new_mark, entry->file_size);
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    // Implement GET_MARK ($CF)
+    if (call_num == 0xCF) {
+        if (param_list + 3 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        uint16_t mark = static_cast<uint16_t>(entry->mark & 0xFFFF);
+        bus.write(mark_ptr, static_cast<uint8_t>(mark & 0xFF));
+        bus.write(static_cast<uint16_t>(mark_ptr + 1), static_cast<uint8_t>((mark >> 8) & 0xFF));
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    // Implement GET_EOF ($D1)
+    if (call_num == 0xD1) {
+        if (param_list + 3 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t eof_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        if (eof_ptr + 1 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        uint16_t eof_val = static_cast<uint16_t>(entry->file_size & 0xFFFF);
+        bus.write(eof_ptr, static_cast<uint8_t>(eof_val & 0xFF));
+        bus.write(static_cast<uint16_t>(eof_ptr + 1), static_cast<uint8_t>((eof_val >> 8) & 0xFF));
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    // Implement GET_FILE_INFO ($C4)
+    if (call_num == 0xC4) {
+        if (param_list + 1 >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+
+        uint8_t pcount = mem[param_list];
+        if (pcount < 1 || param_list + (pcount * 2) >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+
+        std::vector<uint16_t> params;
+        params.reserve(pcount);
+        for (uint8_t i = 0; i < pcount; ++i) {
+            params.push_back(read_word_mem(mem, static_cast<uint16_t>(param_list + 1 + i * 2)));
+        }
+
+        uint16_t pathname_ptr = params[0];
+        if (pathname_ptr >= Bus::MEMORY_SIZE) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        uint8_t path_len = mem[pathname_ptr];
+        if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
+            set_error(cpu, ERR_ILLEGAL_PARAM);
+            return_to_caller();
+            return true;
+        }
+        std::string prodos_path;
+        prodos_path.reserve(path_len);
+        for (uint8_t i = 0; i < path_len; ++i) {
+            prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
+        }
+        std::string host_path = prodos_path_to_host(prodos_path);
+
+        std::error_code ec;
+        auto file_size = std::filesystem::file_size(host_path, ec);
+        if (ec) {
+            set_error(cpu, ERR_FILE_NOT_FOUND);
+            return_to_caller();
+            return true;
+        }
+
+        uint32_t size32 = static_cast<uint32_t>(file_size);
+        uint16_t blocks_used = static_cast<uint16_t>((size32 + 511) / 512);
+
+        auto write_byte = [&](size_t idx, uint8_t value) {
+            if (idx < params.size() && params[idx] < Bus::MEMORY_SIZE) {
+                bus.write(params[idx], value);
+            }
+        };
+
+        auto write_word = [&](size_t idx, uint16_t value) {
+            if (idx < params.size() && params[idx] + 1 < Bus::MEMORY_SIZE) {
+                bus.write(params[idx], static_cast<uint8_t>(value & 0xFF));
+                bus.write(static_cast<uint16_t>(params[idx] + 1),
+                          static_cast<uint8_t>((value >> 8) & 0xFF));
+            }
+        };
+
+        auto write_eof = [&](size_t idx, uint32_t value) {
+            if (idx < params.size() && params[idx] + 2 < Bus::MEMORY_SIZE) {
+                bus.write(params[idx], static_cast<uint8_t>(value & 0xFF));
+                bus.write(static_cast<uint16_t>(params[idx] + 1),
+                          static_cast<uint8_t>((value >> 8) & 0xFF));
+                bus.write(static_cast<uint16_t>(params[idx] + 2),
+                          static_cast<uint8_t>((value >> 16) & 0xFF));
+            }
+        };
+
+        write_byte(1, 0xC3);        // access: read/write/delete
+        write_byte(2, 0x06);        // file type: BIN
+        write_word(3, 0x0000);      // aux type
+        write_byte(4, 0x01);        // storage type: standard file
+        write_word(5, blocks_used); // blocks used
+        write_eof(6, size32);       // EOF
+        write_word(7, 0);           // create date
+        write_word(8, 0);           // create time
+        write_word(9, 0);           // mod date/time best-effort
+        if (params.size() > 10)
+            write_word(10, 0);
+
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    log_call_details("halt");
     std::cout << std::endl;
     std::cout << "=== HALTING - ProDOS MLI not implemented ===" << std::endl;
 
-    // Write memory dump before halting
     write_memory_dump(bus, "memory_dump.bin");
 
-    return false; // Halt execution
+    return false;
 }
 
 bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
     // SETNORM ($FE84): Set InvFlg ($32) to $FF (normal video mode) and Y to $FF
-    // InvFlg is at zero page $32
     bus.write(0x32, 0xFF);
     cpu.Y = 0xff;
 
     std::cout << "MONITOR SETNORM: Set InvFlg ($32) to $FF, Y to $FF" << std::endl;
 
-    // Monitor routines use JSR/RTS, so pop return address and continue
-    // RTS pulls from stack: increment SP, read lo byte, increment SP, read hi byte
     cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
     uint8_t ret_lo = bus.read(0x0100 | cpu.SP);
     cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
     uint8_t ret_hi = bus.read(0x0100 | cpu.SP);
-    uint16_t ret_addr = (ret_hi << 8) | ret_lo;
+    uint16_t ret_addr = static_cast<uint16_t>((ret_hi << 8) | ret_lo);
 
-    // JSR stores PC of last byte of instruction on stack
-    // RTS adds 1 to get to next instruction
     cpu.PC = static_cast<uint16_t>(ret_addr + 1);
 
-    return true; // Continue execution
+    return true;
 }
 
 std::string TrapManager::decode_prodos_call(uint8_t call_num) {
