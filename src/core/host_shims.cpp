@@ -31,9 +31,9 @@ void HostShims::install_io_traps(Bus &bus) {
         screen_dirty_ = true;
         
         // Check if writing to first character position ($0400)
-        // and if the value is 'E' (or $C5 in Apple II screen code, or $45 in ASCII with high bit)
+        // Strip high bit and check for 'E' (handles normal, inverse, and flashing text)
         if (addr == 0x0400) {
-            // Check for 'E' in various forms (ASCII, screen code, inverse)
+            // Check for 'E' by masking high bit (handles all Apple II text modes)
             char ch = static_cast<char>(value & 0x7F);
             if (ch == 'E' || ch == 'e') {
                 std::cout << "\n[HostShims] First screen character set to 'E' - logging and stopping\n" << std::endl;
