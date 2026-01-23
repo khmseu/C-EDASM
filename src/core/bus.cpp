@@ -1,6 +1,6 @@
 #include "edasm/bus.hpp"
-#include <fstream>
 #include <algorithm>
+#include <fstream>
 
 namespace edasm {
 
@@ -11,7 +11,7 @@ Bus::Bus() {
 void Bus::reset() {
     // Fill entire address space with trap opcode
     memory_.fill(TRAP_OPCODE);
-    
+
     // Clear trap handlers
     clear_read_traps();
     clear_write_traps();
@@ -25,7 +25,7 @@ uint8_t Bus::read(uint16_t addr) {
             return value; // Trap handled, return provided value
         }
     }
-    
+
     // Normal memory read
     return memory_[addr];
 }
@@ -37,7 +37,7 @@ void Bus::write(uint16_t addr, uint8_t value) {
             return; // Trap handled, don't write to memory
         }
     }
-    
+
     // Normal memory write
     memory_[addr] = value;
 }
@@ -52,33 +52,34 @@ uint16_t Bus::read_word(uint16_t addr) {
 
 void Bus::write_word(uint16_t addr, uint16_t value) {
     write(addr, static_cast<uint8_t>(value & 0xFF));
-    write(static_cast<uint16_t>(addr + 1), static_cast<uint8_t>((value >> 8) & 0xFF)); // Cast handles overflow
+    write(static_cast<uint16_t>(addr + 1),
+          static_cast<uint8_t>((value >> 8) & 0xFF)); // Cast handles overflow
 }
 
-bool Bus::load_binary(uint16_t addr, const std::vector<uint8_t>& data) {
+bool Bus::load_binary(uint16_t addr, const std::vector<uint8_t> &data) {
     if (addr + data.size() > MEMORY_SIZE) {
         return false; // Would overflow memory
     }
-    
+
     // Copy data directly to memory (bypassing traps)
     std::copy(data.begin(), data.end(), memory_.begin() + addr);
     return true;
 }
 
-bool Bus::load_binary_from_file(uint16_t addr, const std::string& filename) {
+bool Bus::load_binary_from_file(uint16_t addr, const std::string &filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file) {
         return false;
     }
-    
+
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
-    
+
     std::vector<uint8_t> buffer(size);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+    if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
         return false;
     }
-    
+
     return load_binary(addr, buffer);
 }
 

@@ -174,7 +174,7 @@ bool test_stop_on_e_character() {
     // Write 'A' to first position - should not stop
     bus.write(0x0400, 'A');
     std::cout.rdbuf(old_buf);
-    
+
     if (shims.should_stop()) {
         std::cerr << "Unexpected stop after writing 'A' to first screen position" << std::endl;
         return false;
@@ -188,7 +188,7 @@ bool test_stop_on_e_character() {
     std::cout.rdbuf(old_buf);
 
     const std::string output = oss.str();
-    
+
     if (!shims.should_stop()) {
         std::cerr << "Expected stop after writing 'E' to first screen position" << std::endl;
         return false;

@@ -12,13 +12,14 @@ The emulator monitors writes to the text screen memory ($0400-$07FF) and impleme
 
 - **Screen Change Detection**: Any write to text screen memory marks the screen as "dirty"
 - **'E' Character Detection**: When the first screen character ($0400) is set to 'E' (ASCII 0x45 or 0x65), the emulator:
-  1. Immediately logs the current text screen state to stdout
-  2. Sets a stop flag that can be checked via `HostShims::should_stop()`
-  3. Prints a message: "[HostShims] First screen character set to 'E' - logging and stopping"
+    1. Immediately logs the current text screen state to stdout
+    2. Sets a stop flag that can be checked via `HostShims::should_stop()`
+    3. Prints a message: "[HostShims] First screen character set to 'E' - logging and stopping"
 
 This feature is useful for debugging and capturing specific program states during emulation.
 
 **Example Usage:**
+
 ```cpp
 Bus bus;
 CPU cpu(bus);
@@ -27,7 +28,7 @@ shims.install_io_traps(bus);
 
 while (running) {
     running = cpu.step();
-    
+
     // Check if 'E' was written to first screen position
     if (shims.should_stop()) {
         std::cout << "Emulator stopped by screen monitor" << std::endl;
@@ -77,8 +78,8 @@ Individual handlers for different I/O regions:
 #### $C000 (KBD) - Keyboard Data
 
 - **Read**: Returns keyboard data with high bit set if key available
-  - After strobe clear: Returns last key with high bit clear
-  - Auto-fetches queued input when available
+    - After strobe clear: Returns last key with high bit clear
+    - Auto-fetches queued input when available
 - **Write**: Ignored (read-only)
 
 #### $C010 (KBDSTRB) - Keyboard Strobe

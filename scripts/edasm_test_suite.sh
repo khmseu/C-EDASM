@@ -283,7 +283,7 @@ cmd_setup_original() {
 # Run full emulator test
 cmd_emulator_test() {
     local interactive="${1:-false}"
-    
+
     log "Running emulator integration test..."
 
     if ! command -v mame &>/dev/null; then
@@ -302,7 +302,7 @@ cmd_emulator_test() {
     log "Boot disk: ${BOOT_DISK}"
     log "Work disk: ${work_disk}"
 
-    if [[ "${interactive}" == "true" ]]; then
+    if [[ ${interactive} == "true" ]]; then
         # Interactive mode with window
         mame apple2gs \
             -flop1 "${BOOT_DISK}" \
@@ -446,7 +446,7 @@ main() {
         ;;
     emulator-test)
         local interactive="false"
-        if [[ $# -gt 0 && "$1" == "--interactive" ]]; then
+        if [[ $# -gt 0 && $1 == "--interactive" ]]; then
             interactive="true"
             shift
         fi

@@ -340,6 +340,7 @@ third_party/cadius/cadius EXTRACTFILE third_party/EdAsm/EDASM_SRC.2mg \
 ```
 
 **Emulator Features:**
+
 - Executes 847 instructions of EDASM.SYSTEM before hitting ProDOS MLI trap
 - 100+ 6502/65C02 opcodes implemented with full addressing mode support
 - Trap-first discovery approach: unimplemented features trigger detailed traps
