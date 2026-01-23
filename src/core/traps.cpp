@@ -61,13 +61,15 @@ std::string normalize_prodos_path(const std::string &path) {
 }
 
 std::string prodos_path_to_host(const std::string &prodos_path) {
+    bool absolute = !prodos_path.empty() && prodos_path.front() == '/';
+
     std::string clean = prodos_path;
     while (!clean.empty() && clean.front() == '/') {
         clean.erase(clean.begin());
     }
 
-    // For all paths, use s_prefix_host as the base directory
-    std::filesystem::path base = std::filesystem::path(s_prefix_host);
+    std::filesystem::path base =
+        absolute ? std::filesystem::path(current_prefix()) : std::filesystem::path(s_prefix_host);
     std::filesystem::path host = base / clean;
     return host.string();
 }
@@ -480,36 +482,110 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
         }
 
-        if (s_trace_enabled) {
-            std::cout << "SET_PREFIX ($C6): Input ProDOS path from caller=\"" << prodos_path << "\""
-                      << std::endl;
-        }
-
         s_prefix_prodos = normalize_prodos_path(prodos_path);
 
-        // Convert ProDOS prefix to host prefix
-        // Strip leading slashes from ProDOS path
-        std::string stripped = s_prefix_prodos;
-        while (!stripped.empty() && stripped.front() == '/')
-            stripped.erase(stripped.begin());
+        // Check if this is an absolute path (starts with /)
+        bool is_absolute = !prodos_path.empty() && prodos_path.front() == '/';
         
-        // Use current working directory as base for absolute paths
-        std::filesystem::path cwd = std::filesystem::current_path();
-        std::filesystem::path host_candidate = cwd / stripped;
-        std::error_code ec;
-        std::filesystem::path canonical = std::filesystem::weakly_canonical(host_candidate, ec);
-        std::string host_path = (ec ? host_candidate : canonical).string();
+        std::string host_path;
+        if (is_absolute) {
+            // For absolute paths, use the path as-is (it's already a Linux path)
+            host_path = prodos_path;
+        } else {
+            // For relative paths, resolve relative to current prefix
+            std::string stripped = s_prefix_prodos;
+            while (!stripped.empty() && stripped.front() == '/')
+                stripped.erase(stripped.begin());
+            std::filesystem::path host_candidate = std::filesystem::path(current_prefix()) / stripped;
+            std::error_code ec;
+            std::filesystem::path canonical = std::filesystem::weakly_canonical(host_candidate, ec);
+            host_path = (ec ? host_candidate : canonical).string();
+        }
+        
         if (!host_path.empty() && host_path.back() != '/')
             host_path.push_back('/');
         s_prefix_host = host_path;
 
-        if (s_trace_enabled) {
-            std::cout << "SET_PREFIX ($C6): ProDOS prefix=\"" << s_prefix_prodos 
-                      << "\", host prefix=\"" << s_prefix_host << "\"" << std::endl;
-        }
-
         set_success(cpu);
         return_to_caller();
+        return true;
+    }
+
+    if (call_num == 0xC7) {
+        if (!(param_list >= 0x0200 && param_list < 0xFFFF)) {
+            std::cerr << "GET_PREFIX: parameter list pointer out of range: $" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
+            return false;
+        }
+
+        uint8_t param_count = mem[param_list];
+        if (param_count < 1) {
+            std::cerr << "GET_PREFIX: parameter count < 1 (" << std::dec
+                      << static_cast<int>(param_count) << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
+            return false;
+        }
+
+        uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
+        if (buf_ptr >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_PREFIX: buffer pointer out of range: $" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << buf_ptr << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
+            return false;
+        }
+
+        if (s_trace_enabled) {
+            std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
+                      << std::setfill('0') << buf_ptr << std::endl;
+        }
+
+        char cwd_buf[PATH_MAX] = {0};
+        if (!::getcwd(cwd_buf, sizeof(cwd_buf))) {
+            std::cerr << "GET_PREFIX: getcwd failed: " << ::strerror(errno) << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
+            return false;
+        }
+
+        std::string prefix_str = cwd_buf;
+        prefix_str += "/";
+
+        if (prefix_str.length() > 64) {
+            std::cerr << "GET_PREFIX: prefix too long (" << prefix_str.length()
+                      << " chars exceeds 64 byte limit)" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("halt");
+            return false;
+        }
+
+        uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
+        bus.write(buf_ptr, prefix_len);
+        if (s_trace_enabled) {
+            std::cout << "GET_PREFIX: writing prefix length=" << std::dec
+                      << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
+                      << std::endl;
+        }
+
+        for (size_t i = 0; i < prefix_str.length(); ++i) {
+            uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F;
+            bus.write(static_cast<uint16_t>(buf_ptr + 1 + i), ch);
+        }
+
+        cpu.A = 0;
+        cpu.P &= ~StatusFlags::C;
+        cpu.P &= ~StatusFlags::N;
+        cpu.P &= ~StatusFlags::V;
+        cpu.P |= StatusFlags::Z;
+        cpu.P |= StatusFlags::U;
+
+        cpu.SP = static_cast<uint8_t>(cpu.SP + 2);
+        cpu.PC = static_cast<uint16_t>((ret_addr + 1) + 3);
+
         return true;
     }
 
@@ -603,175 +679,6 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
                       << ", file_size=" << file_size << std::endl;
         }
 
-        set_success(cpu);
-        return_to_caller();
-        return true;
-    }
-
-    // Implement GET_PREFIX ($C7)
-    if (call_num == 0xC7) {
-        if (!(param_list >= 0x0200 && param_list < 0xFFFF)) {
-            std::cerr << "GET_PREFIX ($C7): invalid param_list address ($" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-
-        uint8_t param_count = mem[param_list];
-        if (param_count < 1) {
-            std::cerr << "GET_PREFIX ($C7): param_count < 1 (" << std::dec
-                      << static_cast<int>(param_count) << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-
-        uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
-        if (buf_ptr >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_PREFIX ($C7): buf_ptr >= MEMORY_SIZE (buf_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << buf_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-
-        if (s_trace_enabled) {
-            std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
-                      << std::setfill('0') << buf_ptr << std::endl;
-        }
-
-        std::string prefix_str = s_prefix_prodos;
-        if (prefix_str.length() > 64) {
-            std::cerr << "GET_PREFIX ($C7): prefix too long (" << std::dec << prefix_str.length()
-                      << " chars exceeds 64 byte limit)" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-
-        uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
-        bus.write(buf_ptr, prefix_len);
-        if (s_trace_enabled) {
-            std::cout << "GET_PREFIX: writing prefix length=" << std::dec
-                      << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
-                      << std::endl;
-        }
-
-        for (size_t i = 0; i < prefix_str.length(); ++i) {
-            uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F;
-            bus.write(static_cast<uint16_t>(buf_ptr + 1 + i), ch);
-        }
-
-        set_success(cpu);
-        return_to_caller();
-        return true;
-    }
-
-    // Implement SET_MARK ($CE)
-    if (call_num == 0xCE) {
-        if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            std::cerr << "SET_MARK ($CE): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        uint8_t refnum = mem[param_list + 1];
-        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
-            std::cerr << "SET_MARK ($CE): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        uint16_t new_mark = read_word_mem(mem, mark_ptr);
-        FileEntry *entry = get_refnum(refnum);
-        if (!entry) {
-            std::cerr << "SET_MARK ($CE): invalid refnum (" << std::dec << static_cast<int>(refnum)
-                      << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        entry->mark = std::min<uint32_t>(new_mark, entry->file_size);
-        set_success(cpu);
-        return_to_caller();
-        return true;
-    }
-
-    // Implement GET_MARK ($CF)
-    if (call_num == 0xCF) {
-        if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_MARK ($CF): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        uint8_t refnum = mem[param_list + 1];
-        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_MARK ($CF): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        FileEntry *entry = get_refnum(refnum);
-        if (!entry) {
-            std::cerr << "GET_MARK ($CF): invalid refnum (" << std::dec << static_cast<int>(refnum)
-                      << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        uint16_t mark = static_cast<uint16_t>(entry->mark & 0xFFFF);
-        bus.write(mark_ptr, static_cast<uint8_t>(mark & 0xFF));
-        bus.write(static_cast<uint16_t>(mark_ptr + 1), static_cast<uint8_t>((mark >> 8) & 0xFF));
-        set_success(cpu);
-        return_to_caller();
-        return true;
-    }
-
-    // Implement GET_EOF ($D1)
-    if (call_num == 0xD1) {
-        if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_EOF ($D1): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        uint8_t refnum = mem[param_list + 1];
-        uint16_t eof_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        if (eof_ptr + 1 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_EOF ($D1): eof_ptr + 1 >= MEMORY_SIZE (eof_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << eof_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        FileEntry *entry = get_refnum(refnum);
-        if (!entry) {
-            std::cerr << "GET_EOF ($D1): invalid refnum (" << std::dec << static_cast<int>(refnum)
-                      << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        uint16_t eof_val = static_cast<uint16_t>(entry->file_size & 0xFFFF);
-        bus.write(eof_ptr, static_cast<uint8_t>(eof_val & 0xFF));
-        bus.write(static_cast<uint16_t>(eof_ptr + 1), static_cast<uint8_t>((eof_val >> 8) & 0xFF));
         set_success(cpu);
         return_to_caller();
         return true;
@@ -1106,6 +1013,113 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         return true;
     }
 
+    // Implement SET_MARK ($CE)
+    if (call_num == 0xCE) {
+        if (param_list + 3 >= Bus::MEMORY_SIZE) {
+            std::cerr << "SET_MARK ($CE): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
+            std::cerr << "SET_MARK ($CE): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        uint16_t new_mark = read_word_mem(mem, mark_ptr);
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            std::cerr << "SET_MARK ($CE): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        entry->mark = std::min<uint32_t>(new_mark, entry->file_size);
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    // Implement GET_MARK ($CF)
+    if (call_num == 0xCF) {
+        if (param_list + 3 >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_MARK ($CF): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_MARK ($CF): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            std::cerr << "GET_MARK ($CF): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        uint16_t mark = static_cast<uint16_t>(entry->mark & 0xFFFF);
+        bus.write(mark_ptr, static_cast<uint8_t>(mark & 0xFF));
+        bus.write(static_cast<uint16_t>(mark_ptr + 1), static_cast<uint8_t>((mark >> 8) & 0xFF));
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
+    // Implement GET_EOF ($D1)
+    if (call_num == 0xD1) {
+        if (param_list + 3 >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_EOF ($D1): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        uint8_t refnum = mem[param_list + 1];
+        uint16_t eof_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
+        if (eof_ptr + 1 >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_EOF ($D1): eof_ptr + 1 >= MEMORY_SIZE (eof_ptr=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << eof_ptr << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        FileEntry *entry = get_refnum(refnum);
+        if (!entry) {
+            std::cerr << "GET_EOF ($D1): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+        uint16_t eof_val = static_cast<uint16_t>(entry->file_size & 0xFFFF);
+        bus.write(eof_ptr, static_cast<uint8_t>(eof_val & 0xFF));
+        bus.write(static_cast<uint16_t>(eof_ptr + 1), static_cast<uint8_t>((eof_val >> 8) & 0xFF));
+        set_success(cpu);
+        return_to_caller();
+        return true;
+    }
+
     // Implement GET_FILE_INFO ($C4)
     if (call_num == 0xC4) {
         if (param_list + 1 >= Bus::MEMORY_SIZE) {
@@ -1157,22 +1171,12 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         for (uint8_t i = 0; i < path_len; ++i) {
             prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
         }
-
-        if (s_trace_enabled) {
-            std::cout << "GET_FILE_INFO ($C4): ProDOS path=\"" << prodos_path << "\"" << std::endl;
-        }
-
         std::string host_path = prodos_path_to_host(prodos_path);
-
-        if (s_trace_enabled) {
-            std::cout << "GET_FILE_INFO ($C4): Host path=\"" << host_path << "\"" << std::endl;
-        }
 
         std::error_code ec;
         auto file_size = std::filesystem::file_size(host_path, ec);
         if (ec) {
             std::cerr << "GET_FILE_INFO ($C4): file not found: " << host_path
-                      << " (ProDOS: \"" << prodos_path << "\")"
                       << " (error: " << ec.message() << ")" << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
