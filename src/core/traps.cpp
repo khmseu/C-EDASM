@@ -74,19 +74,43 @@ std::string prodos_path_to_host(const std::string &prodos_path) {
     return host.string();
 }
 
+void dump_file_table() {
+    std::cerr << "=== FILE TABLE DUMP ===" << std::endl;
+    for (size_t i = 0; i < s_file_table.size(); ++i) {
+        const auto &entry = s_file_table[i];
+        std::cerr << "  [" << i << "] used=" << entry.used << " fp=" << std::hex
+                  << reinterpret_cast<uintptr_t>(entry.fp) << std::dec << " host_path=\""
+                  << entry.host_path << "\" mark=" << entry.mark << " size=" << entry.file_size
+                  << std::endl;
+    }
+    std::cerr << "=======================\n" << std::endl;
+}
+
 int alloc_refnum() {
     for (size_t i = 1; i < s_file_table.size(); ++i) {
         if (!s_file_table[i].used) {
             return static_cast<int>(i);
         }
     }
+    std::cerr << "alloc_refnum: No free file slots available" << std::endl;
+    dump_file_table();
     return -1;
 }
 
 FileEntry *get_refnum(uint8_t refnum) {
-    if (refnum == 0 || refnum >= s_file_table.size())
+    if (refnum == 0 || refnum >= s_file_table.size()) {
+        std::cerr << "get_refnum: Invalid refnum " << static_cast<int>(refnum)
+                  << " (valid range: 1-" << (s_file_table.size() - 1) << ")" << std::endl;
+        dump_file_table();
         return nullptr;
-    return s_file_table[refnum].used ? &s_file_table[refnum] : nullptr;
+    }
+    if (!s_file_table[refnum].used) {
+        std::cerr << "get_refnum: Refnum " << static_cast<int>(refnum) << " is not in use"
+                  << std::endl;
+        dump_file_table();
+        return nullptr;
+    }
+    return &s_file_table[refnum];
 }
 
 void close_entry(FileEntry &entry) {
@@ -486,7 +510,7 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
         // Check if this is an absolute path (starts with /)
         bool is_absolute = !prodos_path.empty() && prodos_path.front() == '/';
-        
+
         std::string host_path;
         if (is_absolute) {
             // For absolute paths, use the path as-is (it's already a Linux path)
@@ -496,12 +520,13 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             std::string stripped = s_prefix_prodos;
             while (!stripped.empty() && stripped.front() == '/')
                 stripped.erase(stripped.begin());
-            std::filesystem::path host_candidate = std::filesystem::path(current_prefix()) / stripped;
+            std::filesystem::path host_candidate =
+                std::filesystem::path(current_prefix()) / stripped;
             std::error_code ec;
             std::filesystem::path canonical = std::filesystem::weakly_canonical(host_candidate, ec);
             host_path = (ec ? host_candidate : canonical).string();
         }
-        
+
         if (!host_path.empty() && host_path.back() != '/')
             host_path.push_back('/');
         s_prefix_host = host_path;
@@ -721,8 +746,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
         if (data_buffer + request_count > Bus::MEMORY_SIZE) {
             std::cerr << "READ ($CA): buffer overflow (data_buffer=$" << std::hex << std::uppercase
-                      << std::setw(4) << std::setfill('0') << data_buffer << ", request_count="
-                      << std::dec << request_count << ")" << std::endl;
+                      << std::setw(4) << std::setfill('0') << data_buffer
+                      << ", request_count=" << std::dec << request_count << ")" << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
             cpu.A = 0x56; // Bad buffer address
@@ -780,8 +805,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
                   static_cast<uint8_t>((actual_read >> 8) & 0xFF));
 
         if (s_trace_enabled) {
-            std::cout << "READ ($CA): read " << std::dec << actual_read << " bytes, new mark="
-                      << entry->mark << std::endl;
+            std::cout << "READ ($CA): read " << std::dec << actual_read
+                      << " bytes, new mark=" << entry->mark << std::endl;
         }
 
         // Return EOF error only if zero bytes were transferred
@@ -833,8 +858,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
         if (data_buffer + request_count > Bus::MEMORY_SIZE) {
             std::cerr << "WRITE ($CB): buffer overflow (data_buffer=$" << std::hex << std::uppercase
-                      << std::setw(4) << std::setfill('0') << data_buffer << ", request_count="
-                      << std::dec << request_count << ")" << std::endl;
+                      << std::setw(4) << std::setfill('0') << data_buffer
+                      << ", request_count=" << std::dec << request_count << ")" << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
             cpu.A = 0x56; // Bad buffer address
@@ -915,7 +940,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         uint8_t refnum = mem[param_list + 1];
 
         if (s_trace_enabled) {
-            std::cout << "CLOSE ($CC): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
+            std::cout << "CLOSE ($CC): refnum=" << std::dec << static_cast<int>(refnum)
+                      << std::endl;
         }
 
         // Special case: refnum == 0 means close all files at or above current level
@@ -970,7 +996,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         uint8_t refnum = mem[param_list + 1];
 
         if (s_trace_enabled) {
-            std::cout << "FLUSH ($CD): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
+            std::cout << "FLUSH ($CD): refnum=" << std::dec << static_cast<int>(refnum)
+                      << std::endl;
         }
 
         // Special case: refnum == 0 means flush all files at or above current level
