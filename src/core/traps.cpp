@@ -616,8 +616,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
     // Implement OPEN ($C8)
     if (call_num == 0xC8) {
-        if (param_list + 6 >= Bus::MEMORY_SIZE) {
-            std::cerr << "OPEN ($C8): param_list + 6 >= MEMORY_SIZE (param_list=$" << std::hex
+        if (param_list + 5 >= Bus::MEMORY_SIZE) {
+            std::cerr << "OPEN ($C8): param_list + 5 >= MEMORY_SIZE (param_list=$" << std::hex
                       << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
                       << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
@@ -625,15 +625,19 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             return false;
         }
 
+        // ProDOS OPEN parameter list:
+        // +0: param_count = 3
+        // +1-2: pathname (2-byte pointer)
+        // +3-4: io_buffer (2-byte pointer)
+        // +5: ref_num (1-byte result, NOT a pointer)
         uint16_t pathname_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 1));
-        uint16_t refnum_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 3));
-        uint16_t iobuf_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 5));
+        uint16_t iobuf_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 3));
+        uint16_t refnum_addr = static_cast<uint16_t>(param_list + 5);
         (void)iobuf_ptr; // unused for now
 
-        if (pathname_ptr >= Bus::MEMORY_SIZE || refnum_ptr >= Bus::MEMORY_SIZE) {
-            std::cerr << "OPEN ($C8): invalid pointers (pathname_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr
-                      << ", refnum_ptr=$" << std::setw(4) << std::setfill('0') << refnum_ptr << ")"
+        if (pathname_ptr >= Bus::MEMORY_SIZE) {
+            std::cerr << "OPEN ($C8): invalid pathname_ptr ($" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr << ")"
                       << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
@@ -696,8 +700,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         entry.mark = 0;
         entry.file_size = static_cast<uint32_t>(file_size);
 
-        // Write refnum back to caller's parameter
-        bus.write(refnum_ptr, static_cast<uint8_t>(ref));
+        // Write refnum to result field in parameter list
+        bus.write(refnum_addr, static_cast<uint8_t>(ref));
 
         if (s_trace_enabled) {
             std::cout << "OPEN ($C8): opened " << host_path << " as refnum " << ref
