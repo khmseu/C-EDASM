@@ -16,6 +16,10 @@ class TrapManager {
   public:
     TrapManager();
 
+    // Set trace mode (enables detailed logging)
+    static void set_trace(bool enabled);
+    static bool is_trace_enabled();
+
     // Install a specific trap handler for a given address
     static void install_address_handler(uint16_t address, TrapHandler handler);
 
@@ -57,6 +61,9 @@ class TrapManager {
 
     // Registry of address-specific trap handlers
     static std::map<uint16_t, TrapHandler> &get_handler_registry();
+
+    // Trace mode flag
+    static bool s_trace_enabled;
 };
 
 } // namespace edasm

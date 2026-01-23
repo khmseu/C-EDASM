@@ -12,6 +12,17 @@
 
 namespace edasm {
 
+// Static trace flag
+bool TrapManager::s_trace_enabled = false;
+
+void TrapManager::set_trace(bool enabled) {
+    s_trace_enabled = enabled;
+}
+
+bool TrapManager::is_trace_enabled() {
+    return s_trace_enabled;
+}
+
 TrapManager::TrapManager() {}
 
 std::map<uint16_t, TrapHandler> &TrapManager::get_handler_registry() {
@@ -162,10 +173,12 @@ bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename)
 
 bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
     // This handler is only called for $BF00
-    std::cout << std::endl;
-    std::cout << "=== PRODOS MLI CALL DETECTED at PC=$BF00 ===" << std::endl;
-    std::cout << dump_cpu_state(cpu) << std::endl;
-    std::cout << std::endl;
+    if (s_trace_enabled) {
+        std::cout << std::endl;
+        std::cout << "=== PRODOS MLI CALL DETECTED at PC=$BF00 ===" << std::endl;
+        std::cout << dump_cpu_state(cpu) << std::endl;
+        std::cout << std::endl;
+    }
 
     // When JSR $BF00 is executed, the return address-1 is pushed onto the stack
     // Stack pointer points to the next free location, so:
@@ -187,16 +200,19 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     uint8_t ret_hi = mem[stack_base + sp + 2];
     uint16_t ret_addr = (ret_hi << 8) | ret_lo;
 
-    std::cout << "Stack Analysis:" << std::endl;
-    std::cout << "  SP=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-              << static_cast<int>(sp) << std::endl;
-    std::cout << "  Return address on stack: $" << std::setw(4) << ret_addr << std::endl;
-
     // The actual return point is +1 from what's on the stack
     uint16_t call_site = ret_addr + 1;
-    std::cout << "  JSR call site: $" << std::setw(4) << (call_site - 3) << std::endl;
-    std::cout << "  Parameters start at: $" << std::setw(4) << call_site << std::endl;
-    std::cout << std::endl;
+
+    if (s_trace_enabled) {
+        std::cout << "Stack Analysis:" << std::endl;
+        std::cout << "  SP=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+                  << static_cast<int>(sp) << std::endl;
+        std::cout << "  Return address on stack: $" << std::setw(4) << ret_addr << std::endl;
+
+        std::cout << "  JSR call site: $" << std::setw(4) << (call_site - 3) << std::endl;
+        std::cout << "  Parameters start at: $" << std::setw(4) << call_site << std::endl;
+        std::cout << std::endl;
+    }
 
     // Read MLI call parameters
     uint8_t call_num = mem[call_site];
@@ -204,20 +220,23 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     uint8_t param_hi = mem[call_site + 2];
     uint16_t param_list = (param_hi << 8) | param_lo;
 
-    std::cout << "MLI Call Information:" << std::endl;
-    std::cout << "  Command number: $" << std::setw(2) << static_cast<int>(call_num) << " ("
-              << decode_prodos_call(call_num) << ")" << std::endl;
-    std::cout << "  Parameter list pointer: $" << std::setw(4) << param_list << std::endl;
+    if (s_trace_enabled) {
+        std::cout << "MLI Call Information:" << std::endl;
+        std::cout << "  Command number: $" << std::setw(2) << static_cast<int>(call_num) << " ("
+                  << decode_prodos_call(call_num) << ")" << std::endl;
+        std::cout << "  Parameter list pointer: $" << std::setw(4) << param_list << std::endl;
 
-    // Show memory around call site for debugging
-    std::cout << "  Memory at call site ($" << std::setw(4) << (call_site - 3) << "):" << std::endl;
-    std::cout << "    ";
-    for (int i = -3; i <= 5; ++i) {
-        std::cout << std::setw(2) << static_cast<int>(mem[call_site + i]) << " ";
+        // Show memory around call site for debugging
+        std::cout << "  Memory at call site ($" << std::setw(4) << (call_site - 3)
+                  << "):" << std::endl;
+        std::cout << "    ";
+        for (int i = -3; i <= 5; ++i) {
+            std::cout << std::setw(2) << static_cast<int>(mem[call_site + i]) << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "    JSR ^ CM  PL  PH  --  --  --" << std::endl;
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
-    std::cout << "    JSR ^ CM  PL  PH  --  --  --" << std::endl;
-    std::cout << std::endl;
 
     // Fast-path for GET_TIME ($82): no parameter list, write to $BF90-$BF93 and return success
     if (call_num == 0x82) {
@@ -246,12 +265,14 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         bus.write(0xBF93, hour);
         bus.write(0xBF92, minute);
 
-        std::cout << "GET_TIME: wrote date/time to $BF90-$BF93" << std::endl;
-        std::cout << "  Year (since 1900): " << std::dec << static_cast<int>(year) << std::endl;
-        std::cout << "  Month: " << static_cast<int>(month) << std::endl;
-        std::cout << "  Day: " << static_cast<int>(day) << std::endl;
-        std::cout << "  Hour: " << static_cast<int>(hour) << std::endl;
-        std::cout << "  Minute: " << static_cast<int>(minute) << std::endl;
+        if (s_trace_enabled) {
+            std::cout << "GET_TIME: wrote date/time to $BF90-$BF93" << std::endl;
+            std::cout << "  Year (since 1900): " << std::dec << static_cast<int>(year) << std::endl;
+            std::cout << "  Month: " << static_cast<int>(month) << std::endl;
+            std::cout << "  Day: " << static_cast<int>(day) << std::endl;
+            std::cout << "  Hour: " << static_cast<int>(hour) << std::endl;
+            std::cout << "  Minute: " << static_cast<int>(minute) << std::endl;
+        }
 
         // ProDOS successful return: C clear, A=0, Z set, return to caller (JSR+3) and unwind stack
         cpu.A = 0;
@@ -296,8 +317,10 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             return false;
         }
 
-        std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << buf_ptr << std::endl;
+        if (s_trace_enabled) {
+            std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
+                      << std::setfill('0') << buf_ptr << std::endl;
+        }
 
         // Get current working directory
         char cwd_buf[PATH_MAX] = {0};
@@ -324,9 +347,11 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         // Write length byte followed by prefix string (with high bits cleared)
         uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
         bus.write(buf_ptr, prefix_len);
-        std::cout << "GET_PREFIX: writing prefix length=" << std::dec
-                  << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
-                  << std::endl;
+        if (s_trace_enabled) {
+            std::cout << "GET_PREFIX: writing prefix length=" << std::dec
+                      << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
+                      << std::endl;
+        }
 
         for (size_t i = 0; i < prefix_str.length(); ++i) {
             uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F; // Clear high bit
@@ -401,6 +426,7 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         }
     }
 
+    // Log unimplemented calls (or all calls if trace is enabled)
     std::cout << std::endl;
     std::cout << "=== HALTING - ProDOS MLI not implemented ===" << std::endl;
 

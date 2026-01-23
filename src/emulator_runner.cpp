@@ -96,6 +96,7 @@ int main(int argc, char *argv[]) {
               << std::setfill('0') << entry_point << std::endl;
 
     // Install general trap handler with ProDOS MLI handler at $BF00
+    TrapManager::set_trace(trace);
     TrapManager::install_address_handler(0xBF00, TrapManager::prodos_mli_trap_handler);
     TrapManager::install_address_handler(0xFE84, TrapManager::monitor_setnorm_trap_handler);
     cpu.set_trap_handler(TrapManager::general_trap_handler);
