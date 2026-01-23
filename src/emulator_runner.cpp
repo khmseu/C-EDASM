@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     // Parse command line
     std::string binary_path = "third_party/EdAsm/EDASM.SYSTEM";
     uint16_t load_addr = 0x2000;
-    uint16_t entry_point = 0x2000;
+    uint16_t entry_point = 0x0000; // will follow hardware reset vector
     size_t max_instructions = 1000;
     bool trace = false;
 
@@ -58,6 +58,13 @@ int main(int argc, char *argv[]) {
     // Reset bus (fills with trap opcode)
     bus.reset();
 
+    // Initialize monitor soft-entry vectors as requested
+    // SOFTEV ($03F2) = 0x00, SOFTEV+1 ($03F3) = 0x20
+    // PWREDUP ($03F4) = $20 XOR $A5
+    bus.write(0x03F2, 0x00);
+    bus.write(0x03F3, 0x20);
+    bus.write(0x03F4, static_cast<uint8_t>(0x20 ^ 0xA5));
+
     // Load monitor ROM into upper 8KB
     const uint16_t rom_base = 0xF800;
     const std::string rom_path =
@@ -90,10 +97,11 @@ int main(int argc, char *argv[]) {
         std::cout << "  Binary loaded successfully" << std::endl;
     }
 
-    // Set entry point
-    cpu.state().PC = entry_point;
-    std::cout << "  Entry point: $" << std::hex << std::uppercase << std::setw(4)
-              << std::setfill('0') << entry_point << std::endl;
+    // Set entry point from 6502 hardware reset vector at $FFFC/$FFFD
+    uint16_t reset_vec = bus.read_word(0xFFFC);
+    cpu.state().PC = reset_vec;
+    std::cout << "  Entry point (reset vector): $" << std::hex << std::uppercase << std::setw(4)
+              << std::setfill('0') << reset_vec << std::endl;
 
     // Install general trap handler with ProDOS MLI handler at $BF00
     TrapManager::set_trace(trace);
