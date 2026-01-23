@@ -447,23 +447,32 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     // Implement SET_PREFIX ($C6)
     if (call_num == 0xC6) {
         if (param_list + 2 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "SET_PREFIX ($C6): param_list + 2 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         uint16_t pathname_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 1));
         if (pathname_ptr >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "SET_PREFIX ($C6): pathname_ptr >= MEMORY_SIZE (pathname_ptr=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         uint8_t path_len = mem[pathname_ptr];
         if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "SET_PREFIX ($C6): invalid path_len (path_len=" << std::dec
+                      << static_cast<int>(path_len) << ", pathname_ptr=$" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << pathname_ptr << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         std::string prodos_path;
@@ -571,9 +580,12 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     // Implement OPEN ($C8)
     if (call_num == 0xC8) {
         if (param_list + 6 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "OPEN ($C8): param_list + 6 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         uint16_t pathname_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 1));
@@ -582,16 +594,22 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         (void)iobuf_ptr; // unused for now
 
         if (pathname_ptr >= Bus::MEMORY_SIZE || refnum_ptr >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "OPEN ($C8): invalid pointers (pathname_ptr=$" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << pathname_ptr << ", refnum_ptr=$"
+                      << std::setw(4) << std::setfill('0') << refnum_ptr << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         uint8_t path_len = mem[pathname_ptr];
         if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "OPEN ($C8): invalid path_len (path_len=" << std::dec
+                      << static_cast<int>(path_len) << ", pathname_ptr=$" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << pathname_ptr << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         std::string prodos_path;
@@ -604,37 +622,48 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
         int ref = alloc_refnum();
         if (ref < 0) {
-            set_error(cpu, ERR_TOO_MANY_FILES);
-            return_to_caller();
-            return true;
+            std::cerr << "OPEN ($C8): too many files open (ERR_TOO_MANY_FILES)" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         FILE *fp = std::fopen(host_path.c_str(), "rb");
         if (!fp) {
-            set_error(cpu, ERR_FILE_NOT_FOUND);
-            return_to_caller();
-            return true;
+            std::cerr << "OPEN ($C8): file not found: " << host_path << " (ERR_FILE_NOT_FOUND)"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         if (call_num == 0xC7) {
             if (!(param_list >= 0x0200 && param_list < 0xFFFF)) {
-                set_error(cpu, ERR_ILLEGAL_PARAM);
-                return_to_caller();
-                return true;
+                std::cerr << "GET_PREFIX ($C7): invalid param_list address ($" << std::hex
+                          << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                          << std::endl;
+                write_memory_dump(bus, "memory_dump.bin");
+                log_call_details("error");
+                return false;
             }
 
             uint8_t param_count = mem[param_list];
             if (param_count < 1) {
-                set_error(cpu, ERR_ILLEGAL_PARAM);
-                return_to_caller();
-                return true;
+                std::cerr << "GET_PREFIX ($C7): param_count < 1 (" << std::dec
+                          << static_cast<int>(param_count) << ")" << std::endl;
+                write_memory_dump(bus, "memory_dump.bin");
+                log_call_details("error");
+                return false;
             }
 
             uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
             if (buf_ptr >= Bus::MEMORY_SIZE) {
-                set_error(cpu, ERR_ILLEGAL_PARAM);
-                return_to_caller();
-                return true;
+                std::cerr << "GET_PREFIX ($C7): buf_ptr >= MEMORY_SIZE (buf_ptr=$" << std::hex
+                          << std::uppercase << std::setw(4) << std::setfill('0') << buf_ptr << ")"
+                          << std::endl;
+                write_memory_dump(bus, "memory_dump.bin");
+                log_call_details("error");
+                return false;
             }
 
             if (s_trace_enabled) {
@@ -644,9 +673,11 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
             std::string prefix_str = s_prefix_prodos;
             if (prefix_str.length() > 64) {
-                set_error(cpu, ERR_ILLEGAL_PARAM);
-                return_to_caller();
-                return true;
+                std::cerr << "GET_PREFIX ($C7): prefix too long (" << std::dec << prefix_str.length()
+                          << " chars exceeds 64 byte limit)" << std::endl;
+                write_memory_dump(bus, "memory_dump.bin");
+                log_call_details("error");
+                return false;
             }
 
             uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
@@ -673,23 +704,31 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     // Implement SET_MARK ($CE)
     if (call_num == 0xCE) {
         if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "SET_MARK ($CE): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         uint8_t refnum = mem[param_list + 1];
         uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
         if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "SET_MARK ($CE): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         uint16_t new_mark = read_word_mem(mem, mark_ptr);
         FileEntry *entry = get_refnum(refnum);
         if (!entry) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "SET_MARK ($CE): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         entry->mark = std::min<uint32_t>(new_mark, entry->file_size);
         set_success(cpu);
@@ -700,22 +739,30 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     // Implement GET_MARK ($CF)
     if (call_num == 0xCF) {
         if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_MARK ($CF): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         uint8_t refnum = mem[param_list + 1];
         uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
         if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_MARK ($CF): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         FileEntry *entry = get_refnum(refnum);
         if (!entry) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_MARK ($CF): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         uint16_t mark = static_cast<uint16_t>(entry->mark & 0xFFFF);
         bus.write(mark_ptr, static_cast<uint8_t>(mark & 0xFF));
@@ -728,22 +775,30 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     // Implement GET_EOF ($D1)
     if (call_num == 0xD1) {
         if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_EOF ($D1): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         uint8_t refnum = mem[param_list + 1];
         uint16_t eof_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
         if (eof_ptr + 1 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_EOF ($D1): eof_ptr + 1 >= MEMORY_SIZE (eof_ptr=$" << std::hex
+                      << std::uppercase << std::setw(4) << std::setfill('0') << eof_ptr << ")"
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         FileEntry *entry = get_refnum(refnum);
         if (!entry) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_EOF ($D1): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         uint16_t eof_val = static_cast<uint16_t>(entry->file_size & 0xFFFF);
         bus.write(eof_ptr, static_cast<uint8_t>(eof_val & 0xFF));
@@ -756,16 +811,22 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
     // Implement GET_FILE_INFO ($C4)
     if (call_num == 0xC4) {
         if (param_list + 1 >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_FILE_INFO ($C4): param_list + 1 >= MEMORY_SIZE (param_list=$"
+                      << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << param_list
+                      << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         uint8_t pcount = mem[param_list];
         if (pcount < 1 || param_list + (pcount * 2) >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_FILE_INFO ($C4): invalid pcount (" << std::dec
+                      << static_cast<int>(pcount) << ", param_list=$" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << param_list << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         std::vector<uint16_t> params;
@@ -776,15 +837,21 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
         uint16_t pathname_ptr = params[0];
         if (pathname_ptr >= Bus::MEMORY_SIZE) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_FILE_INFO ($C4): pathname_ptr >= MEMORY_SIZE (pathname_ptr=$"
+                      << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
+                      << pathname_ptr << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         uint8_t path_len = mem[pathname_ptr];
         if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
-            set_error(cpu, ERR_ILLEGAL_PARAM);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_FILE_INFO ($C4): invalid path_len (path_len=" << std::dec
+                      << static_cast<int>(path_len) << ", pathname_ptr=$" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << pathname_ptr << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
         std::string prodos_path;
         prodos_path.reserve(path_len);
@@ -796,9 +863,11 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         std::error_code ec;
         auto file_size = std::filesystem::file_size(host_path, ec);
         if (ec) {
-            set_error(cpu, ERR_FILE_NOT_FOUND);
-            return_to_caller();
-            return true;
+            std::cerr << "GET_FILE_INFO ($C4): file not found: " << host_path << " (error: "
+                      << ec.message() << ")" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
         }
 
         uint32_t size32 = static_cast<uint32_t>(file_size);
