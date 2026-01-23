@@ -2,11 +2,118 @@
 #include "edasm/cpu.hpp"
 #include "edasm/host_shims.hpp"
 #include "edasm/traps.hpp"
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 using namespace edasm;
+
+namespace {
+
+// Minimal 6502 instruction length table: 1-byte implied/accumulator, 3-byte absolute/JMP, else
+// 2-byte
+size_t guess_instruction_length(uint8_t opcode) {
+    switch (opcode) {
+    // Implied/accumulator (1 byte)
+    case 0x00: // BRK
+    case 0x08: // PHP
+    case 0x0A: // ASL A
+    case 0x18: // CLC
+    case 0x28: // PLP
+    case 0x2A: // ROL A
+    case 0x38: // SEC
+    case 0x40: // RTI
+    case 0x48: // PHA
+    case 0x4A: // LSR A
+    case 0x58: // CLI
+    case 0x60: // RTS
+    case 0x68: // PLA
+    case 0x6A: // ROR A
+    case 0x78: // SEI
+    case 0x88: // DEY
+    case 0x8A: // TXA
+    case 0x98: // TYA
+    case 0x9A: // TXS
+    case 0xA8: // TAY
+    case 0xAA: // TAX
+    case 0xB8: // CLV
+    case 0xBA: // TSX
+    case 0xC8: // INY
+    case 0xCA: // DEX
+    case 0xD8: // CLD
+    case 0xE8: // INX
+    case 0xEA: // NOP
+    case 0xF8: // SED
+        return 1;
+
+    // Absolute/absolute indexed/JMP (3 bytes)
+    case 0x0D:
+    case 0x0E:
+    case 0x1D:
+    case 0x1E:
+    case 0x20: // JSR
+    case 0x2C:
+    case 0x2D:
+    case 0x2E:
+    case 0x3D:
+    case 0x3E:
+    case 0x4C: // JMP abs
+    case 0x4D:
+    case 0x4E:
+    case 0x5D:
+    case 0x5E:
+    case 0x6C: // JMP (abs)
+    case 0x6D:
+    case 0x6E:
+    case 0x7D:
+    case 0x7E:
+    case 0x8C:
+    case 0x8D:
+    case 0x8E:
+    case 0x9D:
+    case 0xAC:
+    case 0xAD:
+    case 0xAE:
+    case 0xBC:
+    case 0xBD:
+    case 0xBE:
+    case 0xCC:
+    case 0xCD:
+    case 0xCE:
+    case 0xEC:
+    case 0xED:
+    case 0xEE:
+    case 0xFD:
+    case 0xFE:
+        return 3;
+
+    default:
+        return 2; // Immediate/zero page/branch, and unknowns fallback to 2-byte view
+    }
+}
+
+std::string format_disassembly(const Bus &bus, uint16_t pc) {
+    const uint8_t *mem = bus.data();
+    uint8_t opcode = mem[pc];
+    size_t length = guess_instruction_length(opcode);
+
+    std::ostringstream oss;
+    oss << "PC=$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << pc
+        << "  OP=" << std::setw(2) << static_cast<int>(opcode) << "  bytes:";
+
+    // Clamp to a short preview window to keep logs compact
+    size_t preview_len = std::min<size_t>(length, 3);
+    for (size_t i = 0; i < preview_len; ++i) {
+        oss << ' ' << std::setw(2) << static_cast<int>(mem[pc + static_cast<uint16_t>(i)]);
+    }
+
+    oss << "  (len~" << length << ")";
+    return oss.str();
+}
+
+} // namespace
 
 int main(int argc, char *argv[]) {
     std::cout << "C-EDASM Minimal Emulator" << std::endl;
@@ -126,11 +233,12 @@ int main(int argc, char *argv[]) {
         if (trace) {
             std::cout << "[" << std::dec << count << "] "
                       << TrapManager::dump_cpu_state(cpu.state()) << std::endl;
+            std::cout << "    " << format_disassembly(bus, cpu.state().PC) << std::endl;
         }
 
         running = cpu.step();
         count++;
-        
+
         // Check if HostShims requested a stop (e.g., first screen char is 'E')
         if (shims.should_stop()) {
             std::cout << "\nEmulator stopped by HostShims (first screen char is 'E')" << std::endl;

@@ -1,4 +1,5 @@
 #include "edasm/host_shims.hpp"
+#include "edasm/traps.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -29,19 +30,24 @@ void HostShims::install_io_traps(Bus &bus) {
     bus.set_write_trap_range(0x0400, 0x07FF, [this](uint16_t addr, uint8_t value) {
         // Mark screen as dirty but allow normal write to proceed
         screen_dirty_ = true;
-        
+
         // Check if writing to first character position ($0400)
         // Strip high bit and check for 'E' (handles normal, inverse, and flashing text)
         if (addr == 0x0400) {
             // Check for 'E' by masking high bit (handles all Apple II text modes)
             char ch = static_cast<char>(value & 0x7F);
             if (ch == 'E' || ch == 'e') {
-                std::cout << "\n[HostShims] First screen character set to 'E' - logging and stopping\n" << std::endl;
+                std::cout
+                    << "\n[HostShims] First screen character set to 'E' - logging and stopping\n"
+                    << std::endl;
                 log_text_screen();
+                if (bus_) {
+                    TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
+                }
                 stop_requested_ = true;
             }
         }
-        
+
         return false;
     });
 }
