@@ -96,6 +96,7 @@ Tables: `src/files/prodos_file.cpp` and `include/edasm/files/prodos_file.hpp`
 - **docs/VERIFICATION_QUICK_REF.md**: One-page quick reference for feature verification
 - **docs/VERIFICATION_INDEX.md**: Feature-by-feature lookup with EDASM.SRC cross-references
 - **docs/MISSING_FEATURES.md**: Explicit list of features NOT ported (BCD line numbers, MACLIB, etc.)
+- **docs/Apple ProDOS 8 Technical Reference Manual.txt**: Authoritative reference for ProDOS filesystem, file types, and disk operations. Use for all ProDOS path, file, and disk behavior questions.
 
 ### Implementation Guides
 
@@ -133,6 +134,8 @@ Tables: `src/files/prodos_file.cpp` and `include/edasm/files/prodos_file.hpp`
 - Trap-first discovery: memory prefilled with trap opcode ($02)
 - 847 instructions executed before hitting ProDOS MLI trap
 - See `docs/EMULATOR_MINIMAL_PLAN.md` for design
+- **ProDOS path mapping:** For the new emulator ([src/emulator_runner.cpp](src/emulator_runner.cpp)), ProDOS paths and Linux paths are expected to be 1:1 identical. The ProDOS prefix is mapped to the Linux current directory. See [docs/Apple ProDOS 8 Technical Reference Manual.txt](docs/Apple%20ProDOS%208%20Technical%20Reference%20Manual.txt) for authoritative details on ProDOS path semantics.
+- **Testing the emulator:** Use [scripts/run_emulator_runner.sh](scripts/run_emulator_runner.sh) to build, set up a test directory, and run the emulator. This script ensures a clean environment and produces [EDASM.TEST/emulator_runner.log](EDASM.TEST/emulator_runner.log) for trace/debug output.
 
 ## Common Pitfalls
 
