@@ -39,7 +39,7 @@ static const OpcodeInfo opcode_table[256] = {
     // 0x00-0x0F
     {"BRK", 1, OpcodeInfo::Implied},
     {"ORA", 2, OpcodeInfo::IndexedIndirect},
-    {"???", 1, OpcodeInfo::Implied},
+    {"CALL_TRAP", 1, OpcodeInfo::Implied},
     {"???", 1, OpcodeInfo::Implied},
     {"???", 1, OpcodeInfo::Implied},
     {"ORA", 2, OpcodeInfo::ZeroPage},
