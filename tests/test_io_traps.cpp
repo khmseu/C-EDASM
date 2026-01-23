@@ -160,6 +160,53 @@ bool test_text_screen_logging() {
     return true;
 }
 
+// Test stop on 'E' character at first screen position
+bool test_stop_on_e_character() {
+    Bus bus;
+    HostShims shims;
+
+    shims.install_io_traps(bus);
+
+    // Capture stdout
+    std::ostringstream oss;
+    std::streambuf *old_buf = std::cout.rdbuf(oss.rdbuf());
+
+    // Write 'A' to first position - should not stop
+    bus.write(0x0400, 'A');
+    std::cout.rdbuf(old_buf);
+    
+    if (shims.should_stop()) {
+        std::cerr << "Unexpected stop after writing 'A' to first screen position" << std::endl;
+        return false;
+    }
+
+    // Now write 'E' to first position - should log and stop
+    oss.str("");
+    oss.clear();
+    old_buf = std::cout.rdbuf(oss.rdbuf());
+    bus.write(0x0400, 'E');
+    std::cout.rdbuf(old_buf);
+
+    const std::string output = oss.str();
+    
+    if (!shims.should_stop()) {
+        std::cerr << "Expected stop after writing 'E' to first screen position" << std::endl;
+        return false;
+    }
+
+    if (output.find("First screen character set to 'E'") == std::string::npos) {
+        std::cerr << "Expected message about 'E' character in output" << std::endl;
+        return false;
+    }
+
+    if (output.find("Text screen snapshot") == std::string::npos) {
+        std::cerr << "Expected screen log after 'E' written" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 // Test full I/O range coverage
 bool test_full_io_range() {
     Bus bus;
@@ -240,6 +287,10 @@ int main() {
 
     result = test_full_io_range();
     print_test_result("test_full_io_range", result);
+    all_passed = all_passed && result;
+
+    result = test_stop_on_e_character();
+    print_test_result("test_stop_on_e_character", result);
     all_passed = all_passed && result;
 
     std::cout << std::endl;

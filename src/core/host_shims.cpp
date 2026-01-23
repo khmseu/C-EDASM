@@ -11,7 +11,7 @@ constexpr uint16_t KBDSTRB = 0xC010; // Keyboard strobe clear
 
 HostShims::HostShims()
     : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_data_(0), kbd_strobe_(false),
-      text_mode_(true), mixed_mode_(false), page2_(false), hires_(false) {}
+      text_mode_(true), mixed_mode_(false), page2_(false), hires_(false), stop_requested_(false) {}
 
 void HostShims::install_io_traps(Bus &bus) {
     bus_ = &bus;
@@ -29,6 +29,19 @@ void HostShims::install_io_traps(Bus &bus) {
     bus.set_write_trap_range(0x0400, 0x07FF, [this](uint16_t addr, uint8_t value) {
         // Mark screen as dirty but allow normal write to proceed
         screen_dirty_ = true;
+        
+        // Check if writing to first character position ($0400)
+        // and if the value is 'E' (or $C5 in Apple II screen code, or $45 in ASCII with high bit)
+        if (addr == 0x0400) {
+            // Check for 'E' in various forms (ASCII, screen code, inverse)
+            char ch = static_cast<char>(value & 0x7F);
+            if (ch == 'E' || ch == 'e') {
+                std::cout << "\n[HostShims] First screen character set to 'E' - logging and stopping\n" << std::endl;
+                log_text_screen();
+                stop_requested_ = true;
+            }
+        }
+        
         return false;
     });
 }
@@ -310,6 +323,10 @@ void HostShims::log_text_screen() {
     }
 
     std::cout.flush();
+}
+
+bool HostShims::should_stop() const {
+    return stop_requested_;
 }
 
 } // namespace edasm
