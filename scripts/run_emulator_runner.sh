@@ -24,4 +24,4 @@ for i in "${BINARY_PATH}/"*; do
 done
 cd "${TESTDIR}"
 touch EDASM.SWAP
-"${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM "$@" |& tee emulator_runner.log
+"${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM "$@" &> emulator_runner.log
