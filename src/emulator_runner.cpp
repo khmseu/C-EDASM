@@ -58,6 +58,19 @@ int main(int argc, char *argv[]) {
     // Reset bus (fills with trap opcode)
     bus.reset();
 
+    // Load monitor ROM into upper 8KB
+    const uint16_t rom_base = 0xF800;
+    const std::string rom_path =
+        "third_party/artifacts/Apple II plus ROM Pages F8-FF - 341-0020 - Autostart Monitor.bin";
+    std::cout << "  Loading monitor ROM: " << rom_path << std::endl;
+    if (bus.load_binary_from_file(rom_base, rom_path)) {
+        std::cout << "  Monitor ROM mapped at $F800-$FFFF" << std::endl;
+        bus.set_write_trap_range(rom_base, 0xFFFF, [](uint16_t, uint8_t) { return true; });
+        std::cout << "  ROM writes are trapped (read-only region)" << std::endl;
+    } else {
+        std::cerr << "Error: Failed to load monitor ROM from " << rom_path << std::endl;
+    }
+
     // Install host shims
     shims.install_io_traps(bus);
     std::cout << "  I/O traps installed at $C000 (KBD) and $C010 (KBDSTRB)" << std::endl;
