@@ -1046,25 +1046,21 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
     // Implement SET_MARK ($CE)
     if (call_num == 0xCE) {
-        if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            std::cerr << "SET_MARK ($CE): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+        if (param_list + 4 >= Bus::MEMORY_SIZE) {
+            std::cerr << "SET_MARK ($CE): param_list + 4 >= MEMORY_SIZE (param_list=$" << std::hex
                       << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
                       << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
             return false;
         }
+        // ProDOS SET_MARK parameter list:
+        // +0: param_count = 2
+        // +1: ref_num (1-byte value)
+        // +2-4: position (3-byte value, stored directly in parameter list)
         uint8_t refnum = mem[param_list + 1];
-        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
-            std::cerr << "SET_MARK ($CE): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        uint16_t new_mark = read_word_mem(mem, mark_ptr);
+        uint32_t new_mark = mem[param_list + 2] | (mem[param_list + 3] << 8) |
+                            (mem[param_list + 4] << 16);
         FileEntry *entry = get_refnum(refnum);
         if (!entry) {
             std::cerr << "SET_MARK ($CE): invalid refnum (" << std::dec << static_cast<int>(refnum)
@@ -1081,24 +1077,19 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
     // Implement GET_MARK ($CF)
     if (call_num == 0xCF) {
-        if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_MARK ($CF): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+        if (param_list + 4 >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_MARK ($CF): param_list + 4 >= MEMORY_SIZE (param_list=$" << std::hex
                       << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
                       << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
             return false;
         }
+        // ProDOS GET_MARK parameter list:
+        // +0: param_count = 2
+        // +1: ref_num (1-byte value)
+        // +2-4: position (3-byte result, stored directly in parameter list)
         uint8_t refnum = mem[param_list + 1];
-        uint16_t mark_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        if (mark_ptr + 1 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_MARK ($CF): mark_ptr + 1 >= MEMORY_SIZE (mark_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << mark_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
         FileEntry *entry = get_refnum(refnum);
         if (!entry) {
             std::cerr << "GET_MARK ($CF): invalid refnum (" << std::dec << static_cast<int>(refnum)
@@ -1107,9 +1098,10 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             log_call_details("error");
             return false;
         }
-        uint16_t mark = static_cast<uint16_t>(entry->mark & 0xFFFF);
-        bus.write(mark_ptr, static_cast<uint8_t>(mark & 0xFF));
-        bus.write(static_cast<uint16_t>(mark_ptr + 1), static_cast<uint8_t>((mark >> 8) & 0xFF));
+        uint32_t mark = entry->mark;
+        bus.write(static_cast<uint16_t>(param_list + 2), static_cast<uint8_t>(mark & 0xFF));
+        bus.write(static_cast<uint16_t>(param_list + 3), static_cast<uint8_t>((mark >> 8) & 0xFF));
+        bus.write(static_cast<uint16_t>(param_list + 4), static_cast<uint8_t>((mark >> 16) & 0xFF));
         set_success(cpu);
         return_to_caller();
         return true;
@@ -1117,24 +1109,19 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
     // Implement GET_EOF ($D1)
     if (call_num == 0xD1) {
-        if (param_list + 3 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_EOF ($D1): param_list + 3 >= MEMORY_SIZE (param_list=$" << std::hex
+        if (param_list + 4 >= Bus::MEMORY_SIZE) {
+            std::cerr << "GET_EOF ($D1): param_list + 4 >= MEMORY_SIZE (param_list=$" << std::hex
                       << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
                       << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
             return false;
         }
+        // ProDOS GET_EOF parameter list:
+        // +0: param_count = 2
+        // +1: ref_num (1-byte value)
+        // +2-4: EOF (3-byte result, stored directly in parameter list)
         uint8_t refnum = mem[param_list + 1];
-        uint16_t eof_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        if (eof_ptr + 1 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_EOF ($D1): eof_ptr + 1 >= MEMORY_SIZE (eof_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << eof_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
         FileEntry *entry = get_refnum(refnum);
         if (!entry) {
             std::cerr << "GET_EOF ($D1): invalid refnum (" << std::dec << static_cast<int>(refnum)
@@ -1143,9 +1130,10 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
             log_call_details("error");
             return false;
         }
-        uint16_t eof_val = static_cast<uint16_t>(entry->file_size & 0xFFFF);
-        bus.write(eof_ptr, static_cast<uint8_t>(eof_val & 0xFF));
-        bus.write(static_cast<uint16_t>(eof_ptr + 1), static_cast<uint8_t>((eof_val >> 8) & 0xFF));
+        uint32_t eof_val = entry->file_size;
+        bus.write(static_cast<uint16_t>(param_list + 2), static_cast<uint8_t>(eof_val & 0xFF));
+        bus.write(static_cast<uint16_t>(param_list + 3), static_cast<uint8_t>((eof_val >> 8) & 0xFF));
+        bus.write(static_cast<uint16_t>(param_list + 4), static_cast<uint8_t>((eof_val >> 16) & 0xFF));
         set_success(cpu);
         return_to_caller();
         return true;
