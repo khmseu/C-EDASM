@@ -1,4 +1,5 @@
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -13,6 +14,10 @@ Assembler::Result assemble_source(const std::string &source) {
     Assembler assembler;
     Assembler::Options opts;
     return assembler.assemble(source, opts);
+}
+
+void ensure_tmp_dir() {
+    std::filesystem::create_directories("tmp");
 }
 
 // Helper to print errors
@@ -449,6 +454,8 @@ UNUSED  EQU $20
 void test_chn_directive() {
     std::cout << "Testing CHN directive..." << std::endl;
 
+    ensure_tmp_dir();
+
     // Create temporary chain file
     std::ofstream chain_file("tmp/test_chn_chain.src");
     chain_file << "        ; This is the chained file\n";
@@ -488,6 +495,8 @@ START   LDA #$01
 
 void test_chn_from_include_error() {
     std::cout << "Testing CHN from INCLUDE error..." << std::endl;
+
+    ensure_tmp_dir();
 
     // Create a temporary include file with CHN (which should fail)
     std::ofstream temp_include("tmp/test_include_with_chn.src");
