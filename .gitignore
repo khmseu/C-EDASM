@@ -16,3 +16,4 @@ third_party/EdAsm/.git/
 tmp/
 
 .fake
+EDASM.TEST/
