@@ -165,18 +165,18 @@ Pass Rate: 100%
 
 **Tested Programs:**
 
-- tests/test_addr_mode.src (12 bytes)
-- tests/test_directives.src (17 bytes)
-- tests/test_expressions.src (17 bytes)
-- tests/test_hex_add.src (3 bytes)
-- tests/test_module1.src (6 bytes)
-- tests/test_module2.src (6 bytes)
-- tests/test_msb.src (14 bytes)
-- tests/test_msb_debug.src (2 bytes)
-- tests/test_rel.src (12 bytes)
-- tests/test_simple.src (11 bytes)
-- tests/test_simple_expr.src (3 bytes)
-- tests/test_symbol_add.src (3 bytes)
+- tests/fixtures/test_addr_mode.src (12 bytes)
+- tests/fixtures/test_directives.src (17 bytes)
+- tests/fixtures/test_expressions.src (17 bytes)
+- tests/fixtures/test_hex_add.src (3 bytes)
+- tests/fixtures/test_module1.src (6 bytes)
+- tests/fixtures/test_module2.src (6 bytes)
+- tests/fixtures/test_msb.src (14 bytes)
+- tests/fixtures/test_msb_debug.src (2 bytes)
+- tests/fixtures/test_rel.src (12 bytes)
+- tests/fixtures/test_simple.src (11 bytes)
+- tests/fixtures/test_simple_expr.src (3 bytes)
+- tests/fixtures/test_symbol_add.src (3 bytes)
 
 ### 6. Wrapper Scripts ✅
 
@@ -265,7 +265,7 @@ git submodule update --init --recursive
 ./scripts/edasm_test_suite.sh test-cedasm
 
 # Test a single file
-./scripts/edasm_test_suite.sh compare tests/test_simple.src
+./scripts/edasm_test_suite.sh compare tests/fixtures/test_simple.src
 
 # Run emulator tests
 ./scripts/edasm_test_suite.sh emulator-test
@@ -276,7 +276,7 @@ git submodule update --init --recursive
 
 ```bash
 # Compare C-EDASM vs reference implementation
-./scripts/edasm_test_suite.sh compare tests/test_simple.src
+./scripts/edasm_test_suite.sh compare tests/fixtures/test_simple.src
 ```
 
 ### Disk Management
