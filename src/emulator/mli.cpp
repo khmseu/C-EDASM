@@ -1444,9 +1444,27 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         return return_success();
     }
 
+    // Stub handlers for unimplemented calls
+    // Return an error instead of halting
+    const MLICallDescriptor *desc = get_call_descriptor(call_num);
+    if (desc != nullptr) {
+        // We have a descriptor but no implementation yet
+        std::cout << "[MLI STUB] Call $" << std::hex << std::uppercase << std::setw(2) 
+                  << std::setfill('0') << static_cast<int>(call_num) << " (" 
+                  << desc->name << ") not yet implemented" << std::endl;
+        
+        // Return "bad system call number" error for unimplemented calls
+        set_error(cpu, ProDOSError::BAD_CALL_NUMBER);
+        return_to_caller();
+        return true; // Continue execution with error
+    }
+
+    // Unknown call number - this is a real error
     log_call_details("halt");
     std::cout << std::endl;
-    std::cout << "=== HALTING - ProDOS MLI not implemented ===" << std::endl;
+    std::cout << "=== HALTING - ProDOS MLI call $" << std::hex << std::uppercase 
+              << std::setw(2) << std::setfill('0') << static_cast<int>(call_num) 
+              << " unknown ===" << std::endl;
 
     write_memory_dump(bus, "memory_dump.bin");
 

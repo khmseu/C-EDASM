@@ -81,6 +81,16 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+add_executable(test_mli_stubs unit/test_mli_stubs.cpp)
+target_link_libraries(test_mli_stubs PRIVATE edasm)
+target_include_directories(test_mli_stubs PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_mli_stubs
+  COMMAND test_mli_stubs
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ============================================================================
 # Integration Test Cases (using fixture files)
 # ============================================================================
@@ -145,6 +155,6 @@ set_tests_properties(test_asm_rel_module1 test_asm_rel_module2 test_linker_modul
   LABELS "linker"
 )
 
-set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors PROPERTIES
+set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors test_mli_stubs PROPERTIES
   LABELS "unit"
 )
