@@ -1,26 +1,16 @@
 #include "edasm/emulator/traps.hpp"
 #include "edasm/emulator/mli.hpp"
-#include <algorithm>
-#include <array>
-#include <chrono>
 #include <cstdio>
 #include <ctime>
-#include <errno.h>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits.h>
-#include <optional>
 #include <sstream>
 #include <string.h>
-#include <system_error>
 #include <unistd.h>
-#include <vector>
 
 namespace edasm {
-
-
 
 // Static trace flag
 bool TrapManager::s_trace_enabled = false;
@@ -203,6 +193,5 @@ bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t
 
     return true;
 }
-
 
 } // namespace edasm

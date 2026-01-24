@@ -1,6 +1,5 @@
 #include "../include/edasm/emulator/bus.hpp"
 #include "../include/edasm/emulator/cpu.hpp"
-#include "../include/edasm/emulator/traps.hpp"
 #include <cassert>
 #include <iostream>
 

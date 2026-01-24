@@ -19,7 +19,6 @@
 // equivalent functionality with modern data structures and error handling.
 #include "edasm/assembler/linker.hpp"
 
-#include <algorithm>
 #include <fstream>
 #include <sstream>
 

@@ -6,7 +6,6 @@
 #include "edasm/emulator/bus.hpp"
 #include "edasm/emulator/cpu.hpp"
 #include "edasm/emulator/host_shims.hpp"
-#include <iomanip>
 #include <iostream>
 #include <sstream>
 

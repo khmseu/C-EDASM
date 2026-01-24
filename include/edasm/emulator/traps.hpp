@@ -4,10 +4,8 @@
 #include "bus.hpp"
 #include "cpu.hpp"
 #include <cstdint>
-#include <functional>
 #include <map>
 #include <string>
-#include <vector>
 
 namespace edasm {
 

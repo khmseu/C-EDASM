@@ -2,7 +2,6 @@
 #include "edasm/emulator/cpu.hpp"
 #include "edasm/emulator/host_shims.hpp"
 #include "edasm/emulator/traps.hpp"
-#include <algorithm>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>

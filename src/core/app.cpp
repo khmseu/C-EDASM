@@ -36,7 +36,6 @@
 #endif
 
 #include "edasm/assembler/assembler.hpp"
-#include "edasm/constants.hpp"
 #include "edasm/editor/editor.hpp"
 #include "edasm/screen.hpp"
 

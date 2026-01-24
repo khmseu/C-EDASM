@@ -19,7 +19,6 @@
 #include "edasm/assembler/expression.hpp"
 #include "edasm/assembler/symbol_table.hpp"
 
-#include <algorithm>
 #include <cctype>
 
 namespace edasm {

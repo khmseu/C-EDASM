@@ -10,7 +10,6 @@
 #include <iomanip>
 #include <iostream>
 #include <limits.h>
-#include <optional>
 #include <sstream>
 #include <string.h>
 #include <system_error>
@@ -292,53 +291,47 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         std::cout << "    JSR ^ CM  PL  PH  --  --  --" << std::endl;
         std::cout << std::endl;
 
-        if (param_list < Bus::MEMORY_SIZE) {
-            uint8_t param_count = mem[param_list];
-            std::cout << "Parameter List at $" << std::setw(4) << param_list << ":" << std::endl;
-            std::cout << "  Parameter count: " << std::dec << static_cast<int>(param_count)
+        uint8_t param_count = mem[param_list];
+        std::cout << "Parameter List at $" << std::setw(4) << param_list << ":" << std::endl;
+        std::cout << "  Parameter count: " << std::dec << static_cast<int>(param_count)
+                  << std::endl;
+
+        std::cout << "  Parameters (hex):";
+        size_t bytes_to_show = std::min<size_t>(param_count * 2, 24);
+        for (size_t i = 1; i <= bytes_to_show && (param_list + i) < Bus::MEMORY_SIZE; ++i) {
+            if ((i - 1) % 8 == 0)
+                std::cout << std::endl << "    ";
+            std::cout << " " << std::hex << std::setw(2) << std::setfill('0')
+                      << static_cast<int>(mem[param_list + i]);
+        }
+        std::cout << std::endl;
+
+        if (call_num == 0x82 && param_count >= 1 && (param_list + 2) < Bus::MEMORY_SIZE) {
+            std::cout << std::endl << "  GET_TIME call parameters:" << std::endl;
+            std::cout << "    Date/time buffer pointer: $" << std::hex << std::setw(4)
+                      << (mem[param_list + 1] | (mem[param_list + 2] << 8)) << std::endl;
+        } else if (call_num == 0xC0 && (param_list + 2) < Bus::MEMORY_SIZE) {
+            std::cout << std::endl << "  CREATE call parameters:" << std::endl;
+            uint16_t pathname_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
+            std::cout << "    Pathname pointer: $" << std::hex << std::setw(4) << pathname_ptr
                       << std::endl;
 
-            std::cout << "  Parameters (hex):";
-            size_t bytes_to_show = std::min<size_t>(param_count * 2, 24);
-            for (size_t i = 1; i <= bytes_to_show && (param_list + i) < Bus::MEMORY_SIZE; ++i) {
-                if ((i - 1) % 8 == 0)
-                    std::cout << std::endl << "    ";
-                std::cout << " " << std::hex << std::setw(2) << std::setfill('0')
-                          << static_cast<int>(mem[param_list + i]);
+            uint8_t path_len = mem[pathname_ptr];
+            std::cout << "    Pathname length: " << std::dec << static_cast<int>(path_len)
+                      << std::endl;
+            std::cout << "    Pathname: \"";
+            for (int i = 1; i <= path_len && i <= 64 && (pathname_ptr + i) < Bus::MEMORY_SIZE;
+                 ++i) {
+                char c = mem[pathname_ptr + i];
+                std::cout << c;
             }
-            std::cout << std::endl;
-
-            if (call_num == 0x82 && param_count >= 1 && (param_list + 2) < Bus::MEMORY_SIZE) {
-                std::cout << std::endl << "  GET_TIME call parameters:" << std::endl;
-                std::cout << "    Date/time buffer pointer: $" << std::hex << std::setw(4)
-                          << (mem[param_list + 1] | (mem[param_list + 2] << 8)) << std::endl;
-            } else if (call_num == 0xC0 && (param_list + 2) < Bus::MEMORY_SIZE) {
-                std::cout << std::endl << "  CREATE call parameters:" << std::endl;
-                uint16_t pathname_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
-                std::cout << "    Pathname pointer: $" << std::hex << std::setw(4) << pathname_ptr
-                          << std::endl;
-
-                if (pathname_ptr < Bus::MEMORY_SIZE) {
-                    uint8_t path_len = mem[pathname_ptr];
-                    std::cout << "    Pathname length: " << std::dec << static_cast<int>(path_len)
-                              << std::endl;
-                    std::cout << "    Pathname: \"";
-                    for (int i = 1;
-                         i <= path_len && i <= 64 && (pathname_ptr + i) < Bus::MEMORY_SIZE; ++i) {
-                        char c = mem[pathname_ptr + i];
-                        std::cout << c;
-                    }
-                    std::cout << "\"" << std::endl;
-                    std::cout << "    Access: $" << std::hex << std::setw(2)
-                              << static_cast<int>(mem[param_list + 3]) << std::endl;
-                    std::cout << "    File type: $" << std::setw(2)
-                              << static_cast<int>(mem[param_list + 4]) << std::endl;
-                    std::cout << "    Storage type: $" << std::setw(2)
-                              << static_cast<int>(mem[param_list + 6]) << std::endl;
-                }
-            }
-        } else {
-            std::cout << "Parameter list pointer out of range; skipping list dump" << std::endl;
+            std::cout << "\"" << std::endl;
+            std::cout << "    Access: $" << std::hex << std::setw(2)
+                      << static_cast<int>(mem[param_list + 3]) << std::endl;
+            std::cout << "    File type: $" << std::setw(2) << static_cast<int>(mem[param_list + 4])
+                      << std::endl;
+            std::cout << "    Storage type: $" << std::setw(2)
+                      << static_cast<int>(mem[param_list + 6]) << std::endl;
         }
     };
 
@@ -398,14 +391,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
 
         uint16_t pathname_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 1));
-        if (pathname_ptr >= Bus::MEMORY_SIZE) {
-            std::cerr << "SET_PREFIX ($C6): pathname_ptr >= MEMORY_SIZE (pathname_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
 
         uint8_t path_len = mem[pathname_ptr];
         if (pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
@@ -483,13 +468,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
 
         uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
-        if (buf_ptr >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_PREFIX: buffer pointer out of range: $" << std::hex << std::uppercase
-                      << std::setw(4) << std::setfill('0') << buf_ptr << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("halt");
-            return false;
-        }
 
         if (s_trace_enabled) {
             std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
@@ -566,14 +544,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         uint16_t iobuf_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 3));
         uint16_t refnum_addr = static_cast<uint16_t>(param_list + 5);
         (void)iobuf_ptr; // unused for now
-
-        if (pathname_ptr >= Bus::MEMORY_SIZE) {
-            std::cerr << "OPEN ($C8): invalid pathname_ptr ($" << std::hex << std::uppercase
-                      << std::setw(4) << std::setfill('0') << pathname_ptr << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
 
         uint8_t path_len = mem[pathname_ptr];
         if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE) {
@@ -1100,14 +1070,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
 
         uint16_t pathname_ptr = params[0];
-        if (pathname_ptr >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_FILE_INFO ($C4): pathname_ptr >= MEMORY_SIZE (pathname_ptr=$"
-                      << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
-                      << pathname_ptr << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
         uint8_t path_len = mem[pathname_ptr];
         if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
             std::cerr << "GET_FILE_INFO ($C4): invalid path_len (path_len=" << std::dec
@@ -1139,13 +1101,13 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         uint16_t blocks_used = static_cast<uint16_t>((size32 + 511) / 512);
 
         auto write_byte = [&](size_t idx, uint8_t value) {
-            if (idx < params.size() && params[idx] < Bus::MEMORY_SIZE) {
+            if (idx < params.size()) {
                 bus.write(params[idx], value);
             }
         };
 
         auto write_word = [&](size_t idx, uint16_t value) {
-            if (idx < params.size() && params[idx] + 1 < Bus::MEMORY_SIZE) {
+            if (idx < params.size()) {
                 bus.write(params[idx], static_cast<uint8_t>(value & 0xFF));
                 bus.write(static_cast<uint16_t>(params[idx] + 1),
                           static_cast<uint8_t>((value >> 8) & 0xFF));
@@ -1153,7 +1115,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         };
 
         auto write_eof = [&](size_t idx, uint32_t value) {
-            if (idx < params.size() && params[idx] + 2 < Bus::MEMORY_SIZE) {
+            if (idx < params.size()) {
                 bus.write(params[idx], static_cast<uint8_t>(value & 0xFF));
                 bus.write(static_cast<uint16_t>(params[idx] + 1),
                           static_cast<uint8_t>((value >> 8) & 0xFF));

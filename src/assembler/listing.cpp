@@ -19,6 +19,7 @@
 #include "edasm/assembler/listing.hpp"
 
 #include <algorithm>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
 

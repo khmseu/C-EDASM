@@ -1,6 +1,5 @@
 #include "edasm/assembler/assembler.hpp"
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <sstream>
 
