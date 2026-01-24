@@ -209,11 +209,15 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
     bool call_details_logged = false;
     auto log_call_details = [&](const std::string &reason) {
         if (call_details_logged) {
-            std::cout << "Call details already logged, skipping duplicate log." << std::endl;
+            // std::cout << "Call details already logged, skipping duplicate log." << std::endl;
             return;
         }
+        if (reason == "trace") {
+            return; // Skip verbose logging for normal traced calls
+        }
         if (!is_trace_enabled() && reason != "halt") {
-            std::cout << "No logs s_trace_enabled=" << is_trace_enabled() << " reason=" << reason;
+            // std::cout << "No logs s_trace_enabled=" << is_trace_enabled() << " reason=" <<
+            // reason;
             return;
         }
 
@@ -291,6 +295,39 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
     };
 
+    auto log_call_summary = [&]() {
+        if (!is_trace_enabled())
+            return;
+        std::ostringstream oss;
+        oss << "[PRODOS] call=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+            << static_cast<int>(call_num) << " (" << decode_prodos_call(call_num) << ") params=$"
+            << std::setw(4) << param_list;
+
+        // Capture a snapshot of the parameter block (up to 16 bytes)
+        oss << " params_bytes=";
+        size_t max_bytes = std::min<size_t>(16, Bus::MEMORY_SIZE - param_list);
+        oss << "[";
+        for (size_t i = 0; i < max_bytes; ++i) {
+            if (i > 0)
+                oss << ' ';
+            oss << std::hex << std::setw(2) << std::setfill('0')
+                << static_cast<int>(mem[param_list + i]);
+        }
+        oss << "]";
+
+        oss << " A=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+            << static_cast<int>(cpu.A);
+
+        std::cout << oss.str() << std::endl;
+    };
+
+    auto return_success = [&]() -> bool {
+        if (cpu.A == 0) {
+            log_call_summary();
+        }
+        return return_success();
+    };
+
     log_call_details("trace");
 
     if (call_num == 0x82) {
@@ -332,7 +369,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         cpu.SP = static_cast<uint8_t>(cpu.SP + 2);
         cpu.PC = static_cast<uint16_t>((ret_addr + 1) + 3);
 
-        return true;
+        return return_success();
     }
 
     // Implement SET_PREFIX ($C6)
@@ -401,7 +438,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     if (call_num == 0xC7) {
@@ -477,7 +514,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         cpu.SP = static_cast<uint8_t>(cpu.SP + 2);
         cpu.PC = static_cast<uint16_t>((ret_addr + 1) + 3);
 
-        return true;
+        return return_success();
     }
 
     // Implement OPEN ($C8)
@@ -541,7 +578,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x46; // File not found
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         // Get file size
@@ -567,7 +604,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement READ ($CA)
@@ -602,7 +639,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x43; // Invalid reference number
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         if (data_buffer + request_count > Bus::MEMORY_SIZE) {
@@ -614,7 +651,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x56; // Bad buffer address
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         if (!entry->fp) {
@@ -624,7 +661,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x43; // Invalid reference number
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         // Seek to current mark position
@@ -635,7 +672,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x27; // I/O error
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         // Read from file
@@ -679,7 +716,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
 
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement WRITE ($CB)
@@ -714,7 +751,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x43; // Invalid reference number
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         if (data_buffer + request_count > Bus::MEMORY_SIZE) {
@@ -726,7 +763,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x56; // Bad buffer address
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         if (!entry->fp) {
@@ -736,7 +773,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x43; // Invalid reference number
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         // Seek to current mark position
@@ -747,7 +784,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x27; // I/O error
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         // Read from memory and write to file
@@ -784,7 +821,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
 
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement CLOSE ($CC)
@@ -818,7 +855,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             }
             set_success(cpu);
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         FileEntry *entry = get_refnum(refnum);
@@ -830,7 +867,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x43; // Invalid reference number
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         if (is_trace_enabled()) {
@@ -840,7 +877,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         close_entry(*entry);
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement FLUSH ($CD)
@@ -873,7 +910,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             }
             set_success(cpu);
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         FileEntry *entry = get_refnum(refnum);
@@ -885,7 +922,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             cpu.A = 0x43; // Invalid reference number
             cpu.P |= StatusFlags::C;
             return_to_caller();
-            return true;
+            return return_success();
         }
 
         if (entry->fp) {
@@ -898,7 +935,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement SET_MARK ($CE)
@@ -929,7 +966,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         entry->mark = std::min<uint32_t>(new_mark, entry->file_size);
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement GET_MARK ($CF)
@@ -961,7 +998,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         bus.write(static_cast<uint16_t>(param_list + 4), static_cast<uint8_t>((mark >> 16) & 0xFF));
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement GET_EOF ($D1)
@@ -995,7 +1032,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                   static_cast<uint8_t>((eof_val >> 16) & 0xFF));
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     // Implement GET_FILE_INFO ($C4)
@@ -1094,7 +1131,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         set_success(cpu);
         return_to_caller();
-        return true;
+        return return_success();
     }
 
     log_call_details("halt");
