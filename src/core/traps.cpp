@@ -68,9 +68,10 @@ std::string prodos_path_to_host(const std::string &prodos_path) {
         clean.erase(clean.begin());
     }
 
-    std::filesystem::path base =
-        absolute ? std::filesystem::path(current_prefix()) : std::filesystem::path(s_prefix_host);
-    std::filesystem::path host = base / clean;
+    // 1:1 mapping policy: absolute ProDOS paths map to Linux absolute paths,
+    // relative ProDOS paths are resolved against the Linux current directory.
+    std::filesystem::path host = absolute ? (std::filesystem::path("/") / clean)
+                                          : (std::filesystem::path(current_prefix()) / clean);
     return host.string();
 }
 
@@ -490,7 +491,7 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         }
 
         uint8_t path_len = mem[pathname_ptr];
-        if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
+        if (pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
             std::cerr << "SET_PREFIX ($C6): invalid path_len (path_len=" << std::dec
                       << static_cast<int>(path_len) << ", pathname_ptr=$" << std::hex
                       << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr << ")"
@@ -501,35 +502,44 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         }
 
         std::string prodos_path;
-        prodos_path.reserve(path_len);
-        for (uint8_t i = 0; i < path_len; ++i) {
-            prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
-        }
-
-        s_prefix_prodos = normalize_prodos_path(prodos_path);
-
-        // Check if this is an absolute path (starts with /)
-        bool is_absolute = !prodos_path.empty() && prodos_path.front() == '/';
-
-        std::string host_path;
-        if (is_absolute) {
-            // For absolute paths, use the path as-is (it's already a Linux path)
-            host_path = prodos_path;
+        if (path_len == 0) {
+            prodos_path = "/";
         } else {
-            // For relative paths, resolve relative to current prefix
-            std::string stripped = s_prefix_prodos;
-            while (!stripped.empty() && stripped.front() == '/')
-                stripped.erase(stripped.begin());
-            std::filesystem::path host_candidate =
-                std::filesystem::path(current_prefix()) / stripped;
-            std::error_code ec;
-            std::filesystem::path canonical = std::filesystem::weakly_canonical(host_candidate, ec);
-            host_path = (ec ? host_candidate : canonical).string();
+            prodos_path.reserve(path_len);
+            for (uint8_t i = 0; i < path_len; ++i) {
+                prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
+            }
         }
 
-        if (!host_path.empty() && host_path.back() != '/')
-            host_path.push_back('/');
-        s_prefix_host = host_path;
+        // 1:1 mapping policy: use the ProDOS path directly for chdir.
+        // If relative, OS will resolve relative to current CWD, matching prefix semantics.
+        std::filesystem::path target = prodos_path;
+
+        // Verify the directory exists (absolute or relative) before accepting it.
+        std::error_code ec;
+        std::filesystem::path canonical = std::filesystem::weakly_canonical(target, ec);
+        std::filesystem::path verify =
+            ec ? (std::filesystem::path(current_prefix()) / target) : canonical;
+        if (!std::filesystem::is_directory(verify)) {
+            std::cerr << "SET_PREFIX ($C6): directory does not exist: " << verify.string()
+                      << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+
+        // Attempt to change the Linux current directory.
+        if (::chdir(target.c_str()) != 0) {
+            std::cerr << "SET_PREFIX ($C6): chdir failed: " << ::strerror(errno) << " (path='"
+                      << target.string() << "')" << std::endl;
+            write_memory_dump(bus, "memory_dump.bin");
+            log_call_details("error");
+            return false;
+        }
+
+        // Update internal mirrors after chdir succeeds.
+        s_prefix_host = current_prefix();
+        s_prefix_prodos = normalize_prodos_path(s_prefix_host);
 
         set_success(cpu);
         return_to_caller();
@@ -578,7 +588,12 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         }
 
         std::string prefix_str = cwd_buf;
-        prefix_str += "/";
+        if (prefix_str.empty() || prefix_str.front() != '/') {
+            prefix_str.insert(prefix_str.begin(), '/');
+        }
+        if (prefix_str.back() != '/') {
+            prefix_str.push_back('/');
+        }
 
         if (prefix_str.length() > 64) {
             std::cerr << "GET_PREFIX: prefix too long (" << prefix_str.length()
@@ -636,9 +651,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         (void)iobuf_ptr; // unused for now
 
         if (pathname_ptr >= Bus::MEMORY_SIZE) {
-            std::cerr << "OPEN ($C8): invalid pathname_ptr ($" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr << ")"
-                      << std::endl;
+            std::cerr << "OPEN ($C8): invalid pathname_ptr ($" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << pathname_ptr << ")" << std::endl;
             write_memory_dump(bus, "memory_dump.bin");
             log_call_details("error");
             return false;
@@ -1059,8 +1073,8 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         // +1: ref_num (1-byte value)
         // +2-4: position (3-byte value, stored directly in parameter list)
         uint8_t refnum = mem[param_list + 1];
-        uint32_t new_mark = mem[param_list + 2] | (mem[param_list + 3] << 8) |
-                            (mem[param_list + 4] << 16);
+        uint32_t new_mark =
+            mem[param_list + 2] | (mem[param_list + 3] << 8) | (mem[param_list + 4] << 16);
         FileEntry *entry = get_refnum(refnum);
         if (!entry) {
             std::cerr << "SET_MARK ($CE): invalid refnum (" << std::dec << static_cast<int>(refnum)
@@ -1132,8 +1146,10 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
         }
         uint32_t eof_val = entry->file_size;
         bus.write(static_cast<uint16_t>(param_list + 2), static_cast<uint8_t>(eof_val & 0xFF));
-        bus.write(static_cast<uint16_t>(param_list + 3), static_cast<uint8_t>((eof_val >> 8) & 0xFF));
-        bus.write(static_cast<uint16_t>(param_list + 4), static_cast<uint8_t>((eof_val >> 16) & 0xFF));
+        bus.write(static_cast<uint16_t>(param_list + 3),
+                  static_cast<uint8_t>((eof_val >> 8) & 0xFF));
+        bus.write(static_cast<uint16_t>(param_list + 4),
+                  static_cast<uint8_t>((eof_val >> 16) & 0xFF));
         set_success(cpu);
         return_to_caller();
         return true;
