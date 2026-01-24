@@ -118,6 +118,41 @@ class MLIHandler {
 
     // Initialize descriptor table
     static void init_descriptors();
+
+    // Individual MLI call handlers
+    // System calls
+    static bool handle_alloc_interrupt(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_dealloc_interrupt(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_quit(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_get_time(CPUState &cpu, Bus &bus, uint16_t param_list);
+
+    // Block device calls
+    static bool handle_read_block(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_write_block(CPUState &cpu, Bus &bus, uint16_t param_list);
+
+    // Housekeeping calls
+    static bool handle_create(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_destroy(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_rename(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_set_file_info(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_get_file_info(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_online(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_set_prefix(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_get_prefix(CPUState &cpu, Bus &bus, uint16_t param_list);
+
+    // Filing calls
+    static bool handle_open(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_newline(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_read(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_write(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_close(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_flush(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_set_mark(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_get_mark(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_set_eof(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_get_eof(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_set_buf(CPUState &cpu, Bus &bus, uint16_t param_list);
+    static bool handle_get_buf(CPUState &cpu, Bus &bus, uint16_t param_list);
 };
 
 } // namespace edasm
