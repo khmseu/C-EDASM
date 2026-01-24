@@ -212,8 +212,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             std::cout << "Call details already logged, skipping duplicate log." << std::endl;
             return;
         }
-        if (!s_trace_enabled && reason != "halt") {
-            std::cout << "No logs s_trace_enabled=" << s_trace_enabled << " reason=" << reason;
+        if (!is_trace_enabled() && reason != "halt") {
+            std::cout << "No logs s_trace_enabled=" << is_trace_enabled() << " reason=" << reason;
             return;
         }
 
@@ -313,7 +313,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         bus.write(0xBF93, hour);
         bus.write(0xBF92, minute);
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "GET_TIME: wrote date/time to $BF90-$BF93" << std::endl;
             std::cout << "  Year (since 1900): " << std::dec << static_cast<int>(year) << std::endl;
             std::cout << "  Month: " << static_cast<int>(month) << std::endl;
@@ -425,7 +425,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         uint16_t buf_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
                       << std::setfill('0') << buf_ptr << std::endl;
         }
@@ -456,7 +456,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
         bus.write(buf_ptr, prefix_len);
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "GET_PREFIX: writing prefix length=" << std::dec
                       << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
                       << std::endl;
@@ -560,7 +560,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         // Write refnum to result field in parameter list
         bus.write(refnum_addr, static_cast<uint8_t>(ref));
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "OPEN ($C8): opened " << host_path << " as refnum " << ref
                       << ", file_size=" << file_size << std::endl;
         }
@@ -586,7 +586,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         uint16_t request_count = read_word_mem(mem, static_cast<uint16_t>(param_list + 4));
         uint16_t trans_count_ptr = static_cast<uint16_t>(param_list + 6);
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "READ ($CA): refnum=" << std::dec << static_cast<int>(refnum)
                       << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
                       << std::setfill('0') << data_buffer << ", request_count=" << std::dec
@@ -665,7 +665,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         bus.write(static_cast<uint16_t>(trans_count_ptr + 1),
                   static_cast<uint8_t>((actual_read >> 8) & 0xFF));
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "READ ($CA): read " << std::dec << actual_read
                       << " bytes, new mark=" << entry->mark << std::endl;
         }
@@ -698,7 +698,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         uint16_t request_count = read_word_mem(mem, static_cast<uint16_t>(param_list + 4));
         uint16_t trans_count_ptr = static_cast<uint16_t>(param_list + 6);
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "WRITE ($CB): refnum=" << std::dec << static_cast<int>(refnum)
                       << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
                       << std::setfill('0') << data_buffer << ", request_count=" << std::dec
@@ -770,7 +770,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         bus.write(static_cast<uint16_t>(trans_count_ptr + 1),
                   static_cast<uint8_t>((trans_count >> 8) & 0xFF));
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "WRITE ($CB): wrote " << std::dec << trans_count
                       << " bytes, new mark=" << entry->mark << ", file_size=" << entry->file_size
                       << std::endl;
@@ -800,7 +800,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         uint8_t refnum = mem[param_list + 1];
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "CLOSE ($CC): refnum=" << std::dec << static_cast<int>(refnum)
                       << std::endl;
         }
@@ -813,7 +813,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     close_entry(s_file_table[i]);
                 }
             }
-            if (s_trace_enabled) {
+            if (is_trace_enabled()) {
                 std::cout << "CLOSE ($CC): closed all files" << std::endl;
             }
             set_success(cpu);
@@ -833,7 +833,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             return true;
         }
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "CLOSE ($CC): closing " << entry->host_path << std::endl;
         }
 
@@ -856,7 +856,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         uint8_t refnum = mem[param_list + 1];
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "FLUSH ($CD): refnum=" << std::dec << static_cast<int>(refnum)
                       << std::endl;
         }
@@ -868,7 +868,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     std::fflush(s_file_table[i].fp);
                 }
             }
-            if (s_trace_enabled) {
+            if (is_trace_enabled()) {
                 std::cout << "FLUSH ($CD): flushed all files" << std::endl;
             }
             set_success(cpu);
@@ -892,7 +892,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             std::fflush(entry->fp);
         }
 
-        if (s_trace_enabled) {
+        if (is_trace_enabled()) {
             std::cout << "FLUSH ($CD): flushed " << entry->host_path << std::endl;
         }
 
