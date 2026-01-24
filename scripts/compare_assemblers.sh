@@ -252,7 +252,7 @@ main() {
         echo "Usage: ${0} <source.src>"
         echo ""
         echo "Example:"
-        echo "  ${0} tests/test_simple.src"
+        echo "  ${0} tests/fixtures/test_simple.src"
         echo ""
         exit 1
     fi

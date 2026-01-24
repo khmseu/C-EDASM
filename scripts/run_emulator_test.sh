@@ -202,9 +202,9 @@ create_test_disk() {
     # Inject test source files
     echo "Injecting test files..."
     local test_files=(
-        "${PROJECT_ROOT}/tests/test_simple.src"
-        "${PROJECT_ROOT}/tests/test_hex_add.src"
-        "${PROJECT_ROOT}/tests/test_symbol_add.src"
+        "${PROJECT_ROOT}/tests/fixtures/test_simple.src"
+        "${PROJECT_ROOT}/tests/fixtures/test_hex_add.src"
+        "${PROJECT_ROOT}/tests/fixtures/test_symbol_add.src"
     )
 
     for src_file in "${test_files[@]}"; do

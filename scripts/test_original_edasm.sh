@@ -17,7 +17,7 @@ NC='\033[0m'
 # Test configuration
 WORK_DIR="${PROJECT_ROOT}/tmp/edasm_test"
 ORIGINAL_EDASM_DISK="${PROJECT_ROOT}/third_party/artifacts/new_edasm.2mg"
-TEST_SOURCE="${PROJECT_ROOT}/tests/test_simple.src"
+TEST_SOURCE="${PROJECT_ROOT}/tests/fixtures/test_simple.src"
 BOOT_DISK="${PROJECT_ROOT}/third_party/artifacts/minimal_boot.po"
 WORK_DISK="${WORK_DIR}/work.2mg"
 RESULTS_DIR="${WORK_DIR}/results"

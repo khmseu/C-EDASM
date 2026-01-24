@@ -1,33 +1,34 @@
+# ============================================================================
+# Integration Tests (command-line tools for assembling and linking)
+# ============================================================================
+
 # Test assembler program
-add_executable(test_asm test_asm.cpp)
+add_executable(test_asm integration/test_asm.cpp)
 target_link_libraries(test_asm PRIVATE edasm)
 target_include_directories(test_asm PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # Test assembler with listing generation
-add_executable(test_asm_listing test_asm_listing.cpp)
+add_executable(test_asm_listing integration/test_asm_listing.cpp)
 target_link_libraries(test_asm_listing PRIVATE edasm)
 target_include_directories(test_asm_listing PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # Test linker program
-add_executable(test_linker test_linker.cpp)
+add_executable(test_linker integration/test_linker.cpp)
 target_link_libraries(test_linker PRIVATE edasm)
 target_include_directories(test_linker PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
+# Test linker debug program
+add_executable(test_linker_debug integration/test_linker_debug.cpp)
+target_link_libraries(test_linker_debug PRIVATE edasm)
+target_include_directories(test_linker_debug PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
 # Test assembler with REL output
-add_executable(test_asm_rel test_asm_rel.cpp)
+add_executable(test_asm_rel integration/test_asm_rel.cpp)
 target_link_libraries(test_asm_rel PRIVATE edasm)
 target_include_directories(test_asm_rel PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-add_executable(test_editor test_editor.cpp)
-target_link_libraries(test_editor PRIVATE edasm)
-target_include_directories(test_editor PRIVATE ${CMAKE_SOURCE_DIR}/include)
-
-add_test(
-  NAME test_editor
-  COMMAND test_editor
-)
-
-add_executable(test_assembler_integration test_assembler_integration.cpp)
+# Test assembler integration
+add_executable(test_assembler_integration integration/test_assembler_integration.cpp)
 target_link_libraries(test_assembler_integration PRIVATE edasm)
 target_include_directories(test_assembler_integration PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
@@ -37,7 +38,20 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-add_executable(test_emulator test_emulator.cpp)
+# ============================================================================
+# Unit Tests
+# ============================================================================
+
+add_executable(test_editor unit/test_editor.cpp)
+target_link_libraries(test_editor PRIVATE edasm)
+target_include_directories(test_editor PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_editor
+  COMMAND test_editor
+)
+
+add_executable(test_emulator unit/test_emulator.cpp)
 target_link_libraries(test_emulator PRIVATE edasm)
 target_include_directories(test_emulator PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
@@ -47,7 +61,7 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-add_executable(test_io_traps test_io_traps.cpp)
+add_executable(test_io_traps unit/test_io_traps.cpp)
 target_link_libraries(test_io_traps PRIVATE edasm)
 target_include_directories(test_io_traps PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
@@ -57,47 +71,55 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# Add tests for the main test executables
+# ============================================================================
+# Integration Test Cases (using fixture files)
+# ============================================================================
+
 add_test(
   NAME test_asm_simple
-  COMMAND test_asm ${CMAKE_SOURCE_DIR}/tests/test_simple.src
+  COMMAND test_asm ${CMAKE_SOURCE_DIR}/tests/fixtures/test_simple.src
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_test(
   NAME test_asm_expressions
-  COMMAND test_asm ${CMAKE_SOURCE_DIR}/tests/test_expressions.src
+  COMMAND test_asm ${CMAKE_SOURCE_DIR}/tests/fixtures/test_expressions.src
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_test(
   NAME test_asm_directives
-  COMMAND test_asm ${CMAKE_SOURCE_DIR}/tests/test_directives.src
+  COMMAND test_asm ${CMAKE_SOURCE_DIR}/tests/fixtures/test_directives.src
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_test(
   NAME test_asm_listing_simple
-  COMMAND test_asm_listing ${CMAKE_SOURCE_DIR}/tests/test_simple.src
+  COMMAND test_asm_listing ${CMAKE_SOURCE_DIR}/tests/fixtures/test_simple.src
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_test(
   NAME test_asm_rel_module1
-  COMMAND test_asm_rel ${CMAKE_SOURCE_DIR}/tests/test_module1.src ${CMAKE_CURRENT_BINARY_DIR}/test_module1_output.rel
+  COMMAND test_asm_rel ${CMAKE_SOURCE_DIR}/tests/fixtures/test_module1.src ${CMAKE_CURRENT_BINARY_DIR}/test_module1_output.rel
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_test(
   NAME test_asm_rel_module2
-  COMMAND test_asm_rel ${CMAKE_SOURCE_DIR}/tests/test_module2.src ${CMAKE_CURRENT_BINARY_DIR}/test_module2_output.rel
+  COMMAND test_asm_rel ${CMAKE_SOURCE_DIR}/tests/fixtures/test_module2.src ${CMAKE_CURRENT_BINARY_DIR}/test_module2_output.rel
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_test(
   NAME test_linker_modules
-  COMMAND test_linker ${CMAKE_CURRENT_BINARY_DIR}/linked_output.bin ${CMAKE_SOURCE_DIR}/tests/test_module1.rel ${CMAKE_SOURCE_DIR}/tests/test_module2.rel
+  COMMAND test_linker ${CMAKE_CURRENT_BINARY_DIR}/linked_output.bin ${CMAKE_CURRENT_BINARY_DIR}/test_module1_output.rel ${CMAKE_CURRENT_BINARY_DIR}/test_module2_output.rel
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Set test dependencies - linker test needs the .rel files from earlier tests
+set_tests_properties(test_linker_modules PROPERTIES
+  DEPENDS "test_asm_rel_module1;test_asm_rel_module2"
 )
 
 # Set test properties for better organization

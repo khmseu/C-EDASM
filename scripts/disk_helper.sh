@@ -301,7 +301,7 @@ Examples:
   ${0} create ${PROJECT_ROOT}/tmp/mydisk.2mg 140KB
   
   # Inject a single file
-  ${0} inject ${PROJECT_ROOT}/tmp/mydisk.2mg tests/test_simple.src
+  ${0} inject ${PROJECT_ROOT}/tmp/mydisk.2mg tests/fixtures/test_simple.src
   
   # Inject multiple files
   ${0} inject-many ${PROJECT_ROOT}/tmp/mydisk.2mg test_*.src
