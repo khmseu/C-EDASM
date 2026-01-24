@@ -3,7 +3,6 @@
 
 #include "bus.hpp"
 #include "cpu.hpp"
-#include "traps.hpp"
 #include <cstdint>
 #include <string>
 
