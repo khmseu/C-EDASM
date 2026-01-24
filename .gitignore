@@ -1,6 +1,8 @@
 _codeql_build_dir/
 _codeql_detected_source_root
 .cache/
+.ccls-cache/
+.fake
 *.bin
 *.log
 *.lst
@@ -11,9 +13,7 @@ _codeql_detected_source_root
 build/
 CMakeCache.txt
 CMakeFiles/
+EDASM.TEST/
 Testing/
 third_party/EdAsm/.git/
 tmp/
-
-.fake
-EDASM.TEST/
