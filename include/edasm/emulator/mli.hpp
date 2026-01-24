@@ -69,14 +69,6 @@ struct MLIParamDescriptor {
     const char *name; // For debugging/logging
 };
 
-// Descriptor for a complete MLI call
-struct MLICallDescriptor {
-    uint8_t call_number;
-    const char *name;
-    uint8_t param_count;
-    std::array<MLIParamDescriptor, 12> params; // Max 12 parameters (GET_FILE_INFO has 10)
-};
-
 // Union type for parameter values
 using MLIParamValue = std::variant<
     uint8_t,                    // BYTE, REF_NUM
@@ -85,6 +77,21 @@ using MLIParamValue = std::variant<
     std::string,                // Pathname (extracted from memory)
     std::vector<uint8_t>        // Buffer data
 >;
+
+// Handler function type - takes input params, fills output params, returns error code
+using MLIHandlerFunc = ProDOSError (*)(
+    Bus &bus,
+    const std::vector<MLIParamValue> &inputs,
+    std::vector<MLIParamValue> &outputs);
+
+// Descriptor for a complete MLI call
+struct MLICallDescriptor {
+    uint8_t call_number;
+    const char *name;
+    uint8_t param_count;
+    std::array<MLIParamDescriptor, 12> params; // Max 12 parameters (GET_FILE_INFO has 10)
+    MLIHandlerFunc handler; // Handler function pointer (nullptr for unimplemented calls)
+};
 
 // ProDOS MLI (Machine Language Interface) handler
 class MLIHandler {
@@ -112,47 +119,47 @@ class MLIHandler {
         Bus &bus, uint16_t param_list_addr, const MLICallDescriptor &desc,
         const std::vector<MLIParamValue> &values);
 
+    // Individual MLI call handlers - return ProDOSError
+    // System calls
+    static ProDOSError handle_alloc_interrupt(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_dealloc_interrupt(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_quit(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_get_time(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+
+    // Block device calls
+    static ProDOSError handle_read_block(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_write_block(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+
+    // Housekeeping calls
+    static ProDOSError handle_create(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_destroy(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_rename(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_set_file_info(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_get_file_info(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_online(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_set_prefix(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_get_prefix(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+
+    // Filing calls
+    static ProDOSError handle_open(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_newline(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_read(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_write(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_close(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_flush(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_set_mark(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_get_mark(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_set_eof(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_get_eof(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_set_buf(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+    static ProDOSError handle_get_buf(Bus &bus, const std::vector<MLIParamValue> &inputs, std::vector<MLIParamValue> &outputs);
+
   private:
     // Helper for ProDOS MLI decoding
     static std::string decode_prodos_call(uint8_t call_num);
 
     // Initialize descriptor table
     static void init_descriptors();
-
-    // Individual MLI call handlers
-    // System calls
-    static bool handle_alloc_interrupt(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_dealloc_interrupt(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_quit(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_get_time(CPUState &cpu, Bus &bus, uint16_t param_list);
-
-    // Block device calls
-    static bool handle_read_block(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_write_block(CPUState &cpu, Bus &bus, uint16_t param_list);
-
-    // Housekeeping calls
-    static bool handle_create(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_destroy(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_rename(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_set_file_info(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_get_file_info(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_online(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_set_prefix(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_get_prefix(CPUState &cpu, Bus &bus, uint16_t param_list);
-
-    // Filing calls
-    static bool handle_open(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_newline(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_read(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_write(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_close(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_flush(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_set_mark(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_get_mark(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_set_eof(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_get_eof(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_set_buf(CPUState &cpu, Bus &bus, uint16_t param_list);
-    static bool handle_get_buf(CPUState &cpu, Bus &bus, uint16_t param_list);
 };
 
 } // namespace edasm
