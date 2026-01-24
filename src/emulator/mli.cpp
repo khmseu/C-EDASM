@@ -1017,7 +1017,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
 
         // Read from memory and write to file
-        const uint8_t *mem = bus.data();
         std::vector<uint8_t> buffer(request_count);
         for (uint16_t i = 0; i < request_count; ++i) {
             buffer[i] = mem[data_buffer + i];
@@ -1290,7 +1289,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         // Note: The descriptor is missing the EOF field which should be at index 6
         // This is a known issue - we manually write EOF until the descriptor is fixed
         // Write EOF as 3-byte value at the position where it should be (after blocks_used)
-        const uint8_t *mem = bus.data();
         uint8_t pcount = mem[param_list];
         if (pcount >= 7) {
             // Calculate offset: param_count(1) + pathname_ptr(2) + access(1) + file_type(1) + 
