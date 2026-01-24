@@ -1,4 +1,4 @@
-#include "edasm/traps.hpp"
+#include "edasm/emulator/mli.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -125,22 +125,6 @@ void close_entry(FileEntry &entry) {
     entry.file_size = 0;
 }
 
-void set_success(CPUState &cpu) {
-    cpu.A = 0;
-    cpu.P &= ~StatusFlags::C;
-    cpu.P &= ~StatusFlags::N;
-    cpu.P &= ~StatusFlags::V;
-    cpu.P |= StatusFlags::Z;
-    cpu.P |= StatusFlags::U;
-}
-
-void set_error(CPUState &cpu, uint8_t err) {
-    cpu.A = err;
-    cpu.P |= StatusFlags::C;
-    cpu.P &= ~StatusFlags::Z;
-    cpu.P |= StatusFlags::U;
-}
-
 constexpr uint8_t ERR_PATH_NOT_FOUND = 0x4B;
 constexpr uint8_t ERR_FILE_NOT_FOUND = 0x46;
 constexpr uint8_t ERR_TOO_MANY_FILES = 0x52;
@@ -149,80 +133,33 @@ constexpr uint8_t ERR_ILLEGAL_PARAM = 0x2C;
 } // namespace
 
 // Static trace flag
-bool TrapManager::s_trace_enabled = false;
+bool MLIHandler::s_trace_enabled = false;
 
-void TrapManager::set_trace(bool enabled) {
+void MLIHandler::set_trace(bool enabled) {
     s_trace_enabled = enabled;
 }
 
-bool TrapManager::is_trace_enabled() {
+bool MLIHandler::is_trace_enabled() {
     return s_trace_enabled;
 }
 
-TrapManager::TrapManager() {}
-
-std::map<uint16_t, TrapHandler> &TrapManager::get_handler_registry() {
-    static std::map<uint16_t, TrapHandler> registry;
-    return registry;
+void MLIHandler::set_success(CPUState &cpu) {
+    cpu.A = 0;
+    cpu.P &= ~StatusFlags::C;
+    cpu.P &= ~StatusFlags::N;
+    cpu.P &= ~StatusFlags::V;
+    cpu.P |= StatusFlags::Z;
+    cpu.P |= StatusFlags::U;
 }
 
-void TrapManager::install_address_handler(uint16_t address, TrapHandler handler) {
-    get_handler_registry()[address] = handler;
+void MLIHandler::set_error(CPUState &cpu, uint8_t err) {
+    cpu.A = err;
+    cpu.P |= StatusFlags::C;
+    cpu.P &= ~StatusFlags::Z;
+    cpu.P |= StatusFlags::U;
 }
 
-void TrapManager::clear_address_handler(uint16_t address) {
-    get_handler_registry().erase(address);
-}
-
-void TrapManager::clear_all_handlers() {
-    get_handler_registry().clear();
-}
-
-bool TrapManager::general_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
-    // Check if there's a specific handler registered for this address
-    auto &registry = get_handler_registry();
-    auto it = registry.find(trap_pc);
-
-    if (it != registry.end()) {
-        // Call the registered handler
-        return it->second(cpu, bus, trap_pc);
-    }
-
-    // Fall back to default handler
-    return default_trap_handler(cpu, bus, trap_pc);
-}
-
-bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
-    std::cerr << "=== UNHANDLED TRAP at PC=$" << std::hex << std::uppercase << std::setw(4)
-              << std::setfill('0') << trap_pc << " ===" << std::endl;
-    log_cpu_state(cpu, bus, trap_pc);
-    log_memory_window(bus, trap_pc, 32);
-    std::cerr << "=== HALTING ===" << std::endl;
-
-    // Write memory dump before halting
-    write_memory_dump(bus, "memory_dump.bin");
-
-    return false; // Halt execution
-}
-
-TrapHandler TrapManager::create_logging_handler(const std::string &name) {
-    return [name](CPUState &cpu, Bus &bus, uint16_t trap_pc) -> bool {
-        std::cout << "[TRAP:" << name << "] PC=$" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << trap_pc << std::endl;
-        log_cpu_state(cpu, bus, trap_pc);
-        return false; // Halt after logging
-    };
-}
-
-void TrapManager::log_cpu_state(const CPUState &cpu, const Bus &bus, uint16_t pc) {
-    std::cerr << dump_cpu_state(cpu) << std::endl;
-}
-
-void TrapManager::log_memory_window(const Bus &bus, uint16_t addr, size_t size) {
-    std::cerr << dump_memory(bus, addr, size) << std::endl;
-}
-
-std::string TrapManager::dump_cpu_state(const CPUState &cpu) {
+std::string MLIHandler::dump_cpu_state(const CPUState &cpu) {
     std::ostringstream oss;
     oss << "CPU: A=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
         << static_cast<int>(cpu.A) << " X=$" << std::setw(2) << static_cast<int>(cpu.X) << " Y=$"
@@ -266,27 +203,7 @@ std::string TrapManager::dump_cpu_state(const CPUState &cpu) {
     return oss.str();
 }
 
-std::string TrapManager::dump_memory(const Bus &bus, uint16_t addr, size_t size) {
-    std::ostringstream oss;
-    oss << "Memory at $" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << addr
-        << ":" << std::endl;
-
-    const uint8_t *data = bus.data();
-    for (size_t i = 0; i < size; ++i) {
-        if (i % 16 == 0) {
-            if (i > 0)
-                oss << std::endl;
-            oss << "  $" << std::setw(4) << (addr + i) << ": ";
-        } else if (i % 8 == 0) {
-            oss << " ";
-        }
-        oss << std::setw(2) << static_cast<int>(data[addr + i]) << " ";
-    }
-
-    return oss.str();
-}
-
-bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename) {
+bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
         std::cerr << "Error: Failed to open " << filename << " for writing" << std::endl;
@@ -307,7 +224,7 @@ bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename)
     return true;
 }
 
-bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
+bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
     // When JSR $BF00 is executed, the return address-1 is pushed onto the stack
     // Stack pointer points to the next free location, so:
     // $01SP+1 = high byte of return address
@@ -1270,26 +1187,7 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 
     return false;
 }
-
-bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
-    // SETNORM ($FE84): Set InvFlg ($32) to $FF (normal video mode) and Y to $FF
-    bus.write(0x32, 0xFF);
-    cpu.Y = 0xff;
-
-    std::cout << "MONITOR SETNORM: Set InvFlg ($32) to $FF, Y to $FF" << std::endl;
-
-    cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
-    uint8_t ret_lo = bus.read(0x0100 | cpu.SP);
-    cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
-    uint8_t ret_hi = bus.read(0x0100 | cpu.SP);
-    uint16_t ret_addr = static_cast<uint16_t>((ret_hi << 8) | ret_lo);
-
-    cpu.PC = static_cast<uint16_t>(ret_addr + 1);
-
-    return true;
-}
-
-std::string TrapManager::decode_prodos_call(uint8_t call_num) {
+std::string MLIHandler::decode_prodos_call(uint8_t call_num) {
     switch (call_num) {
     case 0x40:
         return "ALLOC_INTERRUPT";

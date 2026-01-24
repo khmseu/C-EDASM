@@ -10,10 +10,11 @@ find_package(Curses REQUIRED)
 add_library(edasm
   src/core/app.cpp
   src/core/screen.cpp
-  src/core/bus.cpp
-  src/core/cpu.cpp
-  src/core/traps.cpp
-  src/core/host_shims.cpp
+  src/emulator/bus.cpp
+  src/emulator/cpu.cpp
+  src/emulator/traps.cpp
+  src/emulator/mli.cpp
+  src/emulator/host_shims.cpp
   src/assembler/assembler.cpp
   src/assembler/symbol_table.cpp
   src/assembler/tokenizer.cpp

@@ -3,9 +3,9 @@
  * Verifies that read and write traps work for Apple II I/O devices
  */
 
-#include "edasm/bus.hpp"
-#include "edasm/cpu.hpp"
-#include "edasm/host_shims.hpp"
+#include "edasm/emulator/bus.hpp"
+#include "edasm/emulator/cpu.hpp"
+#include "edasm/emulator/host_shims.hpp"
 #include <iomanip>
 #include <iostream>
 #include <sstream>

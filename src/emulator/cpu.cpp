@@ -1,5 +1,5 @@
-#include "edasm/cpu.hpp"
-#include "edasm/bus.hpp"
+#include "edasm/emulator/cpu.hpp"
+#include "edasm/emulator/bus.hpp"
 
 namespace edasm {
 
