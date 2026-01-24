@@ -38,22 +38,6 @@ target_compile_features(edasm PUBLIC cxx_std_20)
 add_executable(edasm_cli src/main.cpp)
 target_link_libraries(edasm_cli PRIVATE edasm)
 
-# Test assembler program
-add_executable(test_asm src/test_asm.cpp)
-target_link_libraries(test_asm PRIVATE edasm)
-
-# Test assembler with listing generation
-add_executable(test_asm_listing src/test_asm_listing.cpp)
-target_link_libraries(test_asm_listing PRIVATE edasm)
-
-# Test linker program
-add_executable(test_linker src/test_linker.cpp)
-target_link_libraries(test_linker PRIVATE edasm)
-
-# Test assembler with REL output
-add_executable(test_asm_rel src/test_asm_rel.cpp)
-target_link_libraries(test_asm_rel PRIVATE edasm)
-
 # Emulator runner for testing original EDASM.SYSTEM
 add_executable(emulator_runner src/emulator_runner.cpp)
 target_link_libraries(emulator_runner PRIVATE edasm)
