@@ -1,5 +1,5 @@
-#include "edasm/host_shims.hpp"
-#include "edasm/traps.hpp"
+#include "edasm/emulator/host_shims.hpp"
+#include "edasm/emulator/traps.hpp"
 
 #include <iomanip>
 #include <iostream>

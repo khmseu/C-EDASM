@@ -1,4 +1,4 @@
-#include "edasm/bus.hpp"
+#include "edasm/emulator/bus.hpp"
 #include <algorithm>
 #include <fstream>
 
