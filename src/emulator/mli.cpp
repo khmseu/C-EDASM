@@ -154,6 +154,10 @@ void MLIHandler::set_error(CPUState &cpu, uint8_t err) {
     cpu.P |= StatusFlags::U;
 }
 
+void MLIHandler::set_error(CPUState &cpu, ProDOSError err) {
+    set_error(cpu, static_cast<uint8_t>(err));
+}
+
 bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
@@ -173,6 +177,312 @@ bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) 
     std::cout << "Memory dump written to: " << filename << " (" << Bus::MEMORY_SIZE << " bytes)"
               << std::endl;
     return true;
+}
+
+// MLI Call Descriptors
+// Based on Apple ProDOS 8 Technical Reference Manual, Chapter 4
+
+namespace {
+using PT = MLIParamType;
+using PD = MLIParamDirection;
+
+// Helper macros for cleaner descriptor definitions
+#define PARAM(type, dir, name) MLIParamDescriptor{PT::type, PD::dir, name}
+#define IN PARAM
+#define OUT PARAM
+#define INOUT PARAM
+
+// Descriptor table (static storage)
+static std::array<MLICallDescriptor, 27> s_call_descriptors = {{
+    // System calls
+    {0x40, "ALLOC_INTERRUPT", 2, {{
+        IN(BYTE, INPUT, "int_num"),
+        IN(WORD, INPUT, "int_code"),
+    }}},
+    {0x41, "DEALLOC_INTERRUPT", 1, {{
+        IN(BYTE, INPUT, "int_num"),
+    }}},
+    {0x65, "QUIT", 4, {{
+        IN(BYTE, INPUT, "quit_type"),
+        IN(WORD, INPUT, "reserved1"),
+        IN(BYTE, INPUT, "reserved2"),
+        IN(WORD, INPUT, "reserved3"),
+    }}},
+    {0x82, "GET_TIME", 1, {{
+        IN(WORD, INPUT, "date_time_ptr"),
+    }}},
+
+    // Block device calls
+    {0x80, "READ_BLOCK", 3, {{
+        IN(BYTE, INPUT, "unit_num"),
+        IN(BUFFER_PTR, INPUT, "data_buffer"),
+        IN(WORD, INPUT, "block_num"),
+    }}},
+    {0x81, "WRITE_BLOCK", 3, {{
+        IN(BYTE, INPUT, "unit_num"),
+        IN(BUFFER_PTR, INPUT, "data_buffer"),
+        IN(WORD, INPUT, "block_num"),
+    }}},
+
+    // Housekeeping calls
+    {0xC0, "CREATE", 7, {{
+        IN(PATHNAME_PTR, INPUT, "pathname"),
+        IN(BYTE, INPUT, "access"),
+        IN(BYTE, INPUT, "file_type"),
+        IN(WORD, INPUT, "aux_type"),
+        IN(BYTE, INPUT, "storage_type"),
+        IN(WORD, INPUT, "create_date"),
+        IN(WORD, INPUT, "create_time"),
+    }}},
+    {0xC1, "DESTROY", 1, {{
+        IN(PATHNAME_PTR, INPUT, "pathname"),
+    }}},
+    {0xC2, "RENAME", 2, {{
+        IN(PATHNAME_PTR, INPUT, "pathname"),
+        IN(PATHNAME_PTR, INPUT, "new_pathname"),
+    }}},
+    {0xC3, "SET_FILE_INFO", 7, {{
+        IN(PATHNAME_PTR, INPUT, "pathname"),
+        IN(BYTE, INPUT, "access"),
+        IN(BYTE, INPUT, "file_type"),
+        IN(WORD, INPUT, "aux_type"),
+        IN(BYTE, INPUT, "reserved1"),
+        IN(WORD, INPUT, "mod_date"),
+        IN(WORD, INPUT, "mod_time"),
+    }}},
+    {0xC4, "GET_FILE_INFO", 10, {{
+        IN(PATHNAME_PTR, INPUT, "pathname"),
+        OUT(BYTE, OUTPUT, "access"),
+        OUT(BYTE, OUTPUT, "file_type"),
+        OUT(WORD, OUTPUT, "aux_type"),
+        OUT(BYTE, OUTPUT, "storage_type"),
+        OUT(WORD, OUTPUT, "blocks_used"),
+        OUT(WORD, OUTPUT, "mod_date"),
+        OUT(WORD, OUTPUT, "mod_time"),
+        OUT(WORD, OUTPUT, "create_date"),
+        OUT(WORD, OUTPUT, "create_time"),
+    }}},
+    {0xC5, "ONLINE", 2, {{
+        IN(BYTE, INPUT, "unit_num"),
+        IN(BUFFER_PTR, INPUT_OUTPUT, "data_buffer"),
+    }}},
+    {0xC6, "SET_PREFIX", 1, {{
+        IN(PATHNAME_PTR, INPUT, "pathname"),
+    }}},
+    {0xC7, "GET_PREFIX", 1, {{
+        IN(BUFFER_PTR, OUTPUT, "data_buffer"),
+    }}},
+
+    // Filing calls
+    {0xC8, "OPEN", 3, {{
+        IN(PATHNAME_PTR, INPUT, "pathname"),
+        IN(BUFFER_PTR, INPUT, "io_buffer"),
+        OUT(REF_NUM, OUTPUT, "ref_num"),
+    }}},
+    {0xC9, "NEWLINE", 3, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        IN(BYTE, INPUT, "enable_mask"),
+        IN(BYTE, INPUT, "newline_char"),
+    }}},
+    {0xCA, "READ", 4, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        IN(BUFFER_PTR, INPUT_OUTPUT, "data_buffer"),
+        IN(WORD, INPUT, "request_count"),
+        OUT(WORD, OUTPUT, "transfer_count"),
+    }}},
+    {0xCB, "WRITE", 4, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        IN(BUFFER_PTR, INPUT, "data_buffer"),
+        IN(WORD, INPUT, "request_count"),
+        OUT(WORD, OUTPUT, "transfer_count"),
+    }}},
+    {0xCC, "CLOSE", 1, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+    }}},
+    {0xCD, "FLUSH", 1, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+    }}},
+    {0xCE, "SET_MARK", 2, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        IN(THREE_BYTE, INPUT, "position"),
+    }}},
+    {0xCF, "GET_MARK", 2, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        OUT(THREE_BYTE, OUTPUT, "position"),
+    }}},
+    {0xD0, "SET_EOF", 2, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        IN(THREE_BYTE, INPUT, "eof"),
+    }}},
+    {0xD1, "GET_EOF", 2, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        OUT(THREE_BYTE, OUTPUT, "eof"),
+    }}},
+    {0xD2, "SET_BUF", 2, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        IN(BUFFER_PTR, INPUT, "io_buffer"),
+    }}},
+    {0xD3, "GET_BUF", 2, {{
+        IN(REF_NUM, INPUT, "ref_num"),
+        OUT(BUFFER_PTR, OUTPUT, "io_buffer"),
+    }}},
+}};
+
+#undef PARAM
+#undef IN
+#undef OUT
+#undef INOUT
+
+} // anonymous namespace
+
+const MLICallDescriptor *MLIHandler::get_call_descriptor(uint8_t call_num) {
+    for (const auto &desc : s_call_descriptors) {
+        if (desc.call_number == call_num) {
+            return &desc;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<MLIParamValue> MLIHandler::read_input_params(
+    const Bus &bus, uint16_t param_list_addr, const MLICallDescriptor &desc) {
+    
+    std::vector<MLIParamValue> values;
+    const uint8_t *mem = bus.data();
+    
+    // Skip parameter count byte
+    uint16_t offset = 1;
+    
+    for (uint8_t i = 0; i < desc.param_count; ++i) {
+        const auto &param = desc.params[i];
+        
+        // Only read INPUT and INPUT_OUTPUT parameters
+        if (param.direction == MLIParamDirection::OUTPUT) {
+            values.push_back(uint8_t(0)); // Placeholder for output-only params
+            continue;
+        }
+        
+        switch (param.type) {
+        case MLIParamType::BYTE:
+        case MLIParamType::REF_NUM: {
+            uint8_t val = mem[param_list_addr + offset];
+            values.push_back(val);
+            offset += 1;
+            break;
+        }
+        case MLIParamType::WORD: {
+            uint16_t val = mem[param_list_addr + offset] | 
+                          (mem[param_list_addr + offset + 1] << 8);
+            values.push_back(val);
+            offset += 2;
+            break;
+        }
+        case MLIParamType::THREE_BYTE: {
+            uint32_t val = mem[param_list_addr + offset] | 
+                          (mem[param_list_addr + offset + 1] << 8) |
+                          (mem[param_list_addr + offset + 2] << 16);
+            values.push_back(val);
+            offset += 3;
+            break;
+        }
+        case MLIParamType::PATHNAME_PTR: {
+            uint16_t ptr = mem[param_list_addr + offset] | 
+                          (mem[param_list_addr + offset + 1] << 8);
+            offset += 2;
+            
+            // Read length-prefixed pathname
+            if (ptr < Bus::MEMORY_SIZE) {
+                uint8_t len = mem[ptr];
+                std::string pathname;
+                for (uint8_t j = 0; j < len && (ptr + 1 + j) < Bus::MEMORY_SIZE; ++j) {
+                    pathname += static_cast<char>(mem[ptr + 1 + j]);
+                }
+                values.push_back(pathname);
+            } else {
+                values.push_back(std::string(""));
+            }
+            break;
+        }
+        case MLIParamType::BUFFER_PTR: {
+            uint16_t ptr = mem[param_list_addr + offset] | 
+                          (mem[param_list_addr + offset + 1] << 8);
+            values.push_back(ptr); // Store as uint16_t for now
+            offset += 2;
+            break;
+        }
+        }
+    }
+    
+    return values;
+}
+
+void MLIHandler::write_output_params(
+    Bus &bus, uint16_t param_list_addr, const MLICallDescriptor &desc,
+    const std::vector<MLIParamValue> &values) {
+    
+    if (values.size() != desc.param_count) {
+        std::cerr << "Warning: Parameter count mismatch in write_output_params" << std::endl;
+        return;
+    }
+    
+    // Skip parameter count byte
+    uint16_t offset = 1;
+    
+    for (uint8_t i = 0; i < desc.param_count; ++i) {
+        const auto &param = desc.params[i];
+        
+        // Only write OUTPUT and INPUT_OUTPUT parameters
+        if (param.direction == MLIParamDirection::INPUT) {
+            // Skip input-only params
+            switch (param.type) {
+            case MLIParamType::BYTE:
+            case MLIParamType::REF_NUM:
+                offset += 1;
+                break;
+            case MLIParamType::WORD:
+            case MLIParamType::PATHNAME_PTR:
+            case MLIParamType::BUFFER_PTR:
+                offset += 2;
+                break;
+            case MLIParamType::THREE_BYTE:
+                offset += 3;
+                break;
+            }
+            continue;
+        }
+        
+        const auto &value = values[i];
+        
+        switch (param.type) {
+        case MLIParamType::BYTE:
+        case MLIParamType::REF_NUM: {
+            uint8_t val = std::get<uint8_t>(value);
+            bus.write(param_list_addr + offset, val);
+            offset += 1;
+            break;
+        }
+        case MLIParamType::WORD: {
+            uint16_t val = std::get<uint16_t>(value);
+            bus.write(param_list_addr + offset, static_cast<uint8_t>(val & 0xFF));
+            bus.write(param_list_addr + offset + 1, static_cast<uint8_t>((val >> 8) & 0xFF));
+            offset += 2;
+            break;
+        }
+        case MLIParamType::THREE_BYTE: {
+            uint32_t val = std::get<uint32_t>(value);
+            bus.write(param_list_addr + offset, static_cast<uint8_t>(val & 0xFF));
+            bus.write(param_list_addr + offset + 1, static_cast<uint8_t>((val >> 8) & 0xFF));
+            bus.write(param_list_addr + offset + 2, static_cast<uint8_t>((val >> 16) & 0xFF));
+            offset += 3;
+            break;
+        }
+        case MLIParamType::PATHNAME_PTR:
+        case MLIParamType::BUFFER_PTR:
+            // Pointers are not typically written back
+            offset += 2;
+            break;
+        }
+    }
 }
 
 bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
