@@ -3,6 +3,7 @@
 
 #include "bus.hpp"
 #include "cpu.hpp"
+#include "traps.hpp"
 #include <cstdint>
 #include <string>
 
@@ -26,9 +27,6 @@ class MLIHandler {
   private:
     // Helper for ProDOS MLI decoding
     static std::string decode_prodos_call(uint8_t call_num);
-
-    // Trace mode flag
-    static bool s_trace_enabled;
 };
 
 } // namespace edasm

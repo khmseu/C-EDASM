@@ -1,4 +1,5 @@
 #include "edasm/emulator/mli.hpp"
+#include "edasm/emulator/traps.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -10,12 +11,10 @@
 #include <iomanip>
 #include <iostream>
 #include <limits.h>
-#include <sstream>
 #include <string.h>
 #include <system_error>
 #include <unistd.h>
 #include <vector>
-
 namespace edasm {
 
 namespace {
@@ -131,15 +130,12 @@ constexpr uint8_t ERR_ILLEGAL_PARAM = 0x2C;
 
 } // namespace
 
-// Static trace flag
-bool MLIHandler::s_trace_enabled = false;
-
 void MLIHandler::set_trace(bool enabled) {
-    s_trace_enabled = enabled;
+    TrapManager::set_trace(enabled);
 }
 
 bool MLIHandler::is_trace_enabled() {
-    return s_trace_enabled;
+    return TrapManager::is_trace_enabled();
 }
 
 void MLIHandler::set_success(CPUState &cpu) {
@@ -212,10 +208,14 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
     bool call_details_logged = false;
     auto log_call_details = [&](const std::string &reason) {
-        if (call_details_logged)
+        if (call_details_logged) {
+            std::cout << "Call details already logged, skipping duplicate log." << std::endl;
             return;
-        if (!s_trace_enabled && reason != "halt")
+        }
+        if (!s_trace_enabled && reason != "halt") {
+            std::cout << "No logs s_trace_enabled=" << s_trace_enabled << " reason=" << reason;
             return;
+        }
 
         call_details_logged = true;
 
