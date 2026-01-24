@@ -325,7 +325,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         if (cpu.A == 0) {
             log_call_summary();
         }
-        return return_success();
+        return true;
     };
 
     log_call_details("trace");
