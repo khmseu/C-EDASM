@@ -797,52 +797,27 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         return return_success();
     }
 
-    // Implement OPEN ($C8)
+    // OPEN ($C8) - Open a file
     if (call_num == 0xC8) {
-        if (param_list + 5 >= Bus::MEMORY_SIZE) {
-            std::cerr << "OPEN ($C8): param_list + 5 >= MEMORY_SIZE (param_list=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
+        const MLICallDescriptor *desc = get_call_descriptor(0xC8);
+        if (!desc) {
+            log_call_details("halt");
             return false;
         }
 
-        // ProDOS OPEN parameter list:
-        // +0: param_count = 3
-        // +1-2: pathname (2-byte pointer)
-        // +3-4: io_buffer (2-byte pointer)
-        // +5: ref_num (1-byte result, NOT a pointer)
-        uint16_t pathname_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 1));
-        uint16_t iobuf_ptr = read_word_mem(mem, static_cast<uint16_t>(param_list + 3));
-        uint16_t refnum_addr = static_cast<uint16_t>(param_list + 5);
+        auto params = read_input_params(bus, param_list, *desc);
+        std::string prodos_path = std::get<std::string>(params[0]);
+        uint16_t iobuf_ptr = std::get<uint16_t>(params[1]);
         (void)iobuf_ptr; // unused for now
-
-        uint8_t path_len = mem[pathname_ptr];
-        if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE) {
-            std::cerr << "OPEN ($C8): invalid path_len (path_len=" << std::dec
-                      << static_cast<int>(path_len) << ", pathname_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-
-        std::string prodos_path;
-        prodos_path.reserve(path_len);
-        for (uint8_t i = 0; i < path_len; ++i) {
-            prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
-        }
 
         std::string host_path = prodos_path_to_host(prodos_path);
 
         int ref = alloc_refnum();
         if (ref < 0) {
-            std::cerr << "OPEN ($C8): too many files open (ERR_TOO_MANY_FILES)" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
+            std::cerr << "OPEN ($C8): too many files open" << std::endl;
+            set_error(cpu, ProDOSError::FCB_FULL);
+            return_to_caller();
+            return return_success();
         }
 
         // Try opening for read/write first, fallback to read-only
@@ -851,12 +826,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             fp = std::fopen(host_path.c_str(), "rb");
         }
         if (!fp) {
-            std::cerr << "OPEN ($C8): file not found: " << host_path << " (ERR_FILE_NOT_FOUND)"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x46; // File not found
-            cpu.P |= StatusFlags::C;
+            std::cerr << "OPEN ($C8): file not found: " << host_path << std::endl;
+            set_error(cpu, ProDOSError::FILE_NOT_FOUND);
             return_to_caller();
             return return_success();
         }
@@ -874,34 +845,36 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         entry.mark = 0;
         entry.file_size = static_cast<uint32_t>(file_size);
 
-        // Write refnum to result field in parameter list
-        bus.write(refnum_addr, static_cast<uint8_t>(ref));
-
         if (is_trace_enabled()) {
             std::cout << "OPEN ($C8): opened " << host_path << " as refnum " << ref
                       << ", file_size=" << file_size << std::endl;
         }
+
+        // Write output params
+        std::vector<MLIParamValue> out_params = {
+            prodos_path,           // pathname (input, unchanged)
+            iobuf_ptr,            // io_buffer (input, unchanged)
+            static_cast<uint8_t>(ref)  // ref_num (output)
+        };
+        write_output_params(bus, param_list, *desc, out_params);
 
         set_success(cpu);
         return_to_caller();
         return return_success();
     }
 
-    // Implement READ ($CA)
+    // READ ($CA) - Read from file
     if (call_num == 0xCA) {
-        if (param_list + 7 >= Bus::MEMORY_SIZE) {
-            std::cerr << "READ ($CA): param_list + 7 >= MEMORY_SIZE (param_list=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
+        const MLICallDescriptor *desc = get_call_descriptor(0xCA);
+        if (!desc) {
+            log_call_details("halt");
             return false;
         }
 
-        uint8_t refnum = mem[param_list + 1];
-        uint16_t data_buffer = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        uint16_t request_count = read_word_mem(mem, static_cast<uint16_t>(param_list + 4));
-        uint16_t trans_count_ptr = static_cast<uint16_t>(param_list + 6);
+        auto params = read_input_params(bus, param_list, *desc);
+        uint8_t refnum = std::get<uint8_t>(params[0]);
+        uint16_t data_buffer = std::get<uint16_t>(params[1]);
+        uint16_t request_count = std::get<uint16_t>(params[2]);
 
         if (is_trace_enabled()) {
             std::cout << "READ ($CA): refnum=" << std::dec << static_cast<int>(refnum)
@@ -914,10 +887,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         if (!entry) {
             std::cerr << "READ ($CA): invalid refnum (" << std::dec << static_cast<int>(refnum)
                       << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x43; // Invalid reference number
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::INVALID_REF_NUM);
             return_to_caller();
             return return_success();
         }
@@ -926,20 +896,14 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             std::cerr << "READ ($CA): buffer overflow (data_buffer=$" << std::hex << std::uppercase
                       << std::setw(4) << std::setfill('0') << data_buffer
                       << ", request_count=" << std::dec << request_count << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x56; // Bad buffer address
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::BAD_BUFFER_ADDR);
             return_to_caller();
             return return_success();
         }
 
         if (!entry->fp) {
             std::cerr << "READ ($CA): file not open" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x43; // Invalid reference number
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::INVALID_REF_NUM);
             return_to_caller();
             return return_success();
         }
@@ -947,10 +911,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         // Seek to current mark position
         if (std::fseek(entry->fp, static_cast<long>(entry->mark), SEEK_SET) != 0) {
             std::cerr << "READ ($CA): fseek failed" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x27; // I/O error
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::IO_ERROR);
             return_to_caller();
             return return_success();
         }
@@ -977,20 +938,23 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             entry->mark += actual_read;
         }
 
-        // Write trans_count
-        bus.write(trans_count_ptr, static_cast<uint8_t>(actual_read & 0xFF));
-        bus.write(static_cast<uint16_t>(trans_count_ptr + 1),
-                  static_cast<uint8_t>((actual_read >> 8) & 0xFF));
-
         if (is_trace_enabled()) {
             std::cout << "READ ($CA): read " << std::dec << actual_read
                       << " bytes, new mark=" << entry->mark << std::endl;
         }
 
+        // Write output params
+        std::vector<MLIParamValue> out_params = {
+            refnum,           // ref_num (input, unchanged)
+            data_buffer,      // data_buffer (input/output, unchanged)
+            request_count,    // request_count (input, unchanged)
+            actual_read       // transfer_count (output)
+        };
+        write_output_params(bus, param_list, *desc, out_params);
+
         // Return EOF error only if zero bytes were transferred
         if (actual_read == 0 && request_count > 0) {
-            cpu.A = 0x4C; // End of file
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::END_OF_FILE);
         } else {
             set_success(cpu);
         }
@@ -999,21 +963,18 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         return return_success();
     }
 
-    // Implement WRITE ($CB)
+    // WRITE ($CB) - Write to file
     if (call_num == 0xCB) {
-        if (param_list + 7 >= Bus::MEMORY_SIZE) {
-            std::cerr << "WRITE ($CB): param_list + 7 >= MEMORY_SIZE (param_list=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << param_list << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
+        const MLICallDescriptor *desc = get_call_descriptor(0xCB);
+        if (!desc) {
+            log_call_details("halt");
             return false;
         }
 
-        uint8_t refnum = mem[param_list + 1];
-        uint16_t data_buffer = read_word_mem(mem, static_cast<uint16_t>(param_list + 2));
-        uint16_t request_count = read_word_mem(mem, static_cast<uint16_t>(param_list + 4));
-        uint16_t trans_count_ptr = static_cast<uint16_t>(param_list + 6);
+        auto params = read_input_params(bus, param_list, *desc);
+        uint8_t refnum = std::get<uint8_t>(params[0]);
+        uint16_t data_buffer = std::get<uint16_t>(params[1]);
+        uint16_t request_count = std::get<uint16_t>(params[2]);
 
         if (is_trace_enabled()) {
             std::cout << "WRITE ($CB): refnum=" << std::dec << static_cast<int>(refnum)
@@ -1026,10 +987,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         if (!entry) {
             std::cerr << "WRITE ($CB): invalid refnum (" << std::dec << static_cast<int>(refnum)
                       << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x43; // Invalid reference number
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::INVALID_REF_NUM);
             return_to_caller();
             return return_success();
         }
@@ -1038,20 +996,14 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             std::cerr << "WRITE ($CB): buffer overflow (data_buffer=$" << std::hex << std::uppercase
                       << std::setw(4) << std::setfill('0') << data_buffer
                       << ", request_count=" << std::dec << request_count << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x56; // Bad buffer address
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::BAD_BUFFER_ADDR);
             return_to_caller();
             return return_success();
         }
 
         if (!entry->fp) {
             std::cerr << "WRITE ($CB): file not open" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x43; // Invalid reference number
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::INVALID_REF_NUM);
             return_to_caller();
             return return_success();
         }
@@ -1059,15 +1011,13 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         // Seek to current mark position
         if (std::fseek(entry->fp, static_cast<long>(entry->mark), SEEK_SET) != 0) {
             std::cerr << "WRITE ($CB): fseek failed" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            cpu.A = 0x27; // I/O error
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::IO_ERROR);
             return_to_caller();
             return return_success();
         }
 
         // Read from memory and write to file
+        const uint8_t *mem = bus.data();
         std::vector<uint8_t> buffer(request_count);
         for (uint16_t i = 0; i < request_count; ++i) {
             buffer[i] = mem[data_buffer + i];
@@ -1082,20 +1032,23 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             entry->file_size = entry->mark;
         }
 
-        // Write trans_count
-        bus.write(trans_count_ptr, static_cast<uint8_t>(trans_count & 0xFF));
-        bus.write(static_cast<uint16_t>(trans_count_ptr + 1),
-                  static_cast<uint8_t>((trans_count >> 8) & 0xFF));
-
         if (is_trace_enabled()) {
             std::cout << "WRITE ($CB): wrote " << std::dec << trans_count
                       << " bytes, new mark=" << entry->mark << ", file_size=" << entry->file_size
                       << std::endl;
         }
 
+        // Write output params
+        std::vector<MLIParamValue> out_params = {
+            refnum,           // ref_num (input, unchanged)
+            data_buffer,      // data_buffer (input, unchanged)
+            request_count,    // request_count (input, unchanged)
+            trans_count       // transfer_count (output)
+        };
+        write_output_params(bus, param_list, *desc, out_params);
+
         if (trans_count < request_count) {
-            cpu.A = 0x48; // Overrun error: not enough disk space
-            cpu.P |= StatusFlags::C;
+            set_error(cpu, ProDOSError::DISK_FULL);
         } else {
             set_success(cpu);
         }
@@ -1103,8 +1056,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         return_to_caller();
         return return_success();
     }
-
-    // Implement CLOSE ($CC)
     // CLOSE ($CC) - Close a file
     if (call_num == 0xCC) {
         const MLICallDescriptor *desc = get_call_descriptor(0xCC);
@@ -1296,49 +1247,16 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         return return_success();
     }
 
-    // Implement GET_FILE_INFO ($C4)
+    // GET_FILE_INFO ($C4) - Get file information
     if (call_num == 0xC4) {
-        if (param_list + 1 >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_FILE_INFO ($C4): param_list + 1 >= MEMORY_SIZE (param_list=$"
-                      << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
-                      << param_list << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
+        const MLICallDescriptor *desc = get_call_descriptor(0xC4);
+        if (!desc) {
+            log_call_details("halt");
             return false;
         }
 
-        uint8_t pcount = mem[param_list];
-        if (pcount < 1 || param_list + (pcount * 2) >= Bus::MEMORY_SIZE) {
-            std::cerr << "GET_FILE_INFO ($C4): invalid pcount (" << std::dec
-                      << static_cast<int>(pcount) << ", param_list=$" << std::hex << std::uppercase
-                      << std::setw(4) << std::setfill('0') << param_list << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-
-        std::vector<uint16_t> params;
-        params.reserve(pcount);
-        for (uint8_t i = 0; i < pcount; ++i) {
-            params.push_back(read_word_mem(mem, static_cast<uint16_t>(param_list + 1 + i * 2)));
-        }
-
-        uint16_t pathname_ptr = params[0];
-        uint8_t path_len = mem[pathname_ptr];
-        if (path_len == 0 || pathname_ptr + path_len >= Bus::MEMORY_SIZE || path_len > 64) {
-            std::cerr << "GET_FILE_INFO ($C4): invalid path_len (path_len=" << std::dec
-                      << static_cast<int>(path_len) << ", pathname_ptr=$" << std::hex
-                      << std::uppercase << std::setw(4) << std::setfill('0') << pathname_ptr << ")"
-                      << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
-        }
-        std::string prodos_path;
-        prodos_path.reserve(path_len);
-        for (uint8_t i = 0; i < path_len; ++i) {
-            prodos_path.push_back(static_cast<char>(mem[pathname_ptr + 1 + i] & 0x7F));
-        }
+        auto params = read_input_params(bus, param_list, *desc);
+        std::string prodos_path = std::get<std::string>(params[0]);
         std::string host_path = prodos_path_to_host(prodos_path);
 
         std::error_code ec;
@@ -1346,49 +1264,42 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         if (ec) {
             std::cerr << "GET_FILE_INFO ($C4): file not found: " << host_path
                       << " (error: " << ec.message() << ")" << std::endl;
-            write_memory_dump(bus, "memory_dump.bin");
-            log_call_details("error");
-            return false;
+            set_error(cpu, ProDOSError::FILE_NOT_FOUND);
+            return_to_caller();
+            return return_success();
         }
 
         uint32_t size32 = static_cast<uint32_t>(file_size);
         uint16_t blocks_used = static_cast<uint16_t>((size32 + 511) / 512);
 
-        auto write_byte = [&](size_t idx, uint8_t value) {
-            if (idx < params.size()) {
-                bus.write(params[idx], value);
-            }
+        // Prepare output parameters
+        std::vector<MLIParamValue> out_params = {
+            prodos_path,                      // pathname (input, unchanged)
+            uint8_t(0xC3),                   // access: read/write/delete
+            uint8_t(0x06),                   // file_type: BIN
+            uint16_t(0x0000),                // aux_type
+            uint8_t(0x01),                   // storage_type: standard file
+            blocks_used,                      // blocks_used
+            uint16_t(0),                     // mod_date (best-effort)
+            uint16_t(0),                     // mod_time (best-effort)
+            uint16_t(0),                     // create_date
+            uint16_t(0)                      // create_time
         };
+        write_output_params(bus, param_list, *desc, out_params);
 
-        auto write_word = [&](size_t idx, uint16_t value) {
-            if (idx < params.size()) {
-                bus.write(params[idx], static_cast<uint8_t>(value & 0xFF));
-                bus.write(static_cast<uint16_t>(params[idx] + 1),
-                          static_cast<uint8_t>((value >> 8) & 0xFF));
-            }
-        };
-
-        auto write_eof = [&](size_t idx, uint32_t value) {
-            if (idx < params.size()) {
-                bus.write(params[idx], static_cast<uint8_t>(value & 0xFF));
-                bus.write(static_cast<uint16_t>(params[idx] + 1),
-                          static_cast<uint8_t>((value >> 8) & 0xFF));
-                bus.write(static_cast<uint16_t>(params[idx] + 2),
-                          static_cast<uint8_t>((value >> 16) & 0xFF));
-            }
-        };
-
-        write_byte(1, 0xC3);        // access: read/write/delete
-        write_byte(2, 0x06);        // file type: BIN
-        write_word(3, 0x0000);      // aux type
-        write_byte(4, 0x01);        // storage type: standard file
-        write_word(5, blocks_used); // blocks used
-        write_eof(6, size32);       // EOF
-        write_word(7, 0);           // create date
-        write_word(8, 0);           // create time
-        write_word(9, 0);           // mod date/time best-effort
-        if (params.size() > 10)
-            write_word(10, 0);
+        // Note: The descriptor is missing the EOF field which should be at index 6
+        // This is a known issue - we manually write EOF until the descriptor is fixed
+        // Write EOF as 3-byte value at the position where it should be (after blocks_used)
+        const uint8_t *mem = bus.data();
+        uint8_t pcount = mem[param_list];
+        if (pcount >= 7) {
+            // Calculate offset: param_count(1) + pathname_ptr(2) + access(1) + file_type(1) + 
+            //                    aux_type(2) + storage_type(1) + blocks_used(2) = 10
+            uint16_t eof_offset = param_list + 10;
+            bus.write(eof_offset, static_cast<uint8_t>(size32 & 0xFF));
+            bus.write(static_cast<uint16_t>(eof_offset + 1), static_cast<uint8_t>((size32 >> 8) & 0xFF));
+            bus.write(static_cast<uint16_t>(eof_offset + 2), static_cast<uint8_t>((size32 >> 16) & 0xFF));
+        }
 
         set_success(cpu);
         return_to_caller();
