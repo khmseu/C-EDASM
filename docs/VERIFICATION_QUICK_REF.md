@@ -195,7 +195,7 @@ cd build && ctest -R test_assembler_integration -V
 cd build && ./tests/test_assembler_integration --gtest_filter=*Expression*
 
 # Run assembler on test file
-./build/test_asm tests/test_simple.src
+./build/test_asm tests/fixtures/test_simple.src
 ```
 
 ### Build Commands

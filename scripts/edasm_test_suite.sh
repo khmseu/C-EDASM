@@ -374,7 +374,7 @@ Options:
 
 Examples:
   ${0} test-cedasm                    # Test all C-EDASM functionality
-  ${0} compare tests/test_simple.src  # Compare specific file
+  ${0} compare tests/fixtures/test_simple.src  # Compare specific file
   ${0} setup-original                 # Setup original EDASM environment
   ${0} emulator-test                  # Run automated emulator test
   ${0} emulator-test --interactive    # Run interactive MAME session

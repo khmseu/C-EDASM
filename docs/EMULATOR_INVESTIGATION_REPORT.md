@@ -359,8 +359,8 @@ Regardless of emulator choice, we need tools to inject test sources and extract 
 cadius CREATEVOLUME test_sources.2mg TESTSRC 140KB
 
 # Inject test sources
-cadius ADDFILE test_sources.2mg /TESTSRC/ tests/test_simple.src
-cadius ADDFILE test_sources.2mg /TESTSRC/ tests/test_expressions.src
+cadius ADDFILE test_sources.2mg /TESTSRC/ tests/fixtures/test_simple.src
+cadius ADDFILE test_sources.2mg /TESTSRC/ tests/fixtures/test_expressions.src
 
 # After EDASM run, extract outputs
 cadius EXTRACTVOLUME edasm_output.2mg ./outputs/
@@ -479,7 +479,7 @@ ac -p mydisk.2mg newfile.bin PRODOS
 ```bash
 # 1. Prepare test disk
 cadius CREATEVOLUME ./tmp/test_disk.2mg TESTDSK 140KB
-cadius ADDFILE ./tmp/test_disk.2mg /TESTDSK/ tests/test_simple.src
+cadius ADDFILE ./tmp/test_disk.2mg /TESTDSK/ tests/fixtures/test_simple.src
 
 # 2. Run MAME with automation script
 mame apple2e \
@@ -493,7 +493,7 @@ mame apple2e \
 cadius EXTRACTVOLUME ./tmp/test_disk.2mg ./tmp/edasm_output/
 
 # 4. Compare with C-EDASM
-./build/edasm_cli tests/test_simple.src -o ./tmp/cedasm_output.bin
+./build/edasm_cli tests/fixtures/test_simple.src -o ./tmp/cedasm_output.bin
 diff ./tmp/edasm_output/TEST_SIMPLE.BIN ./tmp/cedasm_output.bin
 ```
 

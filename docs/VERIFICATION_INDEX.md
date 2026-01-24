@@ -221,7 +221,7 @@ cat src/assembler/expression.cpp
 cd build && ./tests/test_assembler_integration --gtest_filter=*Expression*
 
 # 4. Compare behavior with test programs
-./build/test_asm tests/test_expressions.src
+./build/test_asm tests/fixtures/test_expressions.src
 ```
 
 ---
