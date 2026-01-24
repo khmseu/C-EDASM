@@ -158,50 +158,6 @@ void MLIHandler::set_error(CPUState &cpu, uint8_t err) {
     cpu.P |= StatusFlags::U;
 }
 
-std::string MLIHandler::dump_cpu_state(const CPUState &cpu) {
-    std::ostringstream oss;
-    oss << "CPU: A=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-        << static_cast<int>(cpu.A) << " X=$" << std::setw(2) << static_cast<int>(cpu.X) << " Y=$"
-        << std::setw(2) << static_cast<int>(cpu.Y) << " SP=$" << std::setw(2)
-        << static_cast<int>(cpu.SP) << " P=$" << std::setw(2) << static_cast<int>(cpu.P) << " PC=$"
-        << std::setw(4) << cpu.PC;
-
-    // Decode flags
-    oss << " [";
-    if (cpu.P & StatusFlags::N)
-        oss << "N";
-    else
-        oss << "-";
-    if (cpu.P & StatusFlags::V)
-        oss << "V";
-    else
-        oss << "-";
-    oss << "U"; // U flag always set on 6502
-    if (cpu.P & StatusFlags::B)
-        oss << "B";
-    else
-        oss << "-";
-    if (cpu.P & StatusFlags::D)
-        oss << "D";
-    else
-        oss << "-";
-    if (cpu.P & StatusFlags::I)
-        oss << "I";
-    else
-        oss << "-";
-    if (cpu.P & StatusFlags::Z)
-        oss << "Z";
-    else
-        oss << "-";
-    if (cpu.P & StatusFlags::C)
-        oss << "C";
-    else
-        oss << "-";
-    oss << "]";
-
-    return oss.str();
-}
-
 bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
@@ -265,7 +221,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         std::cout << std::endl;
         std::cout << "=== PRODOS MLI CALL DETECTED at PC=$BF00 ===" << std::endl;
-        std::cout << dump_cpu_state(cpu) << std::endl;
+        std::cout << TrapManager::dump_cpu_state(cpu) << std::endl;
         std::cout << std::endl;
 
         std::cout << "Stack Analysis:" << std::endl;

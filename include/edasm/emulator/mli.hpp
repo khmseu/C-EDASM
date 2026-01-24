@@ -22,7 +22,6 @@ class MLIHandler {
     static void set_success(CPUState &cpu);
     static void set_error(CPUState &cpu, uint8_t err);
     static bool write_memory_dump(const Bus &bus, const std::string &filename);
-    static std::string dump_cpu_state(const CPUState &cpu);
 
   private:
     // Helper for ProDOS MLI decoding
