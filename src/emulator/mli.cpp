@@ -556,20 +556,32 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
                                      const MLICallDescriptor &desc,
                                      const std::vector<MLIParamValue> &values) {
 
-    if (values.size() != desc.param_count) {
-        std::cerr << "Warning: Parameter count mismatch in write_output_params" << std::endl;
-        return;
+    // Handlers are allowed to return only output (or input_output) parameters in order.
+    // Map the returned values into the parameter descriptor slots when direction != INPUT.
+
+    // Count expected output parameters
+    size_t expected_outputs = 0;
+    for (uint8_t i = 0; i < desc.param_count; ++i) {
+        if (desc.params[i].direction != MLIParamDirection::INPUT)
+            ++expected_outputs;
+    }
+
+    if (values.size() != expected_outputs) {
+        std::cerr << "Warning: Parameter count mismatch in write_output_params - expected "
+                  << expected_outputs << " got " << values.size() << std::endl;
+        // Continue but be defensive: only process as many as provided
     }
 
     // Skip parameter count byte
     uint16_t offset = 1;
 
+    size_t out_idx = 0; // index into values (only output/input_output params)
+
     for (uint8_t i = 0; i < desc.param_count; ++i) {
         const auto &param = desc.params[i];
 
-        // Only write OUTPUT and INPUT_OUTPUT parameters
+        // Input-only params: skip over parameter bytes
         if (param.direction == MLIParamDirection::INPUT) {
-            // Skip input-only params
             switch (param.type) {
             case MLIParamType::BYTE:
             case MLIParamType::REF_NUM:
@@ -587,7 +599,27 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
             continue;
         }
 
-        const auto &value = values[i];
+        // If handler did not provide an output for this parameter, skip writing
+        if (out_idx >= values.size()) {
+            // Advance offset as if parameter exists, but do not write
+            switch (param.type) {
+            case MLIParamType::BYTE:
+            case MLIParamType::REF_NUM:
+                offset += 1;
+                break;
+            case MLIParamType::WORD:
+            case MLIParamType::PATHNAME_PTR:
+            case MLIParamType::BUFFER_PTR:
+                offset += 2;
+                break;
+            case MLIParamType::THREE_BYTE:
+                offset += 3;
+                break;
+            }
+            continue;
+        }
+
+        const auto &value = values[out_idx++];
 
         switch (param.type) {
         case MLIParamType::BYTE:
@@ -614,7 +646,7 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
         }
         case MLIParamType::PATHNAME_PTR:
         case MLIParamType::BUFFER_PTR:
-            // Pointers are not typically written back
+            // Pointers are not typically written back; skip (but advance)
             offset += 2;
             break;
         }
