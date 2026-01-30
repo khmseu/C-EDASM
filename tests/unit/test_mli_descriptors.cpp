@@ -1,9 +1,9 @@
-#include "../../include/edasm/emulator/mli.hpp"
 #include "../../include/edasm/emulator/bus.hpp"
 #include "../../include/edasm/emulator/cpu.hpp"
+#include "../../include/edasm/emulator/mli.hpp"
 #include <cassert>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 using namespace edasm;
 
@@ -51,7 +51,7 @@ void test_set_error_with_enum() {
     // Test set_error with enum
     MLIHandler::set_error(state, ProDOSError::FILE_NOT_FOUND);
     assert(state.A == 0x46);
-    assert(state.P & StatusFlags::C); // Carry flag set on error
+    assert(state.P & StatusFlags::C);    // Carry flag set on error
     assert(!(state.P & StatusFlags::Z)); // Zero flag clear on error
 
     MLIHandler::set_error(state, ProDOSError::INVALID_REF_NUM);
@@ -215,15 +215,15 @@ void test_get_file_info_descriptor_details() {
 
 void test_read_input_params_byte_and_word() {
     Bus bus;
-    
+
     // Create a simple parameter list for CLOSE (1 byte param)
     // Address $1000: param_count=1, ref_num=5
-    bus.write(0x1000, 1);    // param_count
-    bus.write(0x1001, 5);    // ref_num
-    
+    bus.write(0x1000, 1); // param_count
+    bus.write(0x1001, 5); // ref_num
+
     const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xCC); // CLOSE
     assert(desc != nullptr);
-    
+
     auto values = MLIHandler::read_input_params(bus, 0x1000, *desc);
     assert(values.size() == 1);
     assert(std::get<uint8_t>(values[0]) == 5);
@@ -234,10 +234,10 @@ void test_read_input_params_byte_and_word() {
     bus.write(0x2002, 0x00); // position (output, but we still need space)
     bus.write(0x2003, 0x00);
     bus.write(0x2004, 0x00);
-    
+
     desc = MLIHandler::get_call_descriptor(0xCF); // GET_MARK
     assert(desc != nullptr);
-    
+
     values = MLIHandler::read_input_params(bus, 0x2000, *desc);
     assert(values.size() == 2);
     assert(std::get<uint8_t>(values[0]) == 7);
@@ -249,25 +249,25 @@ void test_read_input_params_byte_and_word() {
 
 void test_read_input_params_pathname() {
     Bus bus;
-    
+
     // Create a parameter list for SET_PREFIX
     // Address $1000: param_count=1, pathname_ptr=$2000
-    bus.write(0x1000, 1);          // param_count
-    bus.write(0x1001, 0x00);       // pathname_ptr low
-    bus.write(0x1002, 0x20);       // pathname_ptr high
-    
+    bus.write(0x1000, 1);    // param_count
+    bus.write(0x1001, 0x00); // pathname_ptr low
+    bus.write(0x1002, 0x20); // pathname_ptr high
+
     // Write pathname at $2000: length=6, "/HELLO"
-    bus.write(0x2000, 6);          // length
+    bus.write(0x2000, 6); // length
     bus.write(0x2001, '/');
     bus.write(0x2002, 'H');
     bus.write(0x2003, 'E');
     bus.write(0x2004, 'L');
     bus.write(0x2005, 'L');
     bus.write(0x2006, 'O');
-    
+
     const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xC6); // SET_PREFIX
     assert(desc != nullptr);
-    
+
     auto values = MLIHandler::read_input_params(bus, 0x1000, *desc);
     assert(values.size() == 1);
     assert(std::get<std::string>(values[0]) == "/HELLO");
@@ -277,26 +277,26 @@ void test_read_input_params_pathname() {
 
 void test_write_output_params_byte_and_word() {
     Bus bus;
-    
+
     // Prepare parameter list for OPEN (pathname, io_buffer, ref_num)
-    bus.write(0x1000, 3);          // param_count
-    bus.write(0x1001, 0x00);       // pathname_ptr (input)
+    bus.write(0x1000, 3);    // param_count
+    bus.write(0x1001, 0x00); // pathname_ptr (input)
     bus.write(0x1002, 0x30);
-    bus.write(0x1003, 0x00);       // io_buffer (input)
+    bus.write(0x1003, 0x00); // io_buffer (input)
     bus.write(0x1004, 0x40);
-    bus.write(0x1005, 0x00);       // ref_num (output) - will be written
-    
+    bus.write(0x1005, 0x00); // ref_num (output) - will be written
+
     const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xC8); // OPEN
     assert(desc != nullptr);
-    
+
     std::vector<MLIParamValue> values = {
         std::string(""),  // pathname (input, not written)
         uint16_t(0x4000), // io_buffer (input, not written)
         uint8_t(3)        // ref_num (output)
     };
-    
+
     MLIHandler::write_output_params(bus, 0x1000, *desc, values);
-    
+
     // ref_num should be written at offset 5
     assert(bus.read(0x1005) == 3);
 
@@ -305,24 +305,24 @@ void test_write_output_params_byte_and_word() {
 
 void test_write_output_params_three_byte() {
     Bus bus;
-    
+
     // Prepare parameter list for GET_EOF (ref_num, eof)
-    bus.write(0x1000, 2);          // param_count
-    bus.write(0x1001, 5);          // ref_num (input)
-    bus.write(0x1002, 0x00);       // eof byte 0 (output)
-    bus.write(0x1003, 0x00);       // eof byte 1 (output)
-    bus.write(0x1004, 0x00);       // eof byte 2 (output)
-    
+    bus.write(0x1000, 2);    // param_count
+    bus.write(0x1001, 5);    // ref_num (input)
+    bus.write(0x1002, 0x00); // eof byte 0 (output)
+    bus.write(0x1003, 0x00); // eof byte 1 (output)
+    bus.write(0x1004, 0x00); // eof byte 2 (output)
+
     const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xD1); // GET_EOF
     assert(desc != nullptr);
-    
+
     std::vector<MLIParamValue> values = {
         uint8_t(5),        // ref_num (input, not written back)
         uint32_t(0x012345) // eof (output) - 24-bit value
     };
-    
+
     MLIHandler::write_output_params(bus, 0x1000, *desc, values);
-    
+
     // eof should be written at offset 2 (3 bytes, little-endian)
     assert(bus.read(0x1002) == 0x45);
     assert(bus.read(0x1003) == 0x23);
@@ -334,29 +334,28 @@ void test_write_output_params_three_byte() {
 void test_all_call_descriptors_present() {
     // Verify all 27 calls are present
     int count = 0;
-    const uint8_t expected_calls[] = {
-        0x40, 0x41, 0x65, 0x80, 0x81, 0x82,
-        0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9,
-        0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3
-    };
-    
+    const uint8_t expected_calls[] = {0x40, 0x41, 0x65, 0x80, 0x81, 0x82, 0xC0, 0xC1, 0xC2,
+                                      0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB,
+                                      0xCC, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3};
+
     for (uint8_t call_num : expected_calls) {
         const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(call_num);
         if (desc != nullptr) {
             count++;
-            std::cout << "  Found: $" << std::hex << std::uppercase << std::setw(2) 
-                      << std::setfill('0') << static_cast<int>(call_num) 
-                      << " " << desc->name << " (params=" << std::dec 
-                      << static_cast<int>(desc->param_count) << ")" << std::endl;
+            std::cout << "  Found: $" << std::hex << std::uppercase << std::setw(2)
+                      << std::setfill('0') << static_cast<int>(call_num) << " " << desc->name
+                      << " (params=" << std::dec << static_cast<int>(desc->param_count) << ")"
+                      << std::endl;
         } else {
-            std::cerr << "  MISSING: $" << std::hex << std::uppercase << std::setw(2) 
+            std::cerr << "  MISSING: $" << std::hex << std::uppercase << std::setw(2)
                       << std::setfill('0') << static_cast<int>(call_num) << std::endl;
         }
     }
-    
+
     assert(count == 26); // We have 26 calls defined (QUIT is 0x65)
 
-    std::cout << "✓ test_all_call_descriptors_present passed (found " << count << " calls)" << std::endl;
+    std::cout << "✓ test_all_call_descriptors_present passed (found " << count << " calls)"
+              << std::endl;
 }
 
 int main() {

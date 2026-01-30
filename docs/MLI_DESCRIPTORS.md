@@ -52,6 +52,7 @@ Each MLI call has a descriptor (`MLICallDescriptor`) containing:
 - Array of parameter descriptors with type, direction, and name
 
 Example for OPEN ($C8):
+
 ```cpp
 {0xC8, "OPEN", 3, {{
     IN(PATHNAME_PTR, INPUT, "pathname"),
@@ -75,6 +76,7 @@ const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xC8); // OPEN
 Read input parameters from ProDOS parameter list in memory.
 
 Returns `std::vector<MLIParamValue>` containing parsed parameter values:
+
 - `uint8_t` for BYTE/REF_NUM
 - `uint16_t` for WORD/BUFFER_PTR
 - `uint32_t` for THREE_BYTE
@@ -102,6 +104,7 @@ MLIHandler::write_output_params(bus, param_list_addr, *desc, out_values);
 ### `set_error(cpu, ProDOSError)`
 
 Set CPU registers for ProDOS error return:
+
 - A = error code
 - Carry flag set
 - Zero flag cleared
@@ -161,6 +164,7 @@ Two comprehensive test suites verify the infrastructure:
 ### `test_mli_descriptors`
 
 Tests descriptor lookup, parameter parsing, and output writing:
+
 - All 30 error codes defined correctly
 - All 26 call descriptors present
 - Parameter type and direction metadata correct
@@ -170,6 +174,7 @@ Tests descriptor lookup, parameter parsing, and output writing:
 ### `test_mli_stubs`
 
 Tests stub handler behavior:
+
 - Stub calls return BAD_CALL_NUMBER error
 - Stub calls continue execution (don't halt)
 - Implemented calls still work correctly
