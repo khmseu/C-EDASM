@@ -529,7 +529,7 @@ int main(int argc, char *argv[]) {
 
         // Check if HostShims requested a stop (e.g., first screen char is 'E')
         if (shims.should_stop()) {
-            std::cout << "\nEmulator stopped by HostShims (first screen char is 'E')" << std::endl;
+            std::cout << "\nEmulator stopped by HostShims" << std::endl;
             running = false;
         }
     }
