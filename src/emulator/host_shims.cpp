@@ -424,40 +424,25 @@ bool HostShims::handle_lc_read(uint16_t addr, uint8_t &value) {
     uint8_t bank = lc_.active_bank & 0x1;
     auto mode = lc_.bank_mode[bank];
 
-    // Debug: print current state
-    std::cout << "[HostShims DBG] LC read state: addr=$" << std::hex << addr
-              << " active_bank=" << std::dec << static_cast<int>(bank)
-              << " mode=" << static_cast<int>(lc_.bank_mode[0]) << "/"
-              << static_cast<int>(lc_.bank_mode[1]) << " power_on_rom=" << lc_.power_on_rom_active
-              << std::endl;
-
-    // ROM is active if power-on ROM is active OR the currently selected bank is in a ROM read mode
+    // Decide based on the currently active bank's mode first (RAM modes take precedence)
     auto cur_mode = lc_.bank_mode[lc_.active_bank & 0x1];
-    bool rom_active = lc_.power_on_rom_active || (cur_mode == LCBankMode::READ_ROM_ONLY) ||
-                      (cur_mode == LCBankMode::READ_ROM_WRITE_RAM);
 
-    if (rom_active) {
-        // ROM covers D000..FFFF (12KB)
-        auto rom_val = lc_.rom_image[off_full];
-        auto fixed_val = (off_full >= 0x1000) ? lc_.fixed_ram[off_full - 0x1000]
-                                              : lc_.banked_ram[bank][off_full & 0x0FFF];
-        std::cout << "[HostShims DBG] ROM active=true addr=$" << std::hex << (0xD000 + off_full)
-                  << " off_full=$" << off_full << " rom=$" << std::setw(2) << std::setfill('0')
-                  << static_cast<int>(rom_val) << " fixed=$" << std::setw(2)
-                  << static_cast<int>(fixed_val) << std::endl;
-        value = rom_val;
+    // If the active bank is in a RAM-read mode, return RAM contents
+    if (cur_mode == LCBankMode::READ_RAM_NO_WRITE || cur_mode == LCBankMode::READ_RAM_WRITE_RAM) {
+        if (addr >= 0xD000 && addr <= 0xDFFF) {
+            uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
+            value = lc_.banked_ram[bank][off];
+        } else {
+            uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
+            value = lc_.fixed_ram[off];
+        }
         return true;
     }
 
-    // Otherwise reads come from RAM: D000..DFFF -> banked_ram[bank], E000..FFFF -> fixed_ram
-    if (addr >= 0xD000 && addr <= 0xDFFF) {
-        uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
-        value = lc_.banked_ram[bank][off];
-    } else {
-        uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
-        value = lc_.fixed_ram[off];
-    }
-    return true; // handled
+    // Otherwise (active bank is in a ROM-read mode or power-on ROM active), return ROM image
+    auto rom_val = lc_.rom_image[off_full];
+    value = rom_val;
+    return true;
 }
 
 bool HostShims::handle_lc_write(uint16_t addr, uint8_t value) {
