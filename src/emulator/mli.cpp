@@ -1266,62 +1266,11 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
     return true;
 }
 std::string MLIHandler::decode_prodos_call(uint8_t call_num) {
-    switch (call_num) {
-    case 0x40:
-        return "ALLOC_INTERRUPT";
-    case 0x41:
-        return "DEALLOC_INTERRUPT";
-    case 0x65:
-        return "QUIT";
-    case 0x80:
-        return "READ_BLOCK";
-    case 0x81:
-        return "WRITE_BLOCK";
-    case 0x82:
-        return "GET_TIME";
-    case 0xC0:
-        return "CREATE";
-    case 0xC1:
-        return "DESTROY";
-    case 0xC2:
-        return "RENAME";
-    case 0xC3:
-        return "SET_FILE_INFO";
-    case 0xC4:
-        return "GET_FILE_INFO";
-    case 0xC5:
-        return "ONLINE";
-    case 0xC6:
-        return "SET_PREFIX";
-    case 0xC7:
-        return "GET_PREFIX";
-    case 0xC8:
-        return "OPEN";
-    case 0xC9:
-        return "NEWLINE";
-    case 0xCA:
-        return "READ";
-    case 0xCB:
-        return "WRITE";
-    case 0xCC:
-        return "CLOSE";
-    case 0xCD:
-        return "FLUSH";
-    case 0xCE:
-        return "SET_MARK";
-    case 0xCF:
-        return "GET_MARK";
-    case 0xD0:
-        return "SET_EOF";
-    case 0xD1:
-        return "GET_EOF";
-    case 0xD2:
-        return "SET_BUF";
-    case 0xD3:
-        return "GET_BUF";
-    default:
-        return "UNKNOWN";
+    const MLICallDescriptor *desc = get_call_descriptor(call_num);
+    if (desc) {
+        return desc->name;
     }
+    return "UNKNOWN";
 }
 
 } // namespace edasm
