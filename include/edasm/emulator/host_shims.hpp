@@ -44,6 +44,9 @@ class HostShims {
     bool handle_io_read(uint16_t addr, uint8_t &value);
     bool handle_io_write(uint16_t addr, uint8_t value);
 
+    // Report unimplemented I/O access and request emulator stop
+    void report_unhandled_io(uint16_t addr, bool is_write, uint8_t value);
+
     // Specific device handlers
     bool handle_kbd_read(uint16_t addr, uint8_t &value);
     bool handle_kbdstrb_read(uint16_t addr, uint8_t &value);

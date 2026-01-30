@@ -142,6 +142,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     // $C020-$C02F: Cassette and misc I/O
     if (addr >= 0xC020 && addr <= 0xC02F) {
         value = 0;
+        report_unhandled_io(addr, false, value);
         return true;
     }
 
@@ -153,6 +154,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     // $C040-$C04F: Utility strobe (not used much)
     if (addr >= 0xC040 && addr <= 0xC04F) {
         value = 0;
+        report_unhandled_io(addr, false, value);
         return true;
     }
 
@@ -171,6 +173,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     // $C070-$C07F: Game paddle triggers
     if (addr >= 0xC070 && addr <= 0xC07F) {
         value = 0;
+        report_unhandled_io(addr, false, value);
         return true;
     }
 
@@ -178,6 +181,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     if (addr >= 0xC080 && addr <= 0xC08F) {
         // Minimal implementation: return 0
         value = 0;
+        report_unhandled_io(addr, false, value);
         return true;
     }
 
@@ -185,6 +189,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     // Each slot occupies 16 bytes: $C0n0-$C0nF (where n is slot 1-7)
     // For now, return 0 for undefined I/O
     value = 0;
+    report_unhandled_io(addr, false, value);
     return true;
 }
 
@@ -193,7 +198,8 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
 
     // $C000-$C00F: Keyboard/game I/O (typically read-only)
     if (addr >= 0xC000 && addr <= 0xC00F) {
-        return true; // Ignore writes
+        report_unhandled_io(addr, true, value);
+        return true; // Ignore writes but report
     }
 
     // $C010-$C01F: Keyboard strobe and soft switches
@@ -207,6 +213,7 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
 
     // $C020-$C02F: Cassette output and misc
     if (addr >= 0xC020 && addr <= 0xC02F) {
+        report_unhandled_io(addr, true, value);
         return true; // Ignore
     }
 
@@ -229,17 +236,20 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
 
     // $C060-$C07F: Game I/O (typically read-only)
     if (addr >= 0xC060 && addr <= 0xC07F) {
+        report_unhandled_io(addr, true, value);
         return true; // Ignore writes
     }
 
     // $C080-$C08F: Language card bank switching
     if (addr >= 0xC080 && addr <= 0xC08F) {
         // Minimal implementation: ignore
+        report_unhandled_io(addr, true, value);
         return true;
     }
 
     // $C090-$C7FF: Expansion slots and additional I/O
     // Ignore writes to undefined I/O
+    report_unhandled_io(addr, true, value);
     return true;
 }
 
@@ -329,6 +339,19 @@ void HostShims::log_text_screen() {
     }
 
     std::cout.flush();
+}
+
+// Report unimplemented I/O access and request emulator stop
+void HostShims::report_unhandled_io(uint16_t addr, bool is_write, uint8_t value) {
+    std::cerr << "[HostShims] UNIMPLEMENTED I/O " << (is_write ? "WRITE" : "READ") << " at $"
+              << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << addr
+              << " value=$" << std::setw(2) << static_cast<int>(value) << " - stopping"
+              << std::endl;
+    if (bus_) {
+        log_text_screen();
+        TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
+    }
+    stop_requested_ = true;
 }
 
 bool HostShims::should_stop() const {
