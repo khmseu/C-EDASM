@@ -62,6 +62,45 @@ class HostShims {
     bool mixed_mode_;  // $C052/$C053: Full/Mixed screen
     bool page2_;       // $C054/$C055: Page 1/Page 2
     bool hires_;       // $C056/$C057: Lo-res/Hi-res
+
+    // 80-column state (CLR80VID / SET80VID)
+    bool eighty_col_enabled_ = false;
+    // Language Card state
+    enum class LCBankMode {
+        READ_RAM_NO_WRITE,
+        READ_ROM_WRITE_RAM,
+        READ_ROM_ONLY,
+        READ_RAM_WRITE_RAM
+    };
+    struct LanguageCardState {
+        // Banked RAM: two 4K banks that are switched into $D000-$DFFF
+        std::array<std::array<uint8_t, 0x1000>, 2> banked_ram{}; // [bank][offset]
+
+        // Fixed RAM region (8KB) that sits at $E000-$FFFF when RAM is visible
+        std::array<uint8_t, 0x2000> fixed_ram{}; // offsets 0..0x1FFF map to $E000..$FFFF
+
+        // ROM image covering full $D000-$FFFF (12KB)
+        std::array<uint8_t, 0x3000> rom_image{}; // offsets 0..0x2FFF map to $D000..$FFFF
+
+        // Per-bank mode (applies primarily to behavior of D000..DFFF mapping and ROM vs RAM read
+        // semantics) Modes stored per bank index (0 or 1) indicate what happens when that bank is
+        // active.
+        std::array<LCBankMode, 2> bank_mode{LCBankMode::READ_ROM_ONLY, LCBankMode::READ_ROM_ONLY};
+
+        // active window bank: 0 = first bank, 1 = second bank
+        uint8_t active_bank = 0;
+
+        // Power-on state: RAM disabled and ROM active (per hardware behavior)
+        bool power_on_rom_active = true;
+    };
+
+    LanguageCardState lc_;
+
+    // Language Card handlers
+    bool handle_language_control_read(uint16_t addr, uint8_t &value);
+    bool handle_language_control_write(uint16_t addr, uint8_t value);
+    bool handle_lc_read(uint16_t addr, uint8_t &value);
+    bool handle_lc_write(uint16_t addr, uint8_t value);
 };
 
 } // namespace edasm

@@ -101,6 +101,17 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# Language card soft-switch unit test
+add_executable(test_language_card unit/test_language_card.cpp)
+target_link_libraries(test_language_card PRIVATE edasm)
+target_include_directories(test_language_card PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_language_card
+  COMMAND test_language_card
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ============================================================================
 # Integration Test Cases (using fixture files)
 # ============================================================================

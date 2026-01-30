@@ -50,6 +50,14 @@ void HostShims::install_io_traps(Bus &bus) {
 
         return false;
     });
+
+    // Install traps for language-card window ($D000-$FFFF) covering full 12KB ROM window
+    bus.set_read_trap_range(0xD000, 0xFFFF, [this](uint16_t addr, uint8_t &value) {
+        return this->handle_lc_read(addr, value);
+    });
+    bus.set_write_trap_range(0xD000, 0xFFFF, [this](uint16_t addr, uint8_t value) {
+        return this->handle_lc_write(addr, value);
+    });
 }
 
 void HostShims::queue_input_line(const std::string &line) {
@@ -179,10 +187,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 
     // $C080-$C08F: Language card bank switching (IIe/IIc)
     if (addr >= 0xC080 && addr <= 0xC08F) {
-        // Minimal implementation: return 0
-        value = 0;
-        report_unhandled_io(addr, false, value);
-        return true;
+        return handle_language_control_read(addr, value);
     }
 
     // $C090-$C7FF: Expansion slots and additional I/O
@@ -198,8 +203,17 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
 
     // $C000-$C00F: Keyboard/game I/O (typically read-only)
     if (addr >= 0xC000 && addr <= 0xC00F) {
-        report_unhandled_io(addr, true, value);
-        return true; // Ignore writes but report
+        // Handle known soft-switches gracefully
+        if (addr == 0xC00C) { // CLR80VID - clear 80-column mode
+            eighty_col_enabled_ = false;
+            return true;
+        }
+        if (addr == 0xC00D) { // SET80VID - set 80-column mode
+            eighty_col_enabled_ = true;
+            return true;
+        }
+        // Unknown writes: ignore but do not stop the emulator
+        return true;
     }
 
     // $C010-$C01F: Keyboard strobe and soft switches
@@ -242,9 +256,7 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
 
     // $C080-$C08F: Language card bank switching
     if (addr >= 0xC080 && addr <= 0xC08F) {
-        // Minimal implementation: ignore
-        report_unhandled_io(addr, true, value);
-        return true;
+        return handle_language_control_write(addr, value);
     }
 
     // $C090-$C7FF: Expansion slots and additional I/O
@@ -352,6 +364,129 @@ void HostShims::report_unhandled_io(uint16_t addr, bool is_write, uint8_t value)
         TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
     }
     stop_requested_ = true;
+}
+
+// Language Card control: handle reads/writes to $C080..$C08F
+bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
+    // Map addresses into bank and mode
+    uint16_t offset = addr & 0x0F;                             // 0..15 within control page
+    uint8_t bank = (addr >= 0xC088 && addr <= 0xC08F) ? 0 : 1; // bank1 => 0, bank2 => 1
+
+    // Map offset to mode (group by 4)
+    uint8_t group = offset & 0x03;               // 0..3
+    LCBankMode mode = LCBankMode::READ_ROM_ONLY; // power-on default/most conservative
+    switch (group) {
+    case 0:
+        mode = LCBankMode::READ_RAM_NO_WRITE; // C080/C088
+        break;
+    case 1:
+        mode = LCBankMode::READ_ROM_WRITE_RAM; // C081/C089
+        break;
+    case 2:
+        mode = LCBankMode::READ_ROM_ONLY; // C082/C08A
+        break;
+    case 3:
+        mode = LCBankMode::READ_RAM_WRITE_RAM; // C083/C08B
+        break;
+    }
+
+    lc_.bank_mode[bank] = mode;
+    lc_.active_bank = bank;
+    lc_.power_on_rom_active =
+        (mode == LCBankMode::READ_ROM_ONLY || mode == LCBankMode::READ_ROM_WRITE_RAM);
+
+    std::cout << "[HostShims] Language Card control read at $" << std::hex << std::uppercase
+              << std::setw(4) << std::setfill('0') << addr << " -> bank=" << std::dec
+              << static_cast<int>(bank) << " mode=" << static_cast<int>(mode) << std::endl;
+
+    value = 0;
+    return true;
+}
+
+bool HostShims::handle_language_control_write(uint16_t addr, uint8_t value) {
+    // Writes have same effect as reads for soft switches
+    uint8_t dummy;
+    bool ok = handle_language_control_read(addr, dummy);
+    std::cout << "[HostShims] Language Card control write at $" << std::hex << std::uppercase
+              << std::setw(4) << std::setfill('0') << addr << " value=$" << std::setw(2)
+              << static_cast<int>(value) << std::endl;
+    return ok;
+}
+
+// Handle reads from the entire language-card ROM/overlay window ($D000-$FFFF)
+bool HostShims::handle_lc_read(uint16_t addr, uint8_t &value) {
+    if (addr < 0xD000 || addr > 0xFFFF)
+        return false;
+
+    uint32_t off_full = static_cast<uint32_t>(addr - 0xD000); // 0..0x2FFF (12KB)
+
+    // Determine active bank for $D000-$DFFF
+    uint8_t bank = lc_.active_bank & 0x1;
+    auto mode = lc_.bank_mode[bank];
+
+    // Debug: print current state
+    std::cout << "[HostShims DBG] LC read state: addr=$" << std::hex << addr
+              << " active_bank=" << std::dec << static_cast<int>(bank)
+              << " mode=" << static_cast<int>(lc_.bank_mode[0]) << "/"
+              << static_cast<int>(lc_.bank_mode[1]) << " power_on_rom=" << lc_.power_on_rom_active
+              << std::endl;
+
+    // ROM is active if power-on ROM is active OR the currently selected bank is in a ROM read mode
+    auto cur_mode = lc_.bank_mode[lc_.active_bank & 0x1];
+    bool rom_active = lc_.power_on_rom_active || (cur_mode == LCBankMode::READ_ROM_ONLY) ||
+                      (cur_mode == LCBankMode::READ_ROM_WRITE_RAM);
+
+    if (rom_active) {
+        // ROM covers D000..FFFF (12KB)
+        auto rom_val = lc_.rom_image[off_full];
+        auto fixed_val = (off_full >= 0x1000) ? lc_.fixed_ram[off_full - 0x1000]
+                                              : lc_.banked_ram[bank][off_full & 0x0FFF];
+        std::cout << "[HostShims DBG] ROM active=true addr=$" << std::hex << (0xD000 + off_full)
+                  << " off_full=$" << off_full << " rom=$" << std::setw(2) << std::setfill('0')
+                  << static_cast<int>(rom_val) << " fixed=$" << std::setw(2)
+                  << static_cast<int>(fixed_val) << std::endl;
+        value = rom_val;
+        return true;
+    }
+
+    // Otherwise reads come from RAM: D000..DFFF -> banked_ram[bank], E000..FFFF -> fixed_ram
+    if (addr >= 0xD000 && addr <= 0xDFFF) {
+        uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
+        value = lc_.banked_ram[bank][off];
+    } else {
+        uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
+        value = lc_.fixed_ram[off];
+    }
+    return true; // handled
+}
+
+bool HostShims::handle_lc_write(uint16_t addr, uint8_t value) {
+    if (addr < 0xD000 || addr > 0xFFFF)
+        return false;
+
+    uint32_t off_full = static_cast<uint32_t>(addr - 0xD000); // 0..0x2FFF
+    uint8_t bank = lc_.active_bank & 0x1;
+    auto mode = lc_.bank_mode[bank];
+
+    // Writes permitted when mode allows writes (either banked RAM writable or ROMIN allowing writes
+    // to underlying RAM)
+    bool allow_write =
+        (mode == LCBankMode::READ_RAM_WRITE_RAM) || (mode == LCBankMode::READ_ROM_WRITE_RAM);
+
+    if (!allow_write) {
+        // ignore
+        return true;
+    }
+
+    if (addr >= 0xD000 && addr <= 0xDFFF) {
+        uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
+        lc_.banked_ram[bank][off] = value;
+    } else {
+        uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
+        lc_.fixed_ram[off] = value;
+    }
+
+    return true;
 }
 
 bool HostShims::should_stop() const {
