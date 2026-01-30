@@ -1162,15 +1162,15 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     if (param_list + offset < Bus::MEMORY_SIZE) {
                         std::cout << "$" << std::hex << std::setw(2) << std::setfill('0')
                                   << static_cast<int>(mem[param_list + offset]);
-                        offset += 1;
                     }
+                    offset += 1;
                     break;
                 case MLIParamType::WORD:
                     if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
                         uint16_t val = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
                         std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << val;
-                        offset += 2;
                     }
+                    offset += 2;
                     break;
                 case MLIParamType::THREE_BYTE:
                     if (param_list + offset + 2 < Bus::MEMORY_SIZE) {
@@ -1178,8 +1178,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                                       (mem[param_list + offset + 1] << 8) |
                                       (mem[param_list + offset + 2] << 16);
                         std::cout << "$" << std::hex << std::setw(6) << std::setfill('0') << val;
-                        offset += 3;
                     }
+                    offset += 3;
                     break;
                 case MLIParamType::PATHNAME_PTR:
                     if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
@@ -1194,15 +1194,15 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                             }
                             std::cout << "\"";
                         }
-                        offset += 2;
                     }
+                    offset += 2;
                     break;
                 case MLIParamType::BUFFER_PTR:
                     if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
                         uint16_t ptr = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
                         std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
-                        offset += 2;
                     }
+                    offset += 2;
                     break;
                 }
                 std::cout << std::endl;
