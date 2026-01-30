@@ -479,7 +479,21 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
 
         // Only read INPUT and INPUT_OUTPUT parameters
         if (param.direction == MLIParamDirection::OUTPUT) {
-            values.push_back(uint8_t(0)); // Placeholder for output-only params
+            // Add a type-correct placeholder for output-only params
+            switch (param.type) {
+            case MLIParamType::BYTE:
+            case MLIParamType::REF_NUM:
+                values.push_back(uint8_t(0));
+                break;
+            case MLIParamType::WORD:
+            case MLIParamType::PATHNAME_PTR:
+            case MLIParamType::BUFFER_PTR:
+                values.push_back(uint16_t(0));
+                break;
+            case MLIParamType::THREE_BYTE:
+                values.push_back(uint32_t(0));
+                break;
+            }
             continue;
         }
 
