@@ -193,7 +193,7 @@ using PD = MLIParamDirection;
 #define INOUT PARAM
 
 // Descriptor table (static storage)
-static std::array<MLICallDescriptor, 27> s_call_descriptors = {{
+static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
     // System calls
     {0x40, "ALLOC_INTERRUPT", 2, {{
         IN(BYTE, INPUT, "int_num"),
@@ -328,6 +328,21 @@ static std::array<MLICallDescriptor, 27> s_call_descriptors = {{
     }}, nullptr},
 }};
 
+// Lookup table: maps call_number to index in s_call_descriptors
+// Initialized to -1 (0xFF) for invalid call numbers
+static std::array<uint8_t, 256> s_call_lookup_table = []() {
+    std::array<uint8_t, 256> table;
+    table.fill(0xFF); // Initialize all entries to invalid
+    
+    // Build lookup table from descriptor array
+    for (size_t i = 0; i < s_call_descriptors.size(); ++i) {
+        uint8_t call_num = s_call_descriptors[i].call_number;
+        table[call_num] = static_cast<uint8_t>(i);
+    }
+    
+    return table;
+}();
+
 #undef PARAM
 #undef IN
 #undef OUT
@@ -336,10 +351,9 @@ static std::array<MLICallDescriptor, 27> s_call_descriptors = {{
 } // anonymous namespace
 
 const MLICallDescriptor *MLIHandler::get_call_descriptor(uint8_t call_num) {
-    for (const auto &desc : s_call_descriptors) {
-        if (desc.call_number == call_num) {
-            return &desc;
-        }
+    uint8_t index = s_call_lookup_table[call_num];
+    if (index != 0xFF) {
+        return &s_call_descriptors[index];
     }
     return nullptr;
 }
