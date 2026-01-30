@@ -512,8 +512,16 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             // Read length-prefixed pathname
             uint8_t len = mem[ptr];
             std::string pathname;
-            for (uint8_t j = 0; j < len; ++j) {
-                pathname += static_cast<char>(mem[ptr + 1 + j]);
+            // Read at most 64 characters, preventing overflow and wrapping
+            uint8_t max_len = (len > 64) ? 64 : len;
+            uint16_t str_start = static_cast<uint16_t>(ptr + 1);
+            for (uint8_t j = 0; j < max_len; ++j) {
+                uint16_t addr = static_cast<uint16_t>(str_start + j);
+                if (addr < Bus::MEMORY_SIZE) {
+                    pathname += static_cast<char>(mem[addr]);
+                } else {
+                    break;
+                }
             }
             values.push_back(pathname);
             break;
