@@ -1145,32 +1145,68 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
         std::cout << std::endl;
 
-        if (call_num == 0x82 && param_count >= 1 && (param_list + 2) < Bus::MEMORY_SIZE) {
-            std::cout << std::endl << "  GET_TIME call parameters:" << std::endl;
-            std::cout << "    Date/time buffer pointer: $" << std::hex << std::setw(4)
-                      << (mem[param_list + 1] | (mem[param_list + 2] << 8)) << std::endl;
-        } else if (call_num == 0xC0 && (param_list + 2) < Bus::MEMORY_SIZE) {
-            std::cout << std::endl << "  CREATE call parameters:" << std::endl;
-            uint16_t pathname_ptr = mem[param_list + 1] | (mem[param_list + 2] << 8);
-            std::cout << "    Pathname pointer: $" << std::hex << std::setw(4) << pathname_ptr
-                      << std::endl;
-
-            uint8_t path_len = mem[pathname_ptr];
-            std::cout << "    Pathname length: " << std::dec << static_cast<int>(path_len)
-                      << std::endl;
-            std::cout << "    Pathname: \"";
-            for (int i = 1; i <= path_len && i <= 64 && (pathname_ptr + i) < Bus::MEMORY_SIZE;
-                 ++i) {
-                char c = mem[pathname_ptr + i];
-                std::cout << c;
+        // Use descriptor table to log parameters if available
+        const MLICallDescriptor *desc = get_call_descriptor(call_num);
+        if (desc && desc->param_count > 0) {
+            std::cout << std::endl << "  " << desc->name << " call parameters:" << std::endl;
+            
+            uint16_t offset = 1; // Skip parameter count byte
+            for (uint8_t i = 0; i < desc->param_count && i < param_count; ++i) {
+                const auto &param = desc->params[i];
+                
+                std::cout << "    " << param.name << ": ";
+                
+                switch (param.type) {
+                case MLIParamType::BYTE:
+                case MLIParamType::REF_NUM:
+                    if (param_list + offset < Bus::MEMORY_SIZE) {
+                        std::cout << "$" << std::hex << std::setw(2) << std::setfill('0')
+                                  << static_cast<int>(mem[param_list + offset]);
+                    }
+                    offset += 1;
+                    break;
+                case MLIParamType::WORD:
+                    if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
+                        uint16_t val = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                        std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << val;
+                    }
+                    offset += 2;
+                    break;
+                case MLIParamType::THREE_BYTE:
+                    if (param_list + offset + 2 < Bus::MEMORY_SIZE) {
+                        uint32_t val = mem[param_list + offset] | 
+                                      (mem[param_list + offset + 1] << 8) |
+                                      (mem[param_list + offset + 2] << 16);
+                        std::cout << "$" << std::hex << std::setw(6) << std::setfill('0') << val;
+                    }
+                    offset += 3;
+                    break;
+                case MLIParamType::PATHNAME_PTR:
+                    if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
+                        uint16_t ptr = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                        std::cout << "ptr=$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
+                        
+                        if (ptr < Bus::MEMORY_SIZE) {
+                            uint8_t path_len = mem[ptr];
+                            std::cout << " \"";
+                            for (uint8_t j = 0; j < path_len && j < 64 && (ptr + 1 + j) < Bus::MEMORY_SIZE; ++j) {
+                                std::cout << static_cast<char>(mem[ptr + 1 + j]);
+                            }
+                            std::cout << "\"";
+                        }
+                    }
+                    offset += 2;
+                    break;
+                case MLIParamType::BUFFER_PTR:
+                    if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
+                        uint16_t ptr = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                        std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
+                    }
+                    offset += 2;
+                    break;
+                }
+                std::cout << std::endl;
             }
-            std::cout << "\"" << std::endl;
-            std::cout << "    Access: $" << std::hex << std::setw(2)
-                      << static_cast<int>(mem[param_list + 3]) << std::endl;
-            std::cout << "    File type: $" << std::setw(2) << static_cast<int>(mem[param_list + 4])
-                      << std::endl;
-            std::cout << "    Storage type: $" << std::setw(2)
-                      << static_cast<int>(mem[param_list + 6]) << std::endl;
         }
     };
 
@@ -1266,62 +1302,11 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
     return true;
 }
 std::string MLIHandler::decode_prodos_call(uint8_t call_num) {
-    switch (call_num) {
-    case 0x40:
-        return "ALLOC_INTERRUPT";
-    case 0x41:
-        return "DEALLOC_INTERRUPT";
-    case 0x65:
-        return "QUIT";
-    case 0x80:
-        return "READ_BLOCK";
-    case 0x81:
-        return "WRITE_BLOCK";
-    case 0x82:
-        return "GET_TIME";
-    case 0xC0:
-        return "CREATE";
-    case 0xC1:
-        return "DESTROY";
-    case 0xC2:
-        return "RENAME";
-    case 0xC3:
-        return "SET_FILE_INFO";
-    case 0xC4:
-        return "GET_FILE_INFO";
-    case 0xC5:
-        return "ONLINE";
-    case 0xC6:
-        return "SET_PREFIX";
-    case 0xC7:
-        return "GET_PREFIX";
-    case 0xC8:
-        return "OPEN";
-    case 0xC9:
-        return "NEWLINE";
-    case 0xCA:
-        return "READ";
-    case 0xCB:
-        return "WRITE";
-    case 0xCC:
-        return "CLOSE";
-    case 0xCD:
-        return "FLUSH";
-    case 0xCE:
-        return "SET_MARK";
-    case 0xCF:
-        return "GET_MARK";
-    case 0xD0:
-        return "SET_EOF";
-    case 0xD1:
-        return "GET_EOF";
-    case 0xD2:
-        return "SET_BUF";
-    case 0xD3:
-        return "GET_BUF";
-    default:
-        return "UNKNOWN";
+    const MLICallDescriptor *desc = get_call_descriptor(call_num);
+    if (desc) {
+        return desc->name;
     }
+    return "UNKNOWN";
 }
 
 } // namespace edasm
