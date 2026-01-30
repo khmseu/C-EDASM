@@ -510,16 +510,12 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             offset += 2;
 
             // Read length-prefixed pathname
-            if (ptr < Bus::MEMORY_SIZE) {
-                uint8_t len = mem[ptr];
-                std::string pathname;
-                for (uint8_t j = 0; j < len && (ptr + 1 + j) < Bus::MEMORY_SIZE; ++j) {
-                    pathname += static_cast<char>(mem[ptr + 1 + j]);
-                }
-                values.push_back(pathname);
-            } else {
-                values.push_back(std::string(""));
+            uint8_t len = mem[ptr];
+            std::string pathname;
+            for (uint8_t j = 0; j < len; ++j) {
+                pathname += static_cast<char>(mem[ptr + 1 + j]);
             }
+            values.push_back(pathname);
             break;
         }
         case MLIParamType::BUFFER_PTR: {
@@ -1047,15 +1043,13 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     for (uint16_t addr = 0; addr < Bus::MEMORY_SIZE - 13; ++addr) {
         if (mem[addr] == 10) { // GET_FILE_INFO has 10 params
             uint16_t pathname_ptr = mem[addr + 1] | (mem[addr + 2] << 8);
-            if (pathname_ptr < Bus::MEMORY_SIZE) {
-                uint8_t path_len = mem[pathname_ptr];
-                if (path_len < 64 && pathname_ptr + path_len < Bus::MEMORY_SIZE) {
-                    std::string check_path(reinterpret_cast<const char *>(&mem[pathname_ptr + 1]),
-                                           path_len);
-                    if (check_path == prodos_path) {
-                        param_list = addr;
-                        break;
-                    }
+            uint8_t path_len = mem[pathname_ptr];
+            if (path_len < 64) {
+                std::string check_path(reinterpret_cast<const char *>(&mem[pathname_ptr + 1]),
+                                       path_len);
+                if (check_path == prodos_path) {
+                    param_list = addr;
+                    break;
                 }
             }
         }
@@ -1246,7 +1240,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         std::cout << "  Parameters (hex):";
         size_t bytes_to_show = std::min<size_t>(param_count * 2, 24);
-        for (size_t i = 1; i <= bytes_to_show && (param_list + i) < Bus::MEMORY_SIZE; ++i) {
+        for (size_t i = 1; i <= bytes_to_show; ++i) {
             if ((i - 1) % 8 == 0)
                 std::cout << std::endl << "    ";
             std::cout << " " << std::hex << std::setw(2) << std::setfill('0')
@@ -1268,54 +1262,40 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                 switch (param.type) {
                 case MLIParamType::BYTE:
                 case MLIParamType::REF_NUM:
-                    if (param_list + offset < Bus::MEMORY_SIZE) {
-                        std::cout << "$" << std::hex << std::setw(2) << std::setfill('0')
-                                  << static_cast<int>(mem[param_list + offset]);
-                    }
+                    std::cout << "$" << std::hex << std::setw(2) << std::setfill('0')
+                              << static_cast<int>(mem[param_list + offset]);
                     offset += 1;
                     break;
-                case MLIParamType::WORD:
-                    if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
-                        uint16_t val =
-                            mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
-                        std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << val;
-                    }
+                case MLIParamType::WORD: {
+                    uint16_t val = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                    std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << val;
+                }
                     offset += 2;
                     break;
-                case MLIParamType::THREE_BYTE:
-                    if (param_list + offset + 2 < Bus::MEMORY_SIZE) {
-                        uint32_t val = mem[param_list + offset] |
-                                       (mem[param_list + offset + 1] << 8) |
-                                       (mem[param_list + offset + 2] << 16);
-                        std::cout << "$" << std::hex << std::setw(6) << std::setfill('0') << val;
-                    }
+                case MLIParamType::THREE_BYTE: {
+                    uint32_t val = mem[param_list + offset] | (mem[param_list + offset + 1] << 8) |
+                                   (mem[param_list + offset + 2] << 16);
+                    std::cout << "$" << std::hex << std::setw(6) << std::setfill('0') << val;
+                }
                     offset += 3;
                     break;
-                case MLIParamType::PATHNAME_PTR:
-                    if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
-                        uint16_t ptr =
-                            mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
-                        std::cout << "ptr=$" << std::hex << std::setw(4) << std::setfill('0')
-                                  << ptr;
+                case MLIParamType::PATHNAME_PTR: {
+                    uint16_t ptr = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                    std::cout << "ptr=$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
 
-                        if (ptr < Bus::MEMORY_SIZE) {
-                            uint8_t path_len = mem[ptr];
-                            std::cout << " \"";
-                            for (uint8_t j = 0;
-                                 j < path_len && j < 64 && (ptr + 1 + j) < Bus::MEMORY_SIZE; ++j) {
-                                std::cout << static_cast<char>(mem[ptr + 1 + j]);
-                            }
-                            std::cout << "\"";
-                        }
+                    uint8_t path_len = mem[ptr];
+                    std::cout << " \"";
+                    for (uint8_t j = 0; j < path_len && j < 64; ++j) {
+                        std::cout << static_cast<char>(mem[ptr + 1 + j]);
                     }
+                    std::cout << "\"";
+                }
                     offset += 2;
                     break;
-                case MLIParamType::BUFFER_PTR:
-                    if (param_list + offset + 1 < Bus::MEMORY_SIZE) {
-                        uint16_t ptr =
-                            mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
-                        std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
-                    }
+                case MLIParamType::BUFFER_PTR: {
+                    uint16_t ptr = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                    std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
+                }
                     offset += 2;
                     break;
                 }
