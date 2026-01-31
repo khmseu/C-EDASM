@@ -531,11 +531,7 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             uint16_t str_start = static_cast<uint16_t>(ptr + 1);
             for (uint8_t j = 0; j < max_len; ++j) {
                 uint16_t addr = static_cast<uint16_t>(str_start + j);
-                if (addr < Bus::MEMORY_SIZE) {
-                    pathname += static_cast<char>(mem[addr]);
-                } else {
-                    break;
-                }
+                pathname += static_cast<char>(mem[addr]);
             }
             values.push_back(pathname);
             break;

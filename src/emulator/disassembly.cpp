@@ -1,8 +1,28 @@
 #include "edasm/emulator/disassembly.hpp"
+#include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <unordered_map>
 
 namespace edasm {
+
+namespace {
+
+std::unordered_map<uint16_t, std::string> &symbol_table() {
+    static std::unordered_map<uint16_t, std::string> table;
+    return table;
+}
+
+void append_symbol(std::ostringstream &oss, uint16_t address) {
+    const auto &table = symbol_table();
+    auto it = table.find(address);
+    if (it == table.end()) {
+        return;
+    }
+    oss << " <" << it->second << ">";
+}
+
+} // namespace
 
 // Complete 6502 opcode table (256 entries)
 const OpcodeInfo opcode_table[256] = {
@@ -322,44 +342,69 @@ std::string format_disassembly(const Bus &bus, uint16_t pc) {
             break;
         case OpcodeInfo::ZeroPage:
             oss << "$" << std::setw(2) << static_cast<int>(arg1);
+            append_symbol(oss, static_cast<uint16_t>(arg1));
             break;
         case OpcodeInfo::ZeroPageX:
             oss << "$" << std::setw(2) << static_cast<int>(arg1) << ",X";
+            append_symbol(oss, static_cast<uint16_t>(arg1));
             break;
         case OpcodeInfo::ZeroPageY:
             oss << "$" << std::setw(2) << static_cast<int>(arg1) << ",Y";
+            append_symbol(oss, static_cast<uint16_t>(arg1));
             break;
         case OpcodeInfo::Absolute:
             oss << "$" << std::setw(4) << addr;
+            append_symbol(oss, addr);
             break;
         case OpcodeInfo::AbsoluteX:
             oss << "$" << std::setw(4) << addr << ",X";
+            append_symbol(oss, addr);
             break;
         case OpcodeInfo::AbsoluteY:
             oss << "$" << std::setw(4) << addr << ",Y";
+            append_symbol(oss, addr);
             break;
         case OpcodeInfo::Indirect:
             oss << "($" << std::setw(4) << addr << ")";
+            append_symbol(oss, addr);
             break;
         case OpcodeInfo::IndexedIndirect:
             oss << "($" << std::setw(2) << static_cast<int>(arg1) << ",X)";
+            append_symbol(oss, static_cast<uint16_t>(arg1));
             break;
         case OpcodeInfo::IndirectIndexed:
             oss << "($" << std::setw(2) << static_cast<int>(arg1) << "),Y";
+            append_symbol(oss, static_cast<uint16_t>(arg1));
             break;
         case OpcodeInfo::Relative: {
             // Calculate target address for branch
             int8_t offset = static_cast<int8_t>(arg1);
             uint16_t target = static_cast<uint16_t>(pc + 2 + offset);
             oss << "$" << std::setw(4) << target;
+            append_symbol(oss, target);
             break;
         }
         default:
             break;
         }
+    } else if (std::strcmp(info.mnemonic, "CALL_TRAP") == 0) {
+        append_symbol(oss, pc);
     }
 
     return oss.str();
+}
+
+void register_disassembly_symbol(uint16_t address, std::string name) {
+    symbol_table()[address] = std::move(name);
+}
+
+const std::string *lookup_disassembly_symbol(uint16_t address) {
+    const auto &table = symbol_table();
+    auto it = table.find(address);
+    if (it == table.end()) {
+        return nullptr;
+    }
+    return &it->second;
 }
 
 } // namespace edasm

@@ -32,4 +32,10 @@ extern const OpcodeInfo opcode_table[256];
 // Format a single instruction at PC for disassembly output
 std::string format_disassembly(const Bus &bus, uint16_t pc);
 
+// Register a symbol for an address (last registration wins)
+void register_disassembly_symbol(uint16_t address, std::string name);
+
+// Lookup a symbol for an address (returns nullptr if not found)
+const std::string *lookup_disassembly_symbol(uint16_t address);
+
 } // namespace edasm
