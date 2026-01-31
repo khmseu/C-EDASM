@@ -73,15 +73,6 @@ class HostShims {
         READ_RAM_WRITE_RAM
     };
     struct LanguageCardState {
-        // Banked RAM: two 4K banks that are switched into $D000-$DFFF
-        std::array<std::array<uint8_t, 0x1000>, 2> banked_ram{}; // [bank][offset]
-
-        // Fixed RAM region (8KB) that sits at $E000-$FFFF when RAM is visible
-        std::array<uint8_t, 0x2000> fixed_ram{}; // offsets 0..0x1FFF map to $E000..$FFFF
-
-        // ROM image covering full $D000-$FFFF (12KB)
-        std::array<uint8_t, 0x3000> rom_image{}; // offsets 0..0x2FFF map to $D000..$FFFF
-
         // Per-bank mode (applies primarily to behavior of D000..DFFF mapping and ROM vs RAM read
         // semantics) Modes stored per bank index (0 or 1) indicate what happens when that bank is
         // active.

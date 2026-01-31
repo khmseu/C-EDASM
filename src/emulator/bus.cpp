@@ -9,19 +9,43 @@ Bus::Bus() {
 }
 
 void Bus::reset() {
-    // Fill entire address space with trap opcode
+    // Fill entire address space (main + extended) with trap opcode
     memory_.fill(TRAP_OPCODE);
+    
+    // Initialize language card ROM region to zeros (simulating empty ROM)
+    std::fill_n(memory_.data() + LC_ROM_OFFSET, 0x3000, 0x00);
 
     // Clear trap handlers
     clear_read_traps();
     clear_write_traps();
 }
 
+ReadTrapHandler Bus::find_read_trap(uint16_t addr) {
+    // Search through trap ranges to find a handler for this address
+    for (const auto &range : read_trap_ranges_) {
+        if (range.contains(addr)) {
+            return range.handler;
+        }
+    }
+    return nullptr;
+}
+
+WriteTrapHandler Bus::find_write_trap(uint16_t addr) {
+    // Search through trap ranges to find a handler for this address
+    for (const auto &range : write_trap_ranges_) {
+        if (range.contains(addr)) {
+            return range.handler;
+        }
+    }
+    return nullptr;
+}
+
 uint8_t Bus::read(uint16_t addr) {
     // Check for read trap handler
-    if (read_traps_[addr]) {
+    auto handler = find_read_trap(addr);
+    if (handler) {
         uint8_t value = 0;
-        if (read_traps_[addr](addr, value)) {
+        if (handler(addr, value)) {
             return value; // Trap handled, return provided value
         }
     }
@@ -32,8 +56,9 @@ uint8_t Bus::read(uint16_t addr) {
 
 void Bus::write(uint16_t addr, uint8_t value) {
     // Check for write trap handler
-    if (write_traps_[addr]) {
-        if (write_traps_[addr](addr, value)) {
+    auto handler = find_write_trap(addr);
+    if (handler) {
+        if (handler(addr, value)) {
             return; // Trap handled, don't write to memory
         }
     }
@@ -84,33 +109,29 @@ bool Bus::load_binary_from_file(uint16_t addr, const std::string &filename) {
 }
 
 void Bus::set_read_trap(uint16_t addr, ReadTrapHandler handler) {
-    read_traps_[addr] = handler;
+    set_read_trap_range(addr, addr, handler);
 }
 
 void Bus::set_write_trap(uint16_t addr, WriteTrapHandler handler) {
-    write_traps_[addr] = handler;
+    set_write_trap_range(addr, addr, handler);
 }
 
 void Bus::set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler) {
-    // Handle potential overflow when end = 0xFFFF
-    for (uint32_t addr = start; addr <= end; ++addr) {
-        read_traps_[addr] = handler;
-    }
+    // Add a new trap range
+    read_trap_ranges_.push_back({start, end, handler});
 }
 
 void Bus::set_write_trap_range(uint16_t start, uint16_t end, WriteTrapHandler handler) {
-    // Handle potential overflow when end = 0xFFFF
-    for (uint32_t addr = start; addr <= end; ++addr) {
-        write_traps_[addr] = handler;
-    }
+    // Add a new trap range
+    write_trap_ranges_.push_back({start, end, handler});
 }
 
 void Bus::clear_read_traps() {
-    read_traps_.fill(nullptr);
+    read_trap_ranges_.clear();
 }
 
 void Bus::clear_write_traps() {
-    write_traps_.fill(nullptr);
+    write_trap_ranges_.clear();
 }
 
 } // namespace edasm

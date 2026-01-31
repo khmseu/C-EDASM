@@ -427,21 +427,26 @@ bool HostShims::handle_lc_read(uint16_t addr, uint8_t &value) {
     // Decide based on the currently active bank's mode first (RAM modes take precedence)
     auto cur_mode = lc_.bank_mode[lc_.active_bank & 0x1];
 
-    // If the active bank is in a RAM-read mode, return RAM contents
+    // If the active bank is in a RAM-read mode, return RAM contents from Bus's extended memory
     if (cur_mode == LCBankMode::READ_RAM_NO_WRITE || cur_mode == LCBankMode::READ_RAM_WRITE_RAM) {
         if (addr >= 0xD000 && addr <= 0xDFFF) {
+            // Read from appropriate bank in Bus's extended memory
             uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
-            value = lc_.banked_ram[bank][off];
+            if (bank == 0) {
+                value = bus_->lc_bank1()[off];
+            } else {
+                value = bus_->lc_bank2()[off];
+            }
         } else {
+            // $E000-$FFFF: Read from fixed RAM in Bus's extended memory
             uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
-            value = lc_.fixed_ram[off];
+            value = bus_->lc_fixed_ram()[off];
         }
         return true;
     }
 
     // Otherwise (active bank is in a ROM-read mode or power-on ROM active), return ROM image
-    auto rom_val = lc_.rom_image[off_full];
-    value = rom_val;
+    value = bus_->lc_rom()[off_full];
     return true;
 }
 
@@ -463,12 +468,19 @@ bool HostShims::handle_lc_write(uint16_t addr, uint8_t value) {
         return true;
     }
 
+    // Write to Bus's extended memory regions
     if (addr >= 0xD000 && addr <= 0xDFFF) {
+        // Write to appropriate bank in Bus's extended memory
         uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
-        lc_.banked_ram[bank][off] = value;
+        if (bank == 0) {
+            bus_->lc_bank1()[off] = value;
+        } else {
+            bus_->lc_bank2()[off] = value;
+        }
     } else {
+        // $E000-$FFFF: Write to fixed RAM in Bus's extended memory
         uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
-        lc_.fixed_ram[off] = value;
+        bus_->lc_fixed_ram()[off] = value;
     }
 
     return true;
