@@ -51,13 +51,8 @@ void HostShims::install_io_traps(Bus &bus) {
         return false;
     });
 
-    // Install traps for language-card window ($D000-$FFFF) covering full 12KB ROM window
-    bus.set_read_trap_range(0xD000, 0xFFFF, [this](uint16_t addr, uint8_t &value) {
-        return this->handle_lc_read(addr, value);
-    });
-    bus.set_write_trap_range(0xD000, 0xFFFF, [this](uint16_t addr, uint8_t value) {
-        return this->handle_lc_write(addr, value);
-    });
+    // NOTE: Language card window ($D000-$FFFF) no longer uses traps
+    // It's now handled via bank mapping in Bus::set_bank_mapping()
 }
 
 void HostShims::queue_input_line(const std::string &line) {
@@ -399,6 +394,9 @@ bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
               << std::setw(4) << std::setfill('0') << addr << " -> bank=" << std::dec
               << static_cast<int>(bank) << " mode=" << static_cast<int>(mode) << std::endl;
 
+    // Update bank mappings for D000-FFFF (banks 26-31)
+    update_lc_bank_mappings();
+
     value = 0;
     return true;
 }
@@ -413,77 +411,95 @@ bool HostShims::handle_language_control_write(uint16_t addr, uint8_t value) {
     return ok;
 }
 
-// Handle reads from the entire language-card ROM/overlay window ($D000-$FFFF)
-bool HostShims::handle_lc_read(uint16_t addr, uint8_t &value) {
-    if (addr < 0xD000 || addr > 0xFFFF)
-        return false;
+// Update bank mappings for the language card region (D000-FFFF)
+// This replaces the old trap-based approach with direct bank mapping
+void HostShims::update_lc_bank_mappings() {
+    if (!bus_) {
+        return;
+    }
 
-    uint32_t off_full = static_cast<uint32_t>(addr - 0xD000); // 0..0x2FFF (12KB)
-
-    // Determine active bank for $D000-$DFFF
     uint8_t bank = lc_.active_bank & 0x1;
     auto mode = lc_.bank_mode[bank];
 
-    // Decide based on the currently active bank's mode first (RAM modes take precedence)
-    auto cur_mode = lc_.bank_mode[lc_.active_bank & 0x1];
+    // For each 2KB bank in the D000-FFFF range (banks 26-31), update mappings
+    // Bank 26: D000-D7FF (first half of 4KB banked area)
+    // Bank 27: D800-DFFF (second half of 4KB banked area)
+    // Bank 28: E000-E7FF (first quarter of 8KB fixed area)
+    // Bank 29: E800-EFFF (second quarter of 8KB fixed area)
+    // Bank 30: F000-F7FF (third quarter of 8KB fixed area)
+    // Bank 31: F800-FFFF (fourth quarter of 8KB fixed area)
 
-    // If the active bank is in a RAM-read mode, return RAM contents from Bus's extended memory
-    if (cur_mode == LCBankMode::READ_RAM_NO_WRITE || cur_mode == LCBankMode::READ_RAM_WRITE_RAM) {
-        if (addr >= 0xD000 && addr <= 0xDFFF) {
-            // Read from appropriate bank in Bus's extended memory
-            uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
+    // D000-DFFF (banks 26-27): Banked region
+    for (uint8_t bank_idx = 26; bank_idx <= 27; ++bank_idx) {
+        uint32_t bank_addr = bank_idx * Bus::BANK_SIZE; // Address this bank represents
+        uint32_t offset_in_region = bank_addr - 0xD000;
+        uint32_t read_offset, write_offset;
+
+        if (mode == LCBankMode::READ_RAM_NO_WRITE || mode == LCBankMode::READ_RAM_WRITE_RAM) {
+            // Read from RAM (appropriate bank)
             if (bank == 0) {
-                value = bus_->lc_bank1()[off];
+                read_offset = Bus::LC_BANK1_OFFSET + offset_in_region;
             } else {
-                value = bus_->lc_bank2()[off];
+                read_offset = Bus::LC_BANK2_OFFSET + offset_in_region;
             }
         } else {
-            // $E000-$FFFF: Read from fixed RAM in Bus's extended memory
-            uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
-            value = bus_->lc_fixed_ram()[off];
+            // Read from ROM (in main RAM at D000+)
+            read_offset = Bus::MAIN_RAM_OFFSET + bank_addr;
         }
-        return true;
+
+        if (mode == LCBankMode::READ_RAM_WRITE_RAM || mode == LCBankMode::READ_ROM_WRITE_RAM) {
+            // Writes go to RAM
+            if (bank == 0) {
+                write_offset = Bus::LC_BANK1_OFFSET + offset_in_region;
+            } else {
+                write_offset = Bus::LC_BANK2_OFFSET + offset_in_region;
+            }
+        } else {
+            // Writes ignored (go to write sink)
+            write_offset = Bus::WRITE_SINK_OFFSET;
+        }
+
+        bus_->set_bank_mapping(bank_idx, read_offset, write_offset);
     }
 
-    // Otherwise (active bank is in a ROM-read mode or power-on ROM active), return ROM image
-    value = bus_->lc_rom()[off_full];
-    return true;
+    // E000-FFFF (banks 28-31): Fixed RAM/ROM region
+    for (uint8_t bank_idx = 28; bank_idx <= 31; ++bank_idx) {
+        uint32_t bank_addr = bank_idx * Bus::BANK_SIZE; // Address this bank represents
+        uint32_t offset_in_fixed = bank_addr - 0xE000; // Offset from E000
+        uint32_t read_offset, write_offset;
+
+        if (mode == LCBankMode::READ_RAM_NO_WRITE || mode == LCBankMode::READ_RAM_WRITE_RAM) {
+            // Read from fixed RAM
+            read_offset = Bus::LC_FIXED_RAM_OFFSET + offset_in_fixed;
+        } else {
+            // Read from ROM (in main RAM at E000+)
+            read_offset = Bus::MAIN_RAM_OFFSET + bank_addr;
+        }
+
+        if (mode == LCBankMode::READ_RAM_WRITE_RAM || mode == LCBankMode::READ_ROM_WRITE_RAM) {
+            // Writes go to fixed RAM
+            write_offset = Bus::LC_FIXED_RAM_OFFSET + offset_in_fixed;
+        } else {
+            // Writes ignored (go to write sink)
+            write_offset = Bus::WRITE_SINK_OFFSET;
+        }
+
+        bus_->set_bank_mapping(bank_idx, read_offset, write_offset);
+    }
+}
+
+// Handle reads from the entire language-card ROM/overlay window ($D000-$FFFF)
+// NOTE: This is now unused - kept for compatibility during transition
+bool HostShims::handle_lc_read(uint16_t addr, uint8_t &value) {
+    // This function is no longer called since we removed the D000-FFFF read trap
+    // Kept for reference/compatibility
+    return false;
 }
 
 bool HostShims::handle_lc_write(uint16_t addr, uint8_t value) {
-    if (addr < 0xD000 || addr > 0xFFFF)
-        return false;
-
-    uint32_t off_full = static_cast<uint32_t>(addr - 0xD000); // 0..0x2FFF
-    uint8_t bank = lc_.active_bank & 0x1;
-    auto mode = lc_.bank_mode[bank];
-
-    // Writes permitted when mode allows writes (either banked RAM writable or ROMIN allowing writes
-    // to underlying RAM)
-    bool allow_write =
-        (mode == LCBankMode::READ_RAM_WRITE_RAM) || (mode == LCBankMode::READ_ROM_WRITE_RAM);
-
-    if (!allow_write) {
-        // ignore
-        return true;
-    }
-
-    // Write to Bus's extended memory regions
-    if (addr >= 0xD000 && addr <= 0xDFFF) {
-        // Write to appropriate bank in Bus's extended memory
-        uint16_t off = static_cast<uint16_t>(off_full & 0x0FFF);
-        if (bank == 0) {
-            bus_->lc_bank1()[off] = value;
-        } else {
-            bus_->lc_bank2()[off] = value;
-        }
-    } else {
-        // $E000-$FFFF: Write to fixed RAM in Bus's extended memory
-        uint32_t off = static_cast<uint32_t>(off_full - 0x1000); // map E000->0
-        bus_->lc_fixed_ram()[off] = value;
-    }
-
-    return true;
+    // This function is no longer called since we removed the D000-FFFF write trap
+    // Kept for reference/compatibility
+    return false;
 }
 
 bool HostShims::should_stop() const {

@@ -41,12 +41,23 @@ class Bus {
     static constexpr size_t MEMORY_SIZE = 0x10000; // 64KB - main 6502 address space
     static constexpr uint8_t TRAP_OPCODE = 0x02;   // Opcode for host traps
 
-    // Language card extended memory regions (beyond main 64KB)
+    // Bank-based memory system: 64K address space divided into 2K banks (32 banks)
+    static constexpr size_t BANK_SIZE = 0x0800;     // 2KB per bank
+    static constexpr size_t NUM_BANKS = 32;         // 64KB / 2KB = 32 banks
+    
+    // Memory pool layout: 64K main + 16K LC + 2K write-sink = 82K total
+    // The 16K LC area contains: 4KB bank1 + 4KB bank2 + 8KB fixed RAM (12KB ROM uses same space as banks)
+    static constexpr size_t MAIN_RAM_SIZE = 0x10000;       // 64KB main RAM
+    static constexpr size_t LC_RAM_SIZE = 0x4000;          // 16KB language card RAM (2x4KB banks + 8KB fixed)
+    static constexpr size_t WRITE_SINK_SIZE = 0x0800;      // 2KB write-ignore sink
+    static constexpr size_t TOTAL_MEMORY_SIZE = MAIN_RAM_SIZE + LC_RAM_SIZE + WRITE_SINK_SIZE; // 82KB
+    
+    // Offsets within memory pool
+    static constexpr size_t MAIN_RAM_OFFSET = 0x00000;     // Main RAM starts at 0
     static constexpr size_t LC_BANK1_OFFSET = 0x10000;     // First 4KB bank at offset 64KB
     static constexpr size_t LC_BANK2_OFFSET = 0x11000;     // Second 4KB bank at offset 68KB
     static constexpr size_t LC_FIXED_RAM_OFFSET = 0x12000; // 8KB fixed RAM at offset 72KB
-    static constexpr size_t LC_ROM_OFFSET = 0x14000;       // 12KB ROM at offset 80KB
-    static constexpr size_t TOTAL_MEMORY_SIZE = 0x17000;   // 92KB total (64KB + 28KB LC)
+    static constexpr size_t WRITE_SINK_OFFSET = 0x14000;   // 2KB write-sink at offset 80KB
 
     Bus();
 
@@ -94,13 +105,26 @@ class Bus {
     uint8_t *lc_fixed_ram() {
         return memory_.data() + LC_FIXED_RAM_OFFSET;
     }
+    uint8_t *write_sink() {
+        return memory_.data() + WRITE_SINK_OFFSET;
+    }
+    // Legacy ROM accessor - ROM is now in main RAM at D000-FFFF
     uint8_t *lc_rom() {
-        return memory_.data() + LC_ROM_OFFSET;
+        return memory_.data() + 0xD000; // ROM in main RAM
     }
 
+    // Language card control - updates bank mapping tables
+    void set_bank_mapping(uint8_t bank_index, uint32_t read_offset, uint32_t write_offset);
+    void reset_bank_mappings();
+
   private:
-    // Extended memory buffer: 64KB main + 28KB language card regions
+    // Memory pool: 82KB total
     std::array<uint8_t, TOTAL_MEMORY_SIZE> memory_;
+
+    // Bank lookup tables: for each 2KB bank, store offset to read/write from
+    // Using 32-bit offsets to address full 82KB pool
+    std::array<uint32_t, NUM_BANKS> read_bank_offsets_;
+    std::array<uint32_t, NUM_BANKS> write_bank_offsets_;
 
     // Sparse trap storage - only store ranges that have handlers
     std::vector<ReadTrapRange> read_trap_ranges_;
