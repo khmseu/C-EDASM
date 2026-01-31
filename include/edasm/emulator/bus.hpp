@@ -14,6 +14,27 @@ namespace edasm {
 using ReadTrapHandler = std::function<bool(uint16_t addr, uint8_t &value)>;
 using WriteTrapHandler = std::function<bool(uint16_t addr, uint8_t value)>;
 
+// Trap range entry - stores a range of addresses with a single handler
+struct TrapRange {
+    uint16_t start;
+    uint16_t end;
+    std::function<bool(uint16_t, uint8_t &)> handler;
+
+    bool contains(uint16_t addr) const {
+        return addr >= start && addr <= end;
+    }
+};
+
+struct WriteTrapRange {
+    uint16_t start;
+    uint16_t end;
+    std::function<bool(uint16_t, uint8_t)> handler;
+
+    bool contains(uint16_t addr) const {
+        return addr >= start && addr <= end;
+    }
+};
+
 // Memory bus for 6502/65C02
 class Bus {
   public:
@@ -57,8 +78,14 @@ class Bus {
 
   private:
     std::array<uint8_t, MEMORY_SIZE> memory_;
-    std::array<ReadTrapHandler, MEMORY_SIZE> read_traps_;
-    std::array<WriteTrapHandler, MEMORY_SIZE> write_traps_;
+    
+    // Sparse trap storage - only store ranges that have handlers
+    std::vector<TrapRange> read_trap_ranges_;
+    std::vector<WriteTrapRange> write_trap_ranges_;
+    
+    // Helper to find trap handler for an address
+    ReadTrapHandler find_read_trap(uint16_t addr);
+    WriteTrapHandler find_write_trap(uint16_t addr);
 };
 
 } // namespace edasm
