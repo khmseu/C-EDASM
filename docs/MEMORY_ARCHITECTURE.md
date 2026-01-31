@@ -30,16 +30,19 @@ Extended Memory Regions (beyond $FFFF):
 The language card provides additional memory that can be switched into the $D000-$FFFF address range:
 
 ### Banked Region ($D000-$DFFF, 4KB)
+
 - Can map to either Bank 1 or Bank 2
 - Selected via soft-switches at $C080-$C08F
 - Bank 1 stored at offset $10000 in the memory buffer
 - Bank 2 stored at offset $11000 in the memory buffer
 
 ### Fixed Region ($E000-$FFFF, 8KB)
+
 - Always uses the same 8KB bank when language card RAM is active
 - Stored at offset $12000 in the memory buffer
 
 ### ROM Image ($D000-$FFFF, 12KB)
+
 - Read when language card is in ROM mode
 - Stored at offset $14000 in the memory buffer
 - Initialized to zeros (simulating empty ROM)
@@ -63,6 +66,7 @@ Language card modes are controlled by reading/writing addresses in the $C080-$C0
 The Bus uses a **sparse trap system** to efficiently handle special memory regions:
 
 ### Traditional Approach (Previous)
+
 ```cpp
 // 128KB overhead: 2 arrays of 64K function pointers
 std::array<ReadTrapHandler, 64K> read_traps_;
@@ -70,19 +74,23 @@ std::array<WriteTrapHandler, 64K> write_traps_;
 ```
 
 ### Sparse Approach (Current)
+
 ```cpp
 // ~100 bytes: Small vector of trap ranges
-std::vector<TrapRange> read_trap_ranges_;
+std::vector<ReadTrapRange> read_trap_ranges_;
 std::vector<WriteTrapRange> write_trap_ranges_;
 ```
 
 ### Trap Ranges
+
 Traps are registered as address ranges rather than individual addresses:
+
 - $0400-$07FF: Text screen (write trap to detect screen updates)
 - $C000-$C7FF: I/O space (read/write traps for device emulation)
 - $D000-$FFFF: Language card (read/write traps for bank switching logic)
 
 When a memory access occurs:
+
 1. Search trap ranges to find a matching handler
 2. If found, invoke handler which may:
    - Return custom value (reads)
@@ -93,29 +101,35 @@ When a memory access occurs:
 ## Memory Access Patterns
 
 ### Direct Memory Access
+
 ```cpp
 uint8_t *main_memory = bus.data();  // Returns pointer to $0000-$FFFF
 ```
+
 - Bypasses trap handlers
 - Used for bulk operations (e.g., loading binaries)
 - Only provides access to main 64KB
 
 ### Trapped Memory Access
+
 ```cpp
 uint8_t value = bus.read(0xC000);   // Checks traps, may invoke handler
 bus.write(0xD000, 0x42);             // Checks traps, may block write
 ```
+
 - Honors trap handlers
 - Used for normal CPU memory operations
 - Enables device emulation and bank switching
 
 ### Language Card Extended Memory Access
+
 ```cpp
 uint8_t *bank1 = bus.lc_bank1();       // Bank 1: $10000-$10FFF
 uint8_t *bank2 = bus.lc_bank2();       // Bank 2: $11000-$11FFF
 uint8_t *fixed = bus.lc_fixed_ram();   // Fixed RAM: $12000-$13FFF
 uint8_t *rom = bus.lc_rom();           // ROM: $14000-$16FFF
 ```
+
 - Direct access to extended regions
 - Used by language card trap handlers
 - Not accessible via normal 6502 addresses
@@ -123,21 +137,25 @@ uint8_t *rom = bus.lc_rom();           // ROM: $14000-$16FFF
 ## Implementation Benefits
 
 ### Memory Efficiency
+
 - **Previous**: 64KB main + 28KB LC buffers + 128KB traps = **220KB**
 - **Current**: 92KB unified buffer + ~100 bytes traps = **92KB**
 - **Savings**: ~128KB (58% reduction)
 
 ### Correctness
+
 - Single source of truth for all memory
 - No synchronization issues between components
 - Trapped and direct access always consistent
 
 ### Performance
+
 - Trap lookup only checks relevant ranges (typically 3-5 ranges)
 - No iteration over 64K addresses for range registration
 - Reduced cache pressure from smaller data structures
 
 ### Maintainability
+
 - Centralized memory management in Bus class
 - Clear separation between main memory and extended regions
 - Explicit trap range registration shows what addresses are special
@@ -145,11 +163,13 @@ uint8_t *rom = bus.lc_rom();           // ROM: $14000-$16FFF
 ## Testing
 
 All memory functionality is tested:
+
 - `test_language_card.cpp`: Language card bank switching and ROM/RAM modes
 - `test_io_traps.cpp`: I/O space trap handling
 - `test_emulator.cpp`: General memory operations
 
 Tests verify:
+
 - Bank switching works correctly
 - ROM and RAM modes behave as expected
 - Write protection is enforced
@@ -159,6 +179,7 @@ Tests verify:
 ## Future Enhancements
 
 Potential optimizations for the future:
+
 1. **Cache last trap lookup**: Most memory accesses are sequential
 2. **Sort trap ranges**: Enable binary search for faster lookup
 3. **Merge overlapping ranges**: Reduce number of ranges to check
