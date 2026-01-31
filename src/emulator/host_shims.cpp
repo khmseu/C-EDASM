@@ -465,7 +465,7 @@ void HostShims::update_lc_bank_mappings() {
     // E000-FFFF (banks 28-31): Fixed RAM/ROM region
     for (uint8_t bank_idx = 28; bank_idx <= 31; ++bank_idx) {
         uint32_t bank_addr = bank_idx * Bus::BANK_SIZE; // Address this bank represents
-        uint32_t offset_in_fixed = bank_addr - 0xE000; // Offset from E000
+        uint32_t offset_in_fixed = bank_addr - 0xE000;  // Offset from E000
         uint32_t read_offset, write_offset;
 
         if (mode == LCBankMode::READ_RAM_NO_WRITE || mode == LCBankMode::READ_RAM_WRITE_RAM) {

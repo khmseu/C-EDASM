@@ -42,16 +42,19 @@ class Bus {
     static constexpr uint8_t TRAP_OPCODE = 0x02;   // Opcode for host traps
 
     // Bank-based memory system: 64K address space divided into 2K banks (32 banks)
-    static constexpr size_t BANK_SIZE = 0x0800;     // 2KB per bank
-    static constexpr size_t NUM_BANKS = 32;         // 64KB / 2KB = 32 banks
-    
+    static constexpr size_t BANK_SIZE = 0x0800; // 2KB per bank
+    static constexpr size_t NUM_BANKS = 32;     // 64KB / 2KB = 32 banks
+
     // Memory pool layout: 64K main + 16K LC + 2K write-sink = 82K total
-    // The 16K LC area contains: 4KB bank1 + 4KB bank2 + 8KB fixed RAM (12KB ROM uses same space as banks)
-    static constexpr size_t MAIN_RAM_SIZE = 0x10000;       // 64KB main RAM
-    static constexpr size_t LC_RAM_SIZE = 0x4000;          // 16KB language card RAM (2x4KB banks + 8KB fixed)
-    static constexpr size_t WRITE_SINK_SIZE = 0x0800;      // 2KB write-ignore sink
-    static constexpr size_t TOTAL_MEMORY_SIZE = MAIN_RAM_SIZE + LC_RAM_SIZE + WRITE_SINK_SIZE; // 82KB
-    
+    // The 16K LC area contains: 4KB bank1 + 4KB bank2 + 8KB fixed RAM (12KB ROM uses same space as
+    // banks)
+    static constexpr size_t MAIN_RAM_SIZE = 0x10000; // 64KB main RAM
+    static constexpr size_t LC_RAM_SIZE =
+        0x4000; // 16KB language card RAM (2x4KB banks + 8KB fixed)
+    static constexpr size_t WRITE_SINK_SIZE = 0x0800; // 2KB write-ignore sink
+    static constexpr size_t TOTAL_MEMORY_SIZE =
+        MAIN_RAM_SIZE + LC_RAM_SIZE + WRITE_SINK_SIZE; // 82KB
+
     // Offsets within memory pool
     static constexpr size_t MAIN_RAM_OFFSET = 0x00000;     // Main RAM starts at 0
     static constexpr size_t LC_BANK1_OFFSET = 0x10000;     // First 4KB bank at offset 64KB

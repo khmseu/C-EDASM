@@ -13,7 +13,7 @@ bool test_lc_basic_write_read() {
     Bus bus;
     HostShims shims;
     shims.install_io_traps(bus);
-    
+
     // Initialize ROM area in main RAM to 0x00 (simulating empty ROM)
     // This is what happens after ROM is loaded in a real system
     for (uint32_t addr = 0xD000; addr < 0x10000; ++addr) {

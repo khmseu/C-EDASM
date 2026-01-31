@@ -25,10 +25,10 @@ void Bus::reset_bank_mappings() {
     // - 0000-CFFF (banks 0-25): point to main RAM
     // - D000-FFFF (banks 26-31): point to main RAM for reads (where ROM will be loaded),
     //   write-sink for writes (ROM is write-protected)
-    
+
     for (size_t i = 0; i < NUM_BANKS; ++i) {
         uint32_t bank_start = static_cast<uint32_t>(i * BANK_SIZE);
-        
+
         if (bank_start < 0xD000) {
             // Banks 0-25 (0x0000-0xCFFF): map to main RAM
             read_bank_offsets_[i] = MAIN_RAM_OFFSET + bank_start;
@@ -73,10 +73,10 @@ uint8_t Bus::read(uint16_t addr) {
     }
 
     // Use bank-based lookup for normal reads
-    uint8_t bank_index = addr / BANK_SIZE; // Divide by 2KB to get bank number
+    uint8_t bank_index = addr / BANK_SIZE;      // Divide by 2KB to get bank number
     uint32_t offset_in_bank = addr % BANK_SIZE; // Offset within the bank
     uint32_t physical_offset = read_bank_offsets_[bank_index] + offset_in_bank;
-    
+
     return memory_[physical_offset];
 }
 
@@ -90,10 +90,10 @@ void Bus::write(uint16_t addr, uint8_t value) {
     }
 
     // Use bank-based lookup for normal writes
-    uint8_t bank_index = addr / BANK_SIZE; // Divide by 2KB to get bank number
+    uint8_t bank_index = addr / BANK_SIZE;      // Divide by 2KB to get bank number
     uint32_t offset_in_bank = addr % BANK_SIZE; // Offset within the bank
     uint32_t physical_offset = write_bank_offsets_[bank_index] + offset_in_bank;
-    
+
     memory_[physical_offset] = value;
 }
 
