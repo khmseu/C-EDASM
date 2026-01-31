@@ -1,6 +1,9 @@
 enable=all
 source-path=SCRIPTDIR
-disable=SC2154
+disable=SC2312 # Consider invoking this command separately to avoid masking its return value (or use '|| true' to ignore).
+disable=SC2155 # Declare and assign separately to avoid masking return values.
+disable=SC2034 # <varname> appears unused. Verify use (or export if used externally).
+disable=SC2310 # This function is invoked in an 'if' condition so set -e will be disabled. Invoke separately if failures should cause the script to exit.
 
 # If you're having issues with shellcheck following source, disable the errors via:
 # disable=SC1090
