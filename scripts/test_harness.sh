@@ -89,7 +89,8 @@ test_single_file() {
 
 # Run all tests
 run_all_tests() {
-    local test_files=($(find_test_files))
+    local test_files=()
+    mapfile -t test_files < <(find_test_files)
 
     if [[ ${#test_files[@]} -eq 0 ]]; then
         echo -e "${YELLOW}No test files found${NC}"
@@ -160,58 +161,60 @@ generate_summary() {
 save_detailed_report() {
     local report_file="${TEST_RESULTS_DIR}/test_report.txt"
 
-    echo "C-EDASM Automated Test Report" >"${report_file}"
-    echo "=============================" >>"${report_file}"
-    echo "" >>"${report_file}"
-    echo "Date: $(date)" >>"${report_file}"
-    echo "Project: C-EDASM" >>"${report_file}"
-    echo "" >>"${report_file}"
-    echo "Summary" >>"${report_file}"
-    echo "-------" >>"${report_file}"
-    echo "Passed:  ${#PASSED_TESTS[@]}" >>"${report_file}"
-    echo "Failed:  ${#FAILED_TESTS[@]}" >>"${report_file}"
-    echo "Skipped: ${#SKIPPED_TESTS[@]}" >>"${report_file}"
-    echo "Total:   $((${#PASSED_TESTS[@]} + ${#FAILED_TESTS[@]} + ${#SKIPPED_TESTS[@]}))" >>"${report_file}"
-    echo "" >>"${report_file}"
+    {
+        echo "C-EDASM Automated Test Report"
+        echo "============================="
+        echo ""
+        echo "Date: $(date)"
+        echo "Project: C-EDASM"
+        echo ""
+        echo "Summary"
+        echo "-------"
+        echo "Passed:  ${#PASSED_TESTS[@]}"
+        echo "Failed:  ${#FAILED_TESTS[@]}"
+        echo "Skipped: ${#SKIPPED_TESTS[@]}"
+        echo "Total:   $((${#PASSED_TESTS[@]} + ${#FAILED_TESTS[@]} + ${#SKIPPED_TESTS[@]}))"
+        echo ""
 
-    if [[ ${#PASSED_TESTS[@]} -gt 0 ]]; then
-        echo "Passed Tests" >>"${report_file}"
-        echo "------------" >>"${report_file}"
-        for test in "${PASSED_TESTS[@]}"; do
-            echo "  • ${test}" >>"${report_file}"
-            local bin_file="${TEST_RESULTS_DIR}/${test}.bin"
-            if [[ -f ${bin_file} ]]; then
-                local size=$(get_file_size "${bin_file}")
-                echo "    Size: ${size} bytes" >>"${report_file}"
-            fi
-        done
-        echo "" >>"${report_file}"
-    fi
+        if [[ ${#PASSED_TESTS[@]} -gt 0 ]]; then
+            echo "Passed Tests"
+            echo "------------"
+            for test in "${PASSED_TESTS[@]}"; do
+                echo "  • ${test}"
+                local bin_file="${TEST_RESULTS_DIR}/${test}.bin"
+                if [[ -f ${bin_file} ]]; then
+                    local size=$(get_file_size "${bin_file}")
+                    echo "    Size: ${size} bytes"
+                fi
+            done
+            echo ""
+        fi
 
-    if [[ ${#FAILED_TESTS[@]} -gt 0 ]]; then
-        echo "Failed Tests" >>"${report_file}"
-        echo "------------" >>"${report_file}"
-        for test in "${FAILED_TESTS[@]}"; do
-            echo "  • ${test}" >>"${report_file}"
+        if [[ ${#FAILED_TESTS[@]} -gt 0 ]]; then
+            echo "Failed Tests"
+            echo "------------"
+            for test in "${FAILED_TESTS[@]}"; do
+                echo "  • ${test}"
+                local log_file="${TEST_RESULTS_DIR}/${test}.log"
+                if [[ -f ${log_file} ]]; then
+                    echo "    Log: ${log_file}"
+                fi
+            done
+            echo ""
+        fi
+
+        echo ""
+        echo "Detailed Logs"
+        echo "-------------"
+        for test in "${PASSED_TESTS[@]}" "${FAILED_TESTS[@]}"; do
             local log_file="${TEST_RESULTS_DIR}/${test}.log"
             if [[ -f ${log_file} ]]; then
-                echo "    Log: ${log_file}" >>"${report_file}"
+                echo ""
+                echo "=== ${test} ==="
+                cat "${log_file}"
             fi
         done
-        echo "" >>"${report_file}"
-    fi
-
-    echo "" >>"${report_file}"
-    echo "Detailed Logs" >>"${report_file}"
-    echo "-------------" >>"${report_file}"
-    for test in "${PASSED_TESTS[@]}" "${FAILED_TESTS[@]}"; do
-        local log_file="${TEST_RESULTS_DIR}/${test}.log"
-        if [[ -f ${log_file} ]]; then
-            echo "" >>"${report_file}"
-            echo "=== ${test} ===" >>"${report_file}"
-            cat "${log_file}" >>"${report_file}"
-        fi
-    done
+    } >"${report_file}"
 
     echo ""
     echo -e "${GREEN}✓ Detailed report saved: ${report_file}${NC}"
@@ -224,7 +227,8 @@ list_binaries() {
     echo "Location: ${TEST_RESULTS_DIR}/"
     echo ""
 
-    local bin_files=($(find "${TEST_RESULTS_DIR}" -name "*.bin" -type f))
+    local bin_files=()
+    mapfile -t bin_files < <(find "${TEST_RESULTS_DIR}" -name "*.bin" -type f)
 
     if [[ ${#bin_files[@]} -eq 0 ]]; then
         echo "  (none)"
