@@ -2,6 +2,8 @@
 set -euo pipefail
 set -x
 
+trap 'echo "ERROR: Script aborted at line $LINENO (exit code: $?)"' ERR
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT}/build"
 
@@ -25,3 +27,4 @@ done
 cd "${TESTDIR}"
 touch EDASM.SWAP
 "${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM "$@" &>emulator_runner.log
+echo "Emulator stopped with no errors."
