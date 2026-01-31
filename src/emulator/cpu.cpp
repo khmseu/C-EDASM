@@ -1,3 +1,4 @@
+#include "edasm/constants.hpp"
 #include "edasm/emulator/cpu.hpp"
 #include "edasm/emulator/bus.hpp"
 
@@ -54,13 +55,13 @@ uint16_t CPU::fetch_word() {
 }
 
 void CPU::push_byte(uint8_t value) {
-    bus_.write(0x0100 | state_.SP, value);
+    bus_.write(STACK_BASE | state_.SP, value);
     state_.SP--;
 }
 
 uint8_t CPU::pull_byte() {
     state_.SP++;
-    return bus_.read(0x0100 | state_.SP);
+    return bus_.read(STACK_BASE | state_.SP);
 }
 
 void CPU::push_word(uint16_t value) {

@@ -1,3 +1,4 @@
+#include "edasm/constants.hpp"
 #include "edasm/emulator/host_shims.hpp"
 #include "edasm/emulator/traps.hpp"
 
@@ -5,10 +6,6 @@
 #include <iostream>
 
 namespace edasm {
-
-// Apple II keyboard memory locations
-constexpr uint16_t KBD = 0xC000;     // Keyboard data
-constexpr uint16_t KBDSTRB = 0xC010; // Keyboard strobe clear
 
 HostShims::HostShims()
     : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_data_(0), kbd_strobe_(false),
@@ -18,11 +15,11 @@ void HostShims::install_io_traps(Bus &bus) {
     bus_ = &bus;
 
     // Install I/O traps for full $C000-$C7FF range
-    bus.set_read_trap_range(0xC000, 0xC7FF, [this](uint16_t addr, uint8_t &value) {
+    bus.set_read_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t &value) {
         return this->handle_io_read(addr, value);
     });
 
-    bus.set_write_trap_range(0xC000, 0xC7FF, [this](uint16_t addr, uint8_t value) {
+    bus.set_write_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t value) {
         return this->handle_io_write(addr, value);
     });
 
@@ -118,7 +115,7 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
 }
 
 bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
-    // Reading KBDSTRB clears the keyboard strobe
+    // Reading KBDSTROBE clears the keyboard strobe
     value = 0;
     kbd_strobe_ = false;
     return true; // Trap handled
@@ -128,13 +125,13 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     // Dispatch to specific handlers based on address
 
     // $C000-$C00F: Keyboard and game I/O
-    if (addr >= 0xC000 && addr <= 0xC00F) {
+    if (addr >= KBD && addr <= 0xC00F) {
         return handle_kbd_read(addr, value);
     }
 
     // $C010-$C01F: Keyboard strobe and soft switches
-    if (addr >= 0xC010 && addr <= 0xC01F) {
-        if (addr == 0xC010) {
+    if (addr >= KBDSTROBE && addr <= 0xC01F) {
+        if (addr == KBDSTROBE) {
             return handle_kbdstrb_read(addr, value);
         }
         // Other addresses in this range: return 0
@@ -197,13 +194,13 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
     // Dispatch to specific handlers based on address
 
     // $C000-$C00F: Keyboard/game I/O (typically read-only)
-    if (addr >= 0xC000 && addr <= 0xC00F) {
+    if (addr >= KBD && addr <= 0xC00F) {
         // Handle known soft-switches gracefully
-        if (addr == 0xC00C) { // CLR80VID - clear 80-column mode
+        if (addr == CLR80VID) { // CLR80VID - clear 80-column mode
             eighty_col_enabled_ = false;
             return true;
         }
-        if (addr == 0xC00D) { // SET80VID - set 80-column mode
+        if (addr == static_cast<uint16_t>(CLR80VID + 1)) { // SET80VID - set 80-column mode
             eighty_col_enabled_ = true;
             return true;
         }
@@ -212,9 +209,9 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
     }
 
     // $C010-$C01F: Keyboard strobe and soft switches
-    if (addr >= 0xC010 && addr <= 0xC01F) {
-        if (addr == 0xC010) {
-            // Writing to KBDSTRB also clears strobe
+    if (addr >= KBDSTROBE && addr <= 0xC01F) {
+        if (addr == KBDSTROBE) {
+            // Writing to KBDSTROBE also clears strobe
             kbd_strobe_ = false;
         }
         return true;

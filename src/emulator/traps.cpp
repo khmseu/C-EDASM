@@ -1,3 +1,4 @@
+#include "edasm/constants.hpp"
 #include "edasm/emulator/traps.hpp"
 #include "edasm/emulator/mli.hpp"
 #include <cstdio>
@@ -184,9 +185,9 @@ bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t
     std::cout << "MONITOR SETNORM: Set InvFlg ($32) to $FF, Y to $FF" << std::endl;
 
     cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
-    uint8_t ret_lo = bus.read(0x0100 | cpu.SP);
+    uint8_t ret_lo = bus.read(STACK_BASE | cpu.SP);
     cpu.SP = static_cast<uint8_t>(cpu.SP + 1);
-    uint8_t ret_hi = bus.read(0x0100 | cpu.SP);
+    uint8_t ret_hi = bus.read(STACK_BASE | cpu.SP);
     uint16_t ret_addr = static_cast<uint16_t>((ret_hi << 8) | ret_lo);
 
     cpu.PC = static_cast<uint16_t>(ret_addr + 1);

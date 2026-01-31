@@ -1,3 +1,4 @@
+#include "edasm/constants.hpp"
 #include "edasm/emulator/mli.hpp"
 #include "edasm/emulator/traps.hpp"
 #include <algorithm>
@@ -667,10 +668,10 @@ ProDOSError MLIHandler::handle_get_time(Bus &bus, const std::vector<MLIParamValu
     uint8_t hour = static_cast<uint8_t>(tm.tm_hour);
     uint8_t minute = static_cast<uint8_t>(tm.tm_min);
 
-    bus.write(0xBF91, bf91);
-    bus.write(0xBF90, bf90);
-    bus.write(0xBF93, hour);
-    bus.write(0xBF92, minute);
+    bus.write(static_cast<uint16_t>(P8DATE + 1), bf91);
+    bus.write(P8DATE, bf90);
+    bus.write(static_cast<uint16_t>(P8TIME + 1), hour);
+    bus.write(P8TIME, minute);
 
     if (is_trace_enabled()) {
         std::cout << "GET_TIME: wrote date/time to $BF90-$BF93" << std::endl;
@@ -1215,7 +1216,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
     //   .WORD parameter_list_pointer
     //   [execution continues here]
 
-    uint16_t stack_base = 0x0100;
+    uint16_t stack_base = STACK_BASE;
     uint8_t sp = cpu.SP;
     const uint8_t *mem = bus.data();
 

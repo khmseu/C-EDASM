@@ -38,4 +38,7 @@ void register_disassembly_symbol(uint16_t address, std::string name);
 // Lookup a symbol for an address (returns nullptr if not found)
 const std::string *lookup_disassembly_symbol(uint16_t address);
 
+// Register all built-in address constants as disassembly symbols
+void register_default_disassembly_symbols();
+
 } // namespace edasm

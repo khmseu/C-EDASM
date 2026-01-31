@@ -1,3 +1,4 @@
+#include "edasm/constants.hpp"
 #include "edasm/emulator/bus.hpp"
 #include "edasm/emulator/cpu.hpp"
 #include "edasm/emulator/disassembly.hpp"
@@ -49,6 +50,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    register_default_disassembly_symbols();
+
     // Initialize emulator
     Bus bus;
     CPU cpu(bus);
@@ -63,9 +66,9 @@ int main(int argc, char *argv[]) {
     // Initialize monitor soft-entry vectors as requested
     // SOFTEV ($03F2) = 0x00, SOFTEV+1 ($03F3) = 0x20
     // PWREDUP ($03F4) = $20 XOR $A5
-    bus.write(0x03F2, 0x00);
-    bus.write(0x03F3, 0x20);
-    bus.write(0x03F4, static_cast<uint8_t>(0x20 ^ 0xA5));
+    bus.write(SOFTEV, 0x00);
+    bus.write(static_cast<uint16_t>(SOFTEV + 1), 0x20);
+    bus.write(PWREDUP, static_cast<uint8_t>(0x20 ^ 0xA5));
 
     // Load monitor ROM into upper 8KB
     const uint16_t rom_base = 0xF800;
@@ -117,7 +120,7 @@ int main(int argc, char *argv[]) {
 
     // Install general trap handler with ProDOS MLI handler at $BF00
     TrapManager::set_trace(trace);
-    TrapManager::install_address_handler(0xBF00, TrapManager::prodos_mli_trap_handler);
+    TrapManager::install_address_handler(PRODOS8, TrapManager::prodos_mli_trap_handler);
     TrapManager::install_address_handler(0xFE84, TrapManager::monitor_setnorm_trap_handler);
     cpu.set_trap_handler(TrapManager::general_trap_handler);
     std::cout << "  General trap handler installed with ProDOS MLI at $BF00" << std::endl;
