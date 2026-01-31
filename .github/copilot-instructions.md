@@ -27,6 +27,8 @@ sudo apt-get install cmake g++ libncurses5-dev
 
 ### Build System
 
+Always use cmake via these commands:
+
 ```bash
 # Configure (out-of-source in build/)
 ./scripts/configure.sh              # Uses BUILD_TYPE env (default: Debug)

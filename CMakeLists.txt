@@ -13,6 +13,7 @@ add_library(edasm
   src/core/screen.cpp
   src/emulator/bus.cpp
   src/emulator/cpu.cpp
+  src/emulator/disassembly.cpp
   src/emulator/traps.cpp
   src/emulator/mli.cpp
   src/emulator/host_shims.cpp
