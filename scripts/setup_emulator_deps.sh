@@ -224,7 +224,9 @@ check_apple2_roms() {
         echo "  - apple2gs.zip (for Apple IIGS emulation)"
         echo ""
         echo "Quick install for testing:"
+        # shellcheck disable=SC2016
         echo '  mkdir -p ${HOME}/mame/roms'
+        # shellcheck disable=SC2016
         echo '  wget https://github.com/internetarchive/emularity-bios/raw/main/apple2e.zip -O ${HOME}/mame/roms/apple2e.zip'
         echo "  mame -verifyroms apple2e  # Verify installation"
         echo ""
