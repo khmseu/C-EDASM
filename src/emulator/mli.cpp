@@ -1,5 +1,5 @@
-#include "edasm/constants.hpp"
 #include "edasm/emulator/mli.hpp"
+#include "edasm/constants.hpp"
 #include "edasm/emulator/traps.hpp"
 #include <algorithm>
 #include <array>

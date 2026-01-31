@@ -1,5 +1,5 @@
-#include "edasm/constants.hpp"
 #include "edasm/emulator/traps.hpp"
+#include "edasm/constants.hpp"
 #include "edasm/emulator/mli.hpp"
 #include <cstdio>
 #include <ctime>
