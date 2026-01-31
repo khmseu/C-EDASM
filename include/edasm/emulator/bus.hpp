@@ -38,8 +38,15 @@ struct WriteTrapRange {
 // Memory bus for 6502/65C02
 class Bus {
   public:
-    static constexpr size_t MEMORY_SIZE = 0x10000; // 64KB
+    static constexpr size_t MEMORY_SIZE = 0x10000; // 64KB - main 6502 address space
     static constexpr uint8_t TRAP_OPCODE = 0x02;   // Opcode for host traps
+    
+    // Language card extended memory regions (beyond main 64KB)
+    static constexpr size_t LC_BANK1_OFFSET = 0x10000; // First 4KB bank at offset 64KB
+    static constexpr size_t LC_BANK2_OFFSET = 0x11000; // Second 4KB bank at offset 68KB
+    static constexpr size_t LC_FIXED_RAM_OFFSET = 0x12000; // 8KB fixed RAM at offset 72KB
+    static constexpr size_t LC_ROM_OFFSET = 0x14000; // 12KB ROM at offset 80KB
+    static constexpr size_t TOTAL_MEMORY_SIZE = 0x17000; // 92KB total (64KB + 28KB LC)
 
     Bus();
 
@@ -69,15 +76,31 @@ class Bus {
     void clear_write_traps();
 
     // Direct memory access (bypasses traps)
+    // Only provides access to main 64KB for compatibility
     uint8_t *data() {
         return memory_.data();
     }
     const uint8_t *data() const {
         return memory_.data();
     }
+    
+    // Direct access to extended memory regions (for language card implementation)
+    uint8_t *lc_bank1() {
+        return memory_.data() + LC_BANK1_OFFSET;
+    }
+    uint8_t *lc_bank2() {
+        return memory_.data() + LC_BANK2_OFFSET;
+    }
+    uint8_t *lc_fixed_ram() {
+        return memory_.data() + LC_FIXED_RAM_OFFSET;
+    }
+    uint8_t *lc_rom() {
+        return memory_.data() + LC_ROM_OFFSET;
+    }
 
   private:
-    std::array<uint8_t, MEMORY_SIZE> memory_;
+    // Extended memory buffer: 64KB main + 28KB language card regions
+    std::array<uint8_t, TOTAL_MEMORY_SIZE> memory_;
     
     // Sparse trap storage - only store ranges that have handlers
     std::vector<TrapRange> read_trap_ranges_;

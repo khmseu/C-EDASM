@@ -9,8 +9,11 @@ Bus::Bus() {
 }
 
 void Bus::reset() {
-    // Fill entire address space with trap opcode
+    // Fill entire address space (main + extended) with trap opcode
     memory_.fill(TRAP_OPCODE);
+    
+    // Initialize language card ROM region to zeros (simulating empty ROM)
+    std::fill_n(memory_.data() + LC_ROM_OFFSET, 0x3000, 0x00);
 
     // Clear trap handlers
     clear_read_traps();
