@@ -92,6 +92,7 @@ class HostShims {
     bool handle_language_control_write(uint16_t addr, uint8_t value);
     bool handle_lc_read(uint16_t addr, uint8_t &value);
     bool handle_lc_write(uint16_t addr, uint8_t value);
+    void update_lc_bank_mappings(); // Update bank mappings based on LC state
 };
 
 } // namespace edasm

@@ -9,15 +9,37 @@ Bus::Bus() {
 }
 
 void Bus::reset() {
-    // Fill entire address space (main + extended) with trap opcode
+    // Fill entire memory pool with trap opcode
     memory_.fill(TRAP_OPCODE);
-    
-    // Initialize language card ROM region to zeros (simulating empty ROM)
-    std::fill_n(memory_.data() + LC_ROM_OFFSET, 0x3000, 0x00);
+
+    // Initialize bank mappings to default (power-on state)
+    reset_bank_mappings();
 
     // Clear trap handlers
     clear_read_traps();
     clear_write_traps();
+}
+
+void Bus::reset_bank_mappings() {
+    // Power-on state per problem statement:
+    // - 0000-CFFF (banks 0-25): point to main RAM
+    // - D000-FFFF (banks 26-31): point to main RAM for reads (where ROM will be loaded),
+    //   write-sink for writes (ROM is write-protected)
+    
+    for (size_t i = 0; i < NUM_BANKS; ++i) {
+        uint32_t bank_start = static_cast<uint32_t>(i * BANK_SIZE);
+        
+        if (bank_start < 0xD000) {
+            // Banks 0-25 (0x0000-0xCFFF): map to main RAM
+            read_bank_offsets_[i] = MAIN_RAM_OFFSET + bank_start;
+            write_bank_offsets_[i] = MAIN_RAM_OFFSET + bank_start;
+        } else {
+            // Banks 26-31 (0xD000-0xFFFF): at power-on, map to main RAM for reads (ROM location),
+            // write-sink for writes (ROM is read-only)
+            read_bank_offsets_[i] = MAIN_RAM_OFFSET + bank_start;
+            write_bank_offsets_[i] = WRITE_SINK_OFFSET; // Writes go to sink (ignored)
+        }
+    }
 }
 
 ReadTrapHandler Bus::find_read_trap(uint16_t addr) {
@@ -41,7 +63,7 @@ WriteTrapHandler Bus::find_write_trap(uint16_t addr) {
 }
 
 uint8_t Bus::read(uint16_t addr) {
-    // Check for read trap handler
+    // Check for read trap handler first (for C000-C7FF and screen 400-7FF)
     auto handler = find_read_trap(addr);
     if (handler) {
         uint8_t value = 0;
@@ -50,12 +72,16 @@ uint8_t Bus::read(uint16_t addr) {
         }
     }
 
-    // Normal memory read
-    return memory_[addr];
+    // Use bank-based lookup for normal reads
+    uint8_t bank_index = addr / BANK_SIZE; // Divide by 2KB to get bank number
+    uint32_t offset_in_bank = addr % BANK_SIZE; // Offset within the bank
+    uint32_t physical_offset = read_bank_offsets_[bank_index] + offset_in_bank;
+    
+    return memory_[physical_offset];
 }
 
 void Bus::write(uint16_t addr, uint8_t value) {
-    // Check for write trap handler
+    // Check for write trap handler first (for C000-C7FF and screen 400-7FF)
     auto handler = find_write_trap(addr);
     if (handler) {
         if (handler(addr, value)) {
@@ -63,8 +89,12 @@ void Bus::write(uint16_t addr, uint8_t value) {
         }
     }
 
-    // Normal memory write
-    memory_[addr] = value;
+    // Use bank-based lookup for normal writes
+    uint8_t bank_index = addr / BANK_SIZE; // Divide by 2KB to get bank number
+    uint32_t offset_in_bank = addr % BANK_SIZE; // Offset within the bank
+    uint32_t physical_offset = write_bank_offsets_[bank_index] + offset_in_bank;
+    
+    memory_[physical_offset] = value;
 }
 
 uint16_t Bus::read_word(uint16_t addr) {
@@ -132,6 +162,14 @@ void Bus::clear_read_traps() {
 
 void Bus::clear_write_traps() {
     write_trap_ranges_.clear();
+}
+
+void Bus::set_bank_mapping(uint8_t bank_index, uint32_t read_offset, uint32_t write_offset) {
+    if (bank_index >= NUM_BANKS) {
+        return; // Invalid bank index
+    }
+    read_bank_offsets_[bank_index] = read_offset;
+    write_bank_offsets_[bank_index] = write_offset;
 }
 
 } // namespace edasm
