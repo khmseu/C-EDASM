@@ -10,8 +10,6 @@
 
 using namespace edasm;
 
-namespace {} // namespace
-
 int main(int argc, char *argv[]) {
     std::cout << "C-EDASM Minimal Emulator" << std::endl;
     std::cout << "========================" << std::endl << std::endl;
