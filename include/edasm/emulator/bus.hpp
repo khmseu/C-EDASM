@@ -18,7 +18,7 @@ using WriteTrapHandler = std::function<bool(uint16_t addr, uint8_t value)>;
 struct TrapRange {
     uint16_t start;
     uint16_t end;
-    std::function<bool(uint16_t, uint8_t &)> handler;
+    ReadTrapHandler handler;
 
     bool contains(uint16_t addr) const {
         return addr >= start && addr <= end;
@@ -28,7 +28,7 @@ struct TrapRange {
 struct WriteTrapRange {
     uint16_t start;
     uint16_t end;
-    std::function<bool(uint16_t, uint8_t)> handler;
+    WriteTrapHandler handler;
 
     bool contains(uint16_t addr) const {
         return addr >= start && addr <= end;
