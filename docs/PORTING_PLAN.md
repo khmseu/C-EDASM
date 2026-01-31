@@ -163,7 +163,7 @@ Based on `EDASMINT.S` command dispatch, EDASM supports these commands:
 
 Each symbol node (variable length):
 
-```
+```text
 +0: Link pointer (2 bytes) - next node in hash chain
 +2: Symbol name (1-16 chars, high bit set on last char)
 +n: Flag byte:
@@ -211,39 +211,39 @@ Full 6502 instruction set with all addressing modes:
 
 - **Original**: Direct Apple II video memory writes (`$0400-$07FF`), 40-column text
 - **Port**: ncurses `Screen` class with:
-    - `clear()`, `refresh()`, `write_line(row, text)`
-    - 80-column support
-    - Handle terminal resize events
+  - `clear()`, `refresh()`, `write_line(row, text)`
+  - 80-column support
+  - Handle terminal resize events
 
 ### Keyboard Input
 
 - **Original**: Apple II keyboard (`$C000`), with strobe (`$C010`)
 - **Port**: ncurses `getch()` with mapping:
-    - Ctrl-A to Ctrl-Z → command keys
-    - ESC → ESCAPE
-    - Backspace/Delete → line editing
-    - Arrow keys (not in original) → cursor movement enhancement
+  - Ctrl-A to Ctrl-Z → command keys
+  - ESC → ESCAPE
+  - Backspace/Delete → line editing
+  - Arrow keys (not in original) → cursor movement enhancement
 
 ### File System
 
 - **Original**: ProDOS with volume slots, type/aux type, 15-char names
 - **Port**: POSIX paths with extension mapping:
-    - TXT ($04) → `.src`, `.txt`
-    - BIN ($06) → `.bin`, `.obj`
-    - REL ($FE) → `.rel`
-    - SYS ($FF) → `.sys`
-    - Maintain load address in file header (4 bytes: addr, len)
+  - TXT ($04) → `.src`, `.txt`
+  - BIN ($06) → `.bin`, `.obj`
+  - REL ($FE) → `.rel`
+  - SYS ($FF) → `.sys`
+  - Maintain load address in file header (4 bytes: addr, len)
 
 ### Memory Layout
 
 - **Original**: Apple II 64K with language card banking
-    - `$0800-$9900`: Text buffer (37K)
-    - `$D000-$FFFF` (LC Bank 2): Part of assembler
-    - `$7800-$9EFF`: Main assembler code
+  - `$0800-$9900`: Text buffer (37K)
+  - `$D000-$FFFF` (LC Bank 2): Part of assembler
+  - `$7800-$9EFF`: Main assembler code
 - **Port**: Dynamic allocation
-    - `std::vector<std::string>` for text buffer
-    - `std::unordered_map` for symbol table
-    - No memory constraints
+  - `std::vector<std::string>` for text buffer
+  - `std::unordered_map` for symbol table
+  - No memory constraints
 
 ## Incremental Implementation Steps
 
@@ -310,30 +310,30 @@ Full 6502 instruction set with all addressing modes:
 - [x] **ENT/EXT directive support for REL files)** ✨ NEW!
 - [x] **REL file generation (RLD + ESD records)** ✨ NEW!
 - [x] **Linker implementation (merge REL files)** ✨ NEW!
-    - [x] Parse REL file format
-    - [x] Build ENTRY and EXTERN symbol tables
-    - [x] Resolve external references
-    - [x] Relocate code segments
-    - [x] Generate BIN/REL/SYS output
-    - [x] Load map generation
+  - [x] Parse REL file format
+  - [x] Build ENTRY and EXTERN symbol tables
+  - [x] Resolve external references
+  - [x] Relocate code segments
+  - [x] Generate BIN/REL/SYS output
+  - [x] Load map generation
 - [x] **INCLUDE directive support** ✨ NEW!
-    - [x] File inclusion during assembly
-    - [x] Path resolution (relative/absolute)
-    - [x] Nesting prevention (INCLUDE/CHN NESTING error)
-    - [x] Error handling (file not found, invalid from include)
-    - [x] Line number tracking across includes
+  - [x] File inclusion during assembly
+  - [x] Path resolution (relative/absolute)
+  - [x] Nesting prevention (INCLUDE/CHN NESTING error)
+  - [x] Error handling (file not found, invalid from include)
+  - [x] Line number tracking across includes
 - [x] **Conditional assembly (DO/ELSE/FIN/IF\* directives)** ✨ NEW!
-    - [x] DO directive (start conditional block)
-    - [x] ELSE directive (alternate block)
-    - [x] FIN directive (end conditional block)
-    - [x] IFEQ directive (if equal to zero)
-    - [x] IFNE directive (if not equal to zero)
-    - [x] IFGT directive (if greater than zero)
-    - [x] IFGE directive (if greater or equal to zero)
-    - [x] IFLT directive (if less than zero)
-    - [x] IFLE directive (if less or equal to zero)
-    - [x] Line skipping when condition is false
-    - [x] Expression evaluation for conditions
+  - [x] DO directive (start conditional block)
+  - [x] ELSE directive (alternate block)
+  - [x] FIN directive (end conditional block)
+  - [x] IFEQ directive (if equal to zero)
+  - [x] IFNE directive (if not equal to zero)
+  - [x] IFGT directive (if greater than zero)
+  - [x] IFGE directive (if greater or equal to zero)
+  - [x] IFLT directive (if less than zero)
+  - [x] IFLE directive (if less or equal to zero)
+  - [x] Line skipping when condition is false
+  - [x] Expression evaluation for conditions
 - [ ] Macro support (if needed)
 
 ### Phase 7: Testing & Polish (Week 13-14)

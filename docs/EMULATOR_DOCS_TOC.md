@@ -67,10 +67,10 @@ This investigation addresses the question: **How can we host the original Apple 
 - Decision tree (Q&A format to guide choice)
 - Quick comparison table (all options side-by-side)
 - Use case recommendations:
-    - Automated CI/CD testing → MAME
-    - Interactive debugging → GSPlus
-    - Quick prototyping → LinApple
-    - Long-term production → MAME
+  - Automated CI/CD testing → MAME
+  - Interactive debugging → GSPlus
+  - Quick prototyping → LinApple
+  - Long-term production → MAME
 - Effort estimates (detailed breakdown per option)
 - Risk assessment (LOW/MEDIUM/HIGH ratings)
 - Useful commands (ready-to-run examples)
@@ -94,10 +94,10 @@ This investigation addresses the question: **How can we host the original Apple 
 - Usage examples with command-line invocations
 - Current status (prototype phase)
 - Production requirements:
-    - Proper keyboard injection
-    - Screen/memory monitoring
-    - Error handling
-    - Robust timing
+  - Proper keyboard injection
+  - Screen/memory monitoring
+  - Error handling
+  - Robust timing
 - Development roadmap (3 phases)
 - MAME Lua API resources and references
 - Testing instructions
@@ -182,7 +182,7 @@ For engineers who just need a refresher:
 
 ## 📊 Document Relationships
 
-```
+```text
 DEBUGGER_EMULATOR_PLAN.md
          |
          | (identifies need)

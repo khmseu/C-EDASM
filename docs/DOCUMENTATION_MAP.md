@@ -1,8 +1,8 @@
 # Documentation Map
 
-**Visual Guide to C-EDASM Documentation**
+## Visual Guide to C-EDASM Documentation
 
-```
+```text
                     C-EDASM Documentation
                             |
         ┌───────────────────┴───────────────────┐

@@ -1,6 +1,6 @@
 # C-EDASM Documentation
 
-**Complete Documentation for EDASM.SRC to C++ Port**
+## Complete Documentation for EDASM.SRC to C++ Port
 
 This directory contains comprehensive documentation for the C-EDASM project - a modern C++20 port of the Apple II EDASM editor/assembler system.
 
@@ -46,28 +46,28 @@ This directory contains comprehensive documentation for the C-EDASM project - a 
 
 **Read these to understand EDASM architecture and design:**
 
-5. **[PORTING_PLAN.md](PORTING_PLAN.md)** - 🗓️ **Implementation Roadmap**
+1. **[PORTING_PLAN.md](PORTING_PLAN.md)** - 🗓️ **Implementation Roadmap**
     - 14-week implementation plan
     - Phase-by-phase breakdown
     - Module mapping (6502 → C++)
     - Zero page variable mapping
     - Current status and progress
 
-6. **[ASSEMBLER_ARCHITECTURE.md](ASSEMBLER_ARCHITECTURE.md)** - 🏗️ **Assembler Design**
+2. **[ASSEMBLER_ARCHITECTURE.md](ASSEMBLER_ARCHITECTURE.md)** - 🏗️ **Assembler Design**
     - Two-pass (three-pass) assembly process
     - Symbol table structure and algorithms
     - Expression evaluation design
     - Code generation process
     - Output formats (BIN, REL, SYS, LST)
 
-7. **[COMMAND_REFERENCE.md](COMMAND_REFERENCE.md)** - 📖 **Command Set**
+3. **[COMMAND_REFERENCE.md](COMMAND_REFERENCE.md)** - 📖 **Command Set**
     - Complete command documentation
     - File commands (LOAD, SAVE, etc.)
     - Editor commands (LIST, INSERT, etc.)
     - Assembler commands (ASM, LINK)
     - Control commands (EXEC, BYE, etc.)
 
-8. **[6502_INSTRUCTION_SET.md](6502_INSTRUCTION_SET.md)** - 🔧 **Opcode Reference**
+4. **[6502_INSTRUCTION_SET.md](6502_INSTRUCTION_SET.md)** - 🔧 **Opcode Reference**
     - Complete 6502 instruction set
     - All 13 addressing modes
     - Opcode tables with cycles
@@ -181,7 +181,7 @@ In C++ code, use this format:
 
 ## File Dependency Graph
 
-```
+```text
 VERIFICATION_QUICK_REF.md (One-page reference)
     ↓
 VERIFICATION_INDEX.md (Detailed lookup)

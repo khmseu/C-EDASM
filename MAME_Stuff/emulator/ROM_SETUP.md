@@ -106,13 +106,13 @@ mame -verifyroms apple2e
 
 Expected output if successful:
 
-```
+```text
 romset apple2e is good
 ```
 
 If verification fails:
 
-```
+```text
 romset apple2e is bad
 apple2e       : 342-0133-a.chr (2048 bytes) - NOT FOUND
 ```

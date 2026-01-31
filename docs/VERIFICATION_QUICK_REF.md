@@ -1,6 +1,6 @@
 # Quick Reference Card for Verification
 
-**One-Page Guide for EDASM.SRC ↔ C++ Cross-Reference**
+## One-Page Guide for EDASM.SRC ↔ C++ Cross-Reference
 
 Print this page and keep it handy when doing verification work!
 
@@ -28,7 +28,7 @@ Print this page and keep it handy when doing verification work!
 
 ### Assembler Core
 
-```
+```text
 DoPass1    (ASM2.S L7E1E)     → assembler.cpp::pass1()
 DoPass2    (ASM2.S L7F69)     → assembler.cpp::pass2()
 DoPass3    (ASM1.S LD000)     → listing.cpp (entire file)
@@ -37,7 +37,7 @@ InitASM    (ASM2.S L7DC3)     → assembler.cpp::reset()
 
 ### Expression & Symbol Handling
 
-```
+```text
 EvalExpr   (ASM2.S L8561)     → expression.cpp::evaluate()
 FindSym    (ASM2.S L88C3)     → symbol_table.cpp::lookup()
 AddNode    (ASM2.S L89A9)     → symbol_table.cpp::define()
@@ -46,7 +46,7 @@ HashFn     (ASM2.S L8955)     → std::unordered_map (STL)
 
 ### Code Generation
 
-```
+```text
 HndlMnem   (ASM2.S L8200)     → assembler.cpp::process_instruction()
 EvalOprnd  (ASM2.S L8377)     → assembler.cpp::determine_addressing_mode()
 GInstLen   (ASM2.S L8458)     → assembler.cpp::get_instruction_length()
@@ -54,7 +54,7 @@ GInstLen   (ASM2.S L8458)     → assembler.cpp::get_instruction_length()
 
 ### Directives (ASM3.S → assembler.cpp)
 
-```
+```text
 ORG        (L8A82)            → process_directive_pass1() ORG case
 EQU        (L8A31)            → process_directive_pass1() EQU case
 REL        (L9126)            → process_directive_pass1() REL case
@@ -229,7 +229,7 @@ BUILD_TYPE=Debug ./scripts/configure.sh && ./scripts/build.sh
 
 ### EDASM.SRC (from ASM2.S expression evaluator)
 
-```
+```text
 1. Parentheses ()
 2. Unary: -, +
 3. Multiplicative: *, /, MOD

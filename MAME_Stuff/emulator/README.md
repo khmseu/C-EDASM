@@ -269,7 +269,7 @@ To test these scripts:
 
 If you see an error like:
 
-```
+```text
 341s0632-2.bin NOT FOUND (tried in apple2gs)
 Fatal error: Required files are missing, the machine cannot be run.
 ```

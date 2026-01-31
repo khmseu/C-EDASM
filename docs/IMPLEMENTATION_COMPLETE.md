@@ -17,26 +17,26 @@ This document summarizes the completed implementation of the EDASM emulator test
 **Setup Scripts:**
 
 - `scripts/setup_emulator_deps.sh` - Automated installation of MAME and cadius
-    - Detects OS (Linux/macOS)
-    - Installs MAME via package manager
-    - Installs cadius (ProDOS disk image tool)
-    - Validates installation success
+  - Detects OS (Linux/macOS)
+  - Installs MAME via package manager
+  - Installs cadius (ProDOS disk image tool)
+  - Validates installation success
 
 **CI/CD Integration:**
 
 - `.github/workflows/emulator-tests.yml` - GitHub Actions workflow
-    - Installs all dependencies in CI environment
-    - Runs C-EDASM build and tests
-    - Executes emulator boot test
-    - Uploads test artifacts
+  - Installs all dependencies in CI environment
+  - Runs C-EDASM build and tests
+  - Executes emulator boot test
+  - Uploads test artifacts
 
 **Documentation:**
 
 - `docs/EMULATOR_SETUP.md` - Comprehensive setup and usage guide
-    - Quick start instructions
-    - Manual installation steps for various platforms
-    - Troubleshooting common issues
-    - MAME and cadius usage examples
+  - Quick start instructions
+  - Manual installation steps for various platforms
+  - Troubleshooting common issues
+  - MAME and cadius usage examples
 
 ### 2. Lua Automation Scripts ✅
 
@@ -126,7 +126,7 @@ end
 
 **Sample Output:**
 
-```
+```text
 === Comparison Results ===
 
 ✓ C-EDASM output: 11 bytes
@@ -150,7 +150,7 @@ Then re-run comparison.
 
 **Test Results:**
 
-```
+```text
 ╔══════════════════════════════════════════╗
 ║           Test Results Summary           ║
 ╚══════════════════════════════════════════╝
@@ -215,7 +215,7 @@ Pass Rate: 100%
 - ✅ Binary extraction and comparison
 - ✅ Comprehensive test coverage
 
-### Testing
+### Test Results
 
 - ✅ 12/12 test programs assemble successfully
 - ✅ 100% pass rate on automated test harness
@@ -226,7 +226,7 @@ Pass Rate: 100%
 
 ## File Structure
 
-```
+```text
 C-EDASM/
 ├── .github/workflows/
 │   └── emulator-tests.yml          # CI/CD workflow

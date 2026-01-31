@@ -1,6 +1,6 @@
 # Missing Features and Intentional Omissions
 
-**Why Certain EDASM.SRC Features Are Not in C-EDASM**
+## Why Certain EDASM.SRC Features Are Not in C-EDASM
 
 This document explicitly documents features from the original EDASM.SRC that are NOT implemented in the C++ port, along with the rationale for each omission.
 

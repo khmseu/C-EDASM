@@ -1,6 +1,6 @@
 # EDASM.SRC to C++ Verification Index
 
-**Quick Reference Guide for Cross-Verification**
+## Quick Reference Guide for Cross-Verification
 
 This document provides a quick lookup index for verifying C++ implementation against the original EDASM.SRC 6502 assembly source. Use this as a starting point to locate corresponding code in both implementations.
 
@@ -319,7 +319,7 @@ For more detailed information, see:
 
 ### EDASM.SRC Structure
 
-```
+```text
 third_party/EdAsm/EDASM.SRC/
 ├── ASM/                 # Assembler (3 passes)
 │   ├── ASM1.S          # Pass 3 - Symbol table output
@@ -349,7 +349,7 @@ third_party/EdAsm/EDASM.SRC/
 
 ### C++ Implementation Structure
 
-```
+```text
 src/
 ├── assembler/           # Assembler implementation
 │   ├── assembler.cpp   # Pass 1-2, directive handlers

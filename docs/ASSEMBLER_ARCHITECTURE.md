@@ -48,13 +48,13 @@ The EDASM assembler is a two-pass (optionally three-pass) 6502 assembler with th
 
 **Symbol Definition**:
 
-```
+```assembler
 LABEL   LDA #$00    ; LABEL defined with current PC value
 ```
 
 **Forward Reference**:
 
-```
+```assembler
         JMP AHEAD   ; AHEAD marked as forward ref
         ...
 AHEAD   RTS        ; AHEAD resolved in pass 2
@@ -80,7 +80,7 @@ AHEAD   RTS        ; AHEAD resolved in pass 2
 
 **Addressing Mode Detection**:
 
-```
+```assembler
 LDA #$12      ; Immediate     ($A9 $12)
 LDA $12       ; Zero Page     ($A5 $12)
 LDA $1234     ; Absolute      ($AD $34 $12)
@@ -114,7 +114,7 @@ LDA ($1234)   ; Indirect      ($6C $34 $12) - JMP only
 
 **Symbol Display Format**:
 
-```
+```assembler
 LABEL    = $1234  R    (Relative)
 EXTERN   = $0000  X    (External)
 ENTRY    = $2000  E    (Entry point)
@@ -127,7 +127,7 @@ MACRO    = $0000  M    (Macro)
 
 256-entry array where each entry points to a linked list of symbols:
 
-```
+```text
 HeaderT[0..255]  → Symbol node → Symbol node → NULL
 ```
 
@@ -135,7 +135,7 @@ Hash function: First character of symbol name (0-255)
 
 ### Symbol Node Layout
 
-```
+```text
 +0: Next pointer (2 bytes) - Link to next node in chain
 +2: Symbol name (1-16 chars) - Last char has bit 7 set
 +n: Flag byte (1 byte)
@@ -247,7 +247,7 @@ public:
 
 ### Expression Syntax
 
-```
+```assembler
         LDA #SYMBOL+10      ; Symbol plus offset
         LDA #(END-START)/2  ; Computed value
         LDA #>TABLE         ; High byte
@@ -269,7 +269,7 @@ Recursive descent parser with operator precedence:
 
 ### ORG - Set Origin
 
-```
+```assembler
         ORG $8000
 ```
 
@@ -277,7 +277,7 @@ Sets program counter to specified address.
 
 ### EQU - Equate
 
-```
+```assembler
 CONST   EQU $1234
 ```
 
@@ -287,26 +287,26 @@ Defines symbol with constant value (not PC-relative).
 
 **DA** - Define Address (16-bit):
 
-```
+```assembler
         DA LABEL1,LABEL2,$1234
 ```
 
 **DW** - Define Word (16-bit):
 
-```
+```assembler
         DW $1234,$5678
 ```
 
 **DB/DFB** - Define Byte:
 
-```
+```assembler
         DB $01,$02,$03
         DFB $FF
 ```
 
 **ASC** - ASCII String:
 
-```
+```assembler
         ASC "Hello, World!"
         ASC 'Text'
 ```
@@ -315,7 +315,7 @@ High bit cleared on all characters.
 
 **DCI** - DCI String:
 
-```
+```assembler
         DCI "FILENAME"
 ```
 
@@ -323,7 +323,7 @@ High bit set on last character (Apple II convention).
 
 **DS** - Define Storage:
 
-```
+```assembler
         DS 256      ; Reserve 256 bytes
 ```
 
@@ -331,25 +331,25 @@ High bit set on last character (Apple II convention).
 
 **REL** - Start relocatable section:
 
-```
+```assembler
         REL
 ```
 
 **ENT** - Entry point:
 
-```
+```assembler
         ENT START   ; Declare START as entry
 ```
 
 **EXT** - External reference:
 
-```
+```assembler
         EXT ROUTINE ; Declare ROUTINE as external
 ```
 
 **END** - End of source:
 
-```
+```assembler
         END
 ```
 
@@ -357,14 +357,14 @@ High bit set on last character (Apple II convention).
 
 **LST** - Listing on/off:
 
-```
+```assembler
         LST ON      ; Enable listing
         LST OFF     ; Disable listing
 ```
 
 **SBTL** - Subtitle:
 
-```
+```assembler
         SBTL "Module Name"
 ```
 
@@ -372,7 +372,7 @@ High bit set on last character (Apple II convention).
 
 **INCLUDE** - Include source file:
 
-```
+```assembler
         INCLUDE "macros.src"
 ```
 
@@ -380,7 +380,7 @@ Inserts contents of specified file at this point in assembly.
 
 **CHN** - Chain to source file (implemented 2026-01-16):
 
-```
+```assembler
         CHN "module2.src"
 ```
 
@@ -390,7 +390,7 @@ Closes current source file and continues assembly from chained file. Lines after
 
 **MSB** - High bit control:
 
-```
+```assembler
         MSB ON      ; Set bit 7 on strings
         MSB OFF     ; Clear bit 7 on strings
 ```
@@ -401,7 +401,7 @@ Closes current source file and continues assembly from chained file. Lines after
 
 Simple binary with 4-byte header:
 
-```
+```text
 +0: Load address low byte
 +1: Load address high byte
 +2: Length low byte
@@ -431,7 +431,7 @@ System file with:
 
 Text file with:
 
-```
+```text
 Line# Addr  Bytes        Source
 ----- ----  ----------   ---------------------------
 0010  8000  A9 00        START   LDA #$00

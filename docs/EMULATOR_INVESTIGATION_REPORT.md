@@ -24,7 +24,7 @@ Investigation included:
 
 MAME (Multiple Arcade Machine Emulator) is a mature, cross-platform emulator with extensive Apple IIe support. As of 2024-2026, MAME's Lua scripting capabilities have matured significantly for automation use cases.
 
-#### Strengths
+#### Strengths (MAME)
 
 1. **High Fidelity Emulation**
     - Accurate language card emulation
@@ -68,7 +68,7 @@ MAME (Multiple Arcade Machine Emulator) is a mature, cross-platform emulator wit
     - Regular updates and maintenance
     - Cross-platform (Linux, macOS, Windows)
 
-#### Weaknesses
+#### Weaknesses (MAME)
 
 1. **Dependency Weight**
     - Large binary (~100+ MB)
@@ -86,7 +86,7 @@ MAME (Multiple Arcade Machine Emulator) is a mature, cross-platform emulator wit
 
 #### Implementation Path
 
-**Phase 1: Proof of Concept (1-2 days)**
+##### Phase 1: Proof of Concept (1-2 days)
 
 ```bash
 # Install MAME
@@ -121,14 +121,14 @@ emu.register_start(function()
 end)
 ```
 
-**Phase 2: File Injection & Extraction (1-2 days)**
+##### Phase 2: File Injection & Extraction (1-2 days)
 
 - Create writable .2mg disk image with test sources
 - Mount as second floppy (`-flop2`)
 - Script EDASM to load, assemble, and save outputs
 - Extract result files using ProDOS disk tools (see section below)
 
-**Phase 3: CI Integration (1-2 days)**
+##### Phase 3: CI Integration (1-2 days)
 
 - Containerize MAME with Dockerfile
 - Create GitHub Actions workflow
@@ -145,7 +145,7 @@ end)
 
 ### Option 2: GSPlus / KEGS
 
-#### Overview
+#### Description
 
 GSPlus is a modern fork of KEGS (Apple IIgs emulator) with improved cross-platform support. While primarily targeting the IIgs, it can emulate IIe environments.
 
@@ -173,7 +173,7 @@ GSPlus is a modern fork of KEGS (Apple IIgs emulator) with improved cross-platfo
     - Disk image mounting
     - Language card support
 
-#### Weaknesses
+#### Weaknesses (GSPlus)
 
 1. **Limited Automation API**
     - No native scripting interface (no Lua/Python hooks)
@@ -212,11 +212,11 @@ GSPlus is a modern fork of KEGS (Apple IIgs emulator) with improved cross-platfo
 
 ### Option 3: LinApple / LinApple-Pie
 
-#### Overview
+#### Custom Emulator Overview
 
 LinApple is a Linux port of AppleWin, focusing on Apple II/IIe emulation. It's lightweight and has a smaller codebase.
 
-#### Strengths
+#### Strengths (GSPlus)
 
 1. **Small Footprint**
     - Very small binary (~5-10 MB)
@@ -238,7 +238,7 @@ LinApple is a Linux port of AppleWin, focusing on Apple II/IIe emulation. It's l
     - Read/write operations work well
     - Compatible with ProDOS 8
 
-#### Weaknesses
+#### Weaknesses (LinApple)
 
 1. **No True Headless Mode**
     - Requires SDL window (though minimizable)
@@ -259,7 +259,7 @@ LinApple is a Linux port of AppleWin, focusing on Apple II/IIe emulation. It's l
     - Would need socket/stdio patching for automation
     - Similar limitations to GSPlus
 
-#### Potential Use Cases
+#### Potential Use Cases (Custom Emulator)
 
 - **Lightweight CI**: If disk space/time is critical
 - **Quick testing**: For fast iteration during development
@@ -277,11 +277,11 @@ LinApple is a Linux port of AppleWin, focusing on Apple II/IIe emulation. It's l
 
 ### Option 4: Build Custom Minimal Emulator
 
-#### Overview
+#### Build Custom Minimal Emulator
 
 Create a purpose-built emulator focused solely on EDASM testing needs.
 
-#### Strengths
+#### Strengths (LinApple)
 
 1. **Full Control**
     - Tailored exactly to C-EDASM testing requirements
@@ -298,7 +298,7 @@ Create a purpose-built emulator focused solely on EDASM testing needs.
     - Custom debugging interfaces
     - Ideal test hooks
 
-#### Weaknesses
+#### Weaknesses (Custom Emulator)
 
 1. **High Development Cost**
     - Estimated 4-8 weeks of full-time development
@@ -345,12 +345,12 @@ Regardless of emulator choice, we need tools to inject test sources and extract 
 - **Platforms**: Windows, macOS, Linux, Raspberry Pi, FreeBSD
 - **Formats**: DSK, PO, 2MG, NIB (DOS and ProDOS order)
 - **Features**:
-    - Extract files: `cadius EXTRACTVOLUME <image> <output-dir>`
-    - Inject files: `cadius ADDFILE <image> <dest-path> <file>`
-    - List contents: `cadius CATALOG <image>`
-    - Create images: `cadius CREATEVOLUME <image> <name> <size>`
-    - BASIC detokenization
-    - Disk comparison
+  - Extract files: `cadius EXTRACTVOLUME <image> <output-dir>`
+  - Inject files: `cadius ADDFILE <image> <dest-path> <file>`
+  - List contents: `cadius CATALOG <image>`
+  - Create images: `cadius CREATEVOLUME <image> <name> <size>`
+  - BASIC detokenization
+  - Disk comparison
 
 **Example Workflow:**
 

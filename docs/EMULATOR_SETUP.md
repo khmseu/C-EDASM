@@ -90,7 +90,7 @@ export PATH="${PATH}:${HOME}/go/bin"
 
 ## Directory Structure
 
-```
+```text
 C-EDASM/
 ├── scripts/
 │   ├── setup_emulator_deps.sh   # Dependency installation

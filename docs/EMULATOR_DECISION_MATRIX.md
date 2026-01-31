@@ -4,7 +4,7 @@ Quick reference for choosing an emulator for EDASM testing automation.
 
 ## Decision Tree
 
-```
+```text
 Start: Need to automate EDASM testing
 │
 ├─ Q1: Is CI/CD integration required?
@@ -95,7 +95,7 @@ Start: Need to automate EDASM testing
 
 ### MAME Path
 
-```
+```text
 Phase 1: Proof of concept
   - Install MAME: 1 hour
   - Boot EDASM: 2 hours
@@ -119,7 +119,7 @@ Overall: 1 week (5-7 days)
 
 ### GSPlus Path
 
-```
+```text
 Phase 1: Setup & patching
   - Install GSPlus: 1 hour
   - Understand codebase: 4 hours
@@ -143,7 +143,7 @@ Overall: 1.5 weeks (7-10 days)
 
 ### LinApple Path
 
-```
+```text
 Phase 1: Setup
   - Install LinApple: 30 mins
   - Install Xvfb: 30 mins
@@ -167,7 +167,7 @@ Overall: 1 week (6-8 days)
 
 ### Custom Emulator Path
 
-```
+```text
 Phase 1: Core emulation
   - 6502 CPU core: 5 days
   - Memory banking: 5 days
@@ -227,7 +227,7 @@ Overall: 9-10 weeks
 
 ## Final Recommendation
 
-```
+```text
 Primary:    MAME + Lua automation
 Fallback 1: LinApple + Xvfb
 Fallback 2: GSPlus + patches

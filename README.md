@@ -4,7 +4,7 @@ Port of the Apple II EDASM editor/assembler/tools from `markpmlim/EdAsm` to mode
 
 ## Status
 
-**Phase: Core Complete, Editor Complete, Assembler Complete, Linker Complete, Testing Complete**
+### Phase: Core Complete, Editor Complete, Assembler Complete, Linker Complete, Testing Complete
 
 - ✅ **Phase 1 Complete**: Core infrastructure with command dispatch, screen handling, and constants
 - ✅ **Phase 2 (98%)**: Editor module with all major commands including INSERT mode
@@ -188,7 +188,7 @@ cd build && ctest
 
 ## Project Structure
 
-```
+```text
 C-EDASM/
 ├── src/
 │   ├── core/          # App main loop, screen wrapper
@@ -258,7 +258,7 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 
 - Command-line interface with dispatch table
 - ProDOS file type mapping (TXT, BIN, REL, SYS)
-- Line-based text buffer (std::vector<string>)
+- Line-based text buffer (std::vector&lt;string&gt;)
 - Comprehensive constants from COMMONEQUS.S
 - ncurses screen wrapper
 
@@ -267,13 +267,13 @@ The original EDASM used ProDOS file types. In the Linux port, these map to exten
 - **2 comprehensive test suites** with 100% pass rate
 - **test_editor**: Unit tests for all editor operations (LineRange parsing, FIND, CHANGE, MOVE, COPY, JOIN, SPLIT)
 - **test_assembler_integration**: 7 integration tests covering:
-    - Basic 6502 instructions
-    - All addressing modes
-    - Forward references
-    - Expression evaluation (arithmetic, bitwise, byte ops)
-    - All directives
-    - Conditional assembly
-    - MSB directive
+  - Basic 6502 instructions
+  - All addressing modes
+  - Forward references
+  - Expression evaluation (arithmetic, bitwise, byte ops)
+  - All directives
+  - Conditional assembly
+  - MSB directive
 - **Manual validation**: 14 test\_\*.src sample programs all assemble correctly
 - **Linker tests**: Multi-module REL file linking verified
 - **Listing tests**: Complete listing generation with symbol tables validated
@@ -361,7 +361,7 @@ See [docs/EMULATOR_MINIMAL_PLAN.md](docs/EMULATOR_MINIMAL_PLAN.md) for design an
 
 ### Example Listing Output
 
-```
+```text
 Line# Addr  Bytes        Source
 ----- ----  ----------   ---------------------------
 0001                     ; Simple 6502 program

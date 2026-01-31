@@ -1,6 +1,6 @@
 # Apple II 40×24 Text Screen — Memory Layout ✅
 
-**Summary**
+## Summary
 
 - The 40×24 text page uses 960 bytes for characters but occupies a **1 KB block** in memory (Page 1 = `$0400..$07FF`, Page 2 = `$0800..$0BFF`).
 - The page is arranged as **8 blocks of 128 bytes**. Each 128‑byte block stores **three 40‑byte rows (120 bytes)** followed by **8 unused bytes** (the “screen holes”).
@@ -14,7 +14,7 @@
 
 **Address formula** (row r = 0..23, column c = 0..39):
 
-```
+```c++
 addr = base + (r % 8) * 128 + (r // 8) * 40 + c
 ```
 

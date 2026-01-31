@@ -13,17 +13,15 @@ The EDASM Interpreter (EI) is the main control program that:
 
 ### Main Loop
 
-```
 1. Display date/time prompt
 2. Read command line from user
 3. Parse command and parameters
 4. Dispatch to appropriate handler:
-   - File commands (LOAD, SAVE, DELETE, etc.)
-   - Editor commands (LIST, INSERT, etc.)
-   - Assembler commands (ASM, LINK)
-   - Control commands (BYE, EXEC, etc.)
+    - File commands (LOAD, SAVE, DELETE, etc.)
+    - Editor commands (LIST, INSERT, etc.)
+    - Assembler commands (ASM, LINK)
+    - Control commands (BYE, EXEC, etc.)
 5. Return to step 1
-```
 
 ### Special Keys
 
@@ -34,7 +32,7 @@ The EDASM Interpreter (EI) is the main control program that:
 
 ## File Commands
 
-### LOAD <pathname>
+### LOAD &lt;pathname&gt;
 
 Load a text file into the editor buffer.
 
@@ -42,7 +40,7 @@ Load a text file into the editor buffer.
 - Replaces current buffer contents
 - Sets TxtBgn and TxtEnd pointers
 
-### SAVE <pathname>
+### SAVE &lt;pathname&gt;
 
 Save editor buffer to a text file.
 
@@ -50,7 +48,7 @@ Save editor buffer to a text file.
 - Sets ProDOS auxiliary type
 - Updates file modification time
 
-### DELETE <pathname>
+### DELETE &lt;pathname&gt;
 
 Delete a file from disk.
 
@@ -58,40 +56,40 @@ Delete a file from disk.
 - Prompts for confirmation if locked
 - Temporarily unlocks if user confirms 'Y'
 
-### RENAME <old> <new>
+### RENAME &lt;old&gt; &lt;new&gt;
 
 Rename a file.
 
 - Both pathnames in $BD80 buffer, null-separated
 - Validates both names before renaming
 
-### LOCK <pathname>
+### LOCK &lt;pathname&gt;
 
 Set file to read-only.
 
 - Sets ProDOS access bits: $C200
 
-### UNLOCK <pathname>
+### UNLOCK &lt;pathname&gt;
 
 Clear read-only attribute.
 
 - Sets ProDOS access bits: $C2C2
 
-### CATALOG [<path>]
+### CATALOG [&lt;path&gt;]
 
 List directory contents.
 
 - Shows file names, types, sizes
 - If no path given, uses current prefix
 
-### PREFIX [<path>]
+### PREFIX [&lt;path&gt;]
 
 Set or display current directory.
 
 - No argument: display current prefix
 - With argument: change to specified directory
 
-### EXEC <pathname>
+### EXEC &lt;pathname&gt;
 
 Execute commands from a text file.
 
@@ -102,19 +100,19 @@ Execute commands from a text file.
 
 ## Editor Commands
 
-### LIST [<range>]
+### LIST [&lt;range&gt;]
 
 Display lines from buffer.
 
 - Range formats:
-    - `LIST` - all lines
-    - `LIST 10` - line 10 only
-    - `LIST 10,20` - lines 10 through 20
-    - `LIST 10,` - line 10 to end
-    - `LIST ,20` - start to line 20
+  - `LIST` - all lines
+  - `LIST 10` - line 10 only
+  - `LIST 10,20` - lines 10 through 20
+  - `LIST 10,` - line 10 to end
+  - `LIST ,20` - start to line 20
 - Displays with line numbers
 
-### PRINT [<range>]
+### PRINT [&lt;range&gt;]
 
 Print lines to printer or file.
 
@@ -122,7 +120,7 @@ Print lines to printer or file.
 - Honors printer slot setting
 - Can redirect to file
 
-### <number>
+### &lt;number&gt;
 
 Go to specific line number.
 
@@ -137,14 +135,14 @@ Enter insert mode.
 - Empty line (just RETURN) exits insert mode
 - Lines inserted at current position
 
-### DELETE <range>
+### REMOVE &lt;range&gt;
 
 Delete lines from buffer.
 
 - Range format same as LIST
 - Example: `DELETE 50,100` removes lines 50-100
 
-### FIND <text>
+### FIND &lt;text&gt;
 
 Search forward for text.
 
@@ -152,7 +150,7 @@ Search forward for text.
 - Starts from current line
 - Wraps to beginning if not found
 
-### CHANGE <old>/<new>
+### CHANGE &lt;old&gt;/&lt;new&gt;
 
 Search and replace.
 
@@ -161,28 +159,28 @@ Search and replace.
 - Replaces first occurrence found
 - Prompt to continue search
 
-### MOVE <range>,<dest>
+### MOVE &lt;range&gt;,&lt;dest&gt;
 
 Move lines to new location.
 
 - Example: `MOVE 10,20,100` moves lines 10-20 after line 100
 - Original lines removed from old location
 
-### COPY <range>,<dest>
+### COPY &lt;range&gt;,&lt;dest&gt;
 
 Copy lines to new location.
 
 - Example: `COPY 10,20,100` copies lines 10-20 after line 100
 - Original lines remain
 
-### JOIN <range>
+### JOIN &lt;range&gt;
 
 Join multiple lines into one.
 
 - Concatenates lines in range
 - Removes line breaks
 
-### SPLIT <position>
+### SPLIT &lt;position&gt;
 
 Split current line at position.
 
@@ -190,7 +188,7 @@ Split current line at position.
 
 ## Assembler Commands
 
-### ASM [<options>]
+### ASM [&lt;options&gt;]
 
 Assemble the current buffer.
 
@@ -214,7 +212,7 @@ The assembler performs:
 2. **Pass 2**: Generate code, resolve symbols
 3. **Pass 3** (optional): Sort and print symbol table
 
-### LINK [<options>]
+### LINK [&lt;options&gt;]
 
 Link relocatable object files.
 
@@ -281,10 +279,8 @@ From analysis of EDASMINT.S command dispatch:
 
 Command table structure:
 
-```
 - Command string (null-terminated)
 - Handler address (2 bytes)
-```
 
 Commands checked in order:
 

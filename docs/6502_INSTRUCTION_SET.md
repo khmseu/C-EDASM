@@ -247,7 +247,7 @@ OpcodeTable::OpcodeTable() {
 
 ## Operand Parsing Examples
 
-```
+```text
 LDA #$42       → Immediate, operand = $42
 LDA $42        → ZeroPage (if $42 < $100), operand = $42
 LDA $1234      → Absolute (if $1234 >= $100), operand = $1234
@@ -287,7 +287,7 @@ if (value <= 0xFF && supports_zero_page(mnemonic)) {
 
 ### High/Low Byte Operators
 
-```
+```assembler
 LDA #<LABEL    ; Low byte of LABEL
 LDA #>LABEL    ; High byte of LABEL
 ```

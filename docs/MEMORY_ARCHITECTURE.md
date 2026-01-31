@@ -8,7 +8,7 @@ The C-EDASM emulator uses an extended memory buffer to efficiently implement the
 
 The Bus class maintains a single contiguous memory buffer of **92KB** (extended from the standard 64KB to accommodate language card hardware):
 
-```
+```text
 Total Memory: 92KB (0x17000 bytes)
 
 Main 6502 Address Space (64KB):
@@ -51,12 +51,12 @@ The language card provides additional memory that can be switched into the $D000
 
 Language card modes are controlled by reading/writing addresses in the $C080-$C08F range:
 
-| Address | Mode | $D000-$DFFF Read | $D000-$DFFF Write | $E000-$FFFF Read | $E000-$FFFF Write |
-|---------|------|------------------|-------------------|------------------|-------------------|
-| $C080/8 | RDBANK (Bank1/2) | Banked RAM | Ignored | Fixed RAM | Fixed RAM |
-| $C081/9 | ROMIN (Bank1/2) | ROM | Banked RAM | ROM | Fixed RAM |
-| $C082/A | RDROM | ROM | Ignored | ROM | Ignored |
-| $C083/B | LCBANK (Bank1/2) | Banked RAM | Banked RAM | Fixed RAM | Fixed RAM |
+| Address | Mode             | $D000-$DFFF Read | $D000-$DFFF Write | $E000-$FFFF Read | $E000-$FFFF Write |
+| ------- | ---------------- | ---------------- | ----------------- | ---------------- | ----------------- |
+| $C080/8 | RDBANK (Bank1/2) | Banked RAM       | Ignored           | Fixed RAM        | Fixed RAM         |
+| $C081/9 | ROMIN (Bank1/2)  | ROM              | Banked RAM        | ROM              | Fixed RAM         |
+| $C082/A | RDROM            | ROM              | Ignored           | ROM              | Ignored           |
+| $C083/B | LCBANK (Bank1/2) | Banked RAM       | Banked RAM        | Fixed RAM        | Fixed RAM         |
 
 - Addresses $C080-$C087: Select Bank 2
 - Addresses $C088-$C08F: Select Bank 1
@@ -93,9 +93,9 @@ When a memory access occurs:
 
 1. Search trap ranges to find a matching handler
 2. If found, invoke handler which may:
-   - Return custom value (reads)
-   - Block write to main memory (writes)
-   - Allow normal memory access (fall through)
+    - Return custom value (reads)
+    - Block write to main memory (writes)
+    - Allow normal memory access (fall through)
 3. If no trap found, access main memory buffer directly
 
 ## Memory Access Patterns
