@@ -128,14 +128,14 @@ constexpr uint16_t INBUF = 0x0200;      // Input buffer
 constexpr uint16_t TXBUF2 = 0x0280;     // Secondary text buffer
 
 // Monitor ROM zero-page addresses (reference: Apple IIe Monitor ROM listings)
-constexpr uint16_t CSWL = 0x0036;   // COUT hook low byte (output routine)
-constexpr uint16_t CSWH = 0x0037;   // COUT hook high byte
-constexpr uint16_t KSWL = 0x0038;   // KEYIN hook low byte (input routine)
-constexpr uint16_t KSWH = 0x0039;   // KEYIN hook high byte
+constexpr uint16_t CSWL = 0x0036; // COUT hook low byte (output routine)
+constexpr uint16_t CSWH = 0x0037; // COUT hook high byte
+constexpr uint16_t KSWL = 0x0038; // KEYIN hook low byte (input routine)
+constexpr uint16_t KSWH = 0x0039; // KEYIN hook high byte
 
-constexpr uint16_t SOFTEV = 0x03F2;     // RESET vector
-constexpr uint16_t PWREDUP = 0x03F4;    // Power-up byte
-constexpr uint16_t USRADR = 0x03F8;     // Ctrl-Y vector
+constexpr uint16_t SOFTEV = 0x03F2;  // RESET vector
+constexpr uint16_t PWREDUP = 0x03F4; // Power-up byte
+constexpr uint16_t USRADR = 0x03F8;  // Ctrl-Y vector
 
 constexpr uint16_t LOAD_ADDR_SYS = 0x2000;    // Load & Exec addr of SYS files
 constexpr uint16_t LOAD_ADDR_EDITOR = 0x8900; // Load Addr of Editor Module
