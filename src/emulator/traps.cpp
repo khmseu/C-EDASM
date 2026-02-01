@@ -1,5 +1,6 @@
 #include "edasm/emulator/traps.hpp"
 #include "edasm/constants.hpp"
+#include "edasm/emulator/disassembly.hpp"
 #include "edasm/emulator/mli.hpp"
 #include <algorithm>
 #include <cstdio>
@@ -258,8 +259,8 @@ void TrapStatistics::print_statistics() {
     std::cout << "\n=== TRAP STATISTICS ===" << std::endl;
     std::cout << std::left << std::setw(6) << "Addr" << " " << std::setw(8) << "Kind" << " "
               << std::setw(20) << "Name" << " " << std::setw(6) << "Count" << " "
-              << std::setw(20) << "Details" << std::endl;
-    std::cout << std::string(70, '-') << std::endl;
+              << std::setw(20) << "Details" << " " << "Symbol" << std::endl;
+    std::cout << std::string(90, '-') << std::endl;
     
     for (const auto &stat : stats) {
         // Format address using stringstream to avoid stream state issues
@@ -303,12 +304,18 @@ void TrapStatistics::print_statistics() {
                 details += ", ";
             details += stat.is_second_read ? "2nd read" : "1st read";
         }
-        std::cout << std::setw(20) << details;
+        std::cout << std::setw(20) << details << " ";
+        
+        // Look up and print symbol name if available
+        const std::string *symbol = lookup_disassembly_symbol(stat.address);
+        if (symbol) {
+            std::cout << "<" << *symbol << ">";
+        }
         
         std::cout << std::endl;
     }
     
-    std::cout << std::string(70, '-') << std::endl;
+    std::cout << std::string(90, '-') << std::endl;
     std::cout << "Total trap entries: " << stats.size() << std::endl;
     std::cout << "=======================" << std::endl;
 }
