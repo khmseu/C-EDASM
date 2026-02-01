@@ -17,11 +17,11 @@ void HostShims::install_io_traps(Bus &bus) {
     // Install I/O traps for full $C000-$C7FF range
     bus.set_read_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t &value) {
         return this->handle_io_read(addr, value);
-    });
+    }, "I/O");
 
     bus.set_write_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t value) {
         return this->handle_io_write(addr, value);
-    });
+    }, "I/O");
 
     // Install write trap for text page 1 ($0400-$07FF)
     bus.set_write_trap_range(0x0400, 0x07FF, [this](uint16_t addr, uint8_t value) {
@@ -46,7 +46,7 @@ void HostShims::install_io_traps(Bus &bus) {
         }
 
         return false;
-    });
+    }, "SCREEN");
 
     // NOTE: Language card window ($D000-$FFFF) no longer uses traps
     // It's now handled via bank mapping in Bus::set_bank_mapping()

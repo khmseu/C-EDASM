@@ -1396,6 +1396,11 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
     // New architecture: use descriptor-based dispatch
     const MLICallDescriptor *desc = get_call_descriptor(call_num);
+    
+    // Record trap statistic with MLI call name if known
+    std::string mli_call_name = desc ? desc->name : "UNKNOWN";
+    TrapStatistics::record_trap("ProDOS MLI", trap_pc, TrapKind::CALL, mli_call_name);
+    
     if (!desc) {
         // Unknown call number
         log_call_details("halt");
