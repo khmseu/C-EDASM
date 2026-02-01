@@ -1445,82 +1445,82 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         std::cout << "\n=== MLI CALL FAILED ===" << std::endl;
         std::cout << "Call: $" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
                   << static_cast<int>(call_num) << " (" << desc->name << ")" << std::endl;
-        std::cout << "Error code: $" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-                  << static_cast<int>(error) << std::endl;
-        
+        std::cout << "Error code: $" << std::hex << std::uppercase << std::setw(2)
+                  << std::setfill('0') << static_cast<int>(error) << std::endl;
+
         // Map error code to descriptive message
         const char *error_msg = "Unknown error";
         switch (error) {
-            case ProDOSError::BAD_CALL_NUMBER:
-                error_msg = "Bad system call number";
-                break;
-            case ProDOSError::BAD_PARAM_COUNT:
-                error_msg = "Bad system call parameter count";
-                break;
-            case ProDOSError::IO_ERROR:
-                error_msg = "I/O error";
-                break;
-            case ProDOSError::NO_DEVICE:
-                error_msg = "No device detected";
-                break;
-            case ProDOSError::WRITE_PROTECTED:
-                error_msg = "Disk write protected";
-                break;
-            case ProDOSError::INVALID_PATH_SYNTAX:
-                error_msg = "Invalid pathname syntax";
-                break;
-            case ProDOSError::FCB_FULL:
-                error_msg = "File Control Block table full";
-                break;
-            case ProDOSError::INVALID_REF_NUM:
-                error_msg = "Invalid reference number";
-                break;
-            case ProDOSError::PATH_NOT_FOUND:
-                error_msg = "Path not found";
-                break;
-            case ProDOSError::VOL_NOT_FOUND:
-                error_msg = "Volume directory not found";
-                break;
-            case ProDOSError::FILE_NOT_FOUND:
-                error_msg = "File not found";
-                break;
-            case ProDOSError::DUPLICATE_FILE:
-                error_msg = "Duplicate filename";
-                break;
-            case ProDOSError::DISK_FULL:
-                error_msg = "Disk full";
-                break;
-            case ProDOSError::VOL_DIR_FULL:
-                error_msg = "Volume directory full";
-                break;
-            case ProDOSError::INCOMPATIBLE_FORMAT:
-                error_msg = "Incompatible file format";
-                break;
-            case ProDOSError::UNSUPPORTED_STORAGE:
-                error_msg = "Unsupported storage type";
-                break;
-            case ProDOSError::END_OF_FILE:
-                error_msg = "End of file encountered";
-                break;
-            case ProDOSError::POSITION_OUT_OF_RANGE:
-                error_msg = "Position out of range";
-                break;
-            case ProDOSError::ACCESS_ERROR:
-                error_msg = "Access error";
-                break;
-            case ProDOSError::FILE_OPEN:
-                error_msg = "File is open";
-                break;
-            case ProDOSError::INVALID_PARAMETER:
-                error_msg = "Invalid parameter";
-                break;
-            default:
-                break;
+        case ProDOSError::BAD_CALL_NUMBER:
+            error_msg = "Bad system call number";
+            break;
+        case ProDOSError::BAD_PARAM_COUNT:
+            error_msg = "Bad system call parameter count";
+            break;
+        case ProDOSError::IO_ERROR:
+            error_msg = "I/O error";
+            break;
+        case ProDOSError::NO_DEVICE:
+            error_msg = "No device detected";
+            break;
+        case ProDOSError::WRITE_PROTECTED:
+            error_msg = "Disk write protected";
+            break;
+        case ProDOSError::INVALID_PATH_SYNTAX:
+            error_msg = "Invalid pathname syntax";
+            break;
+        case ProDOSError::FCB_FULL:
+            error_msg = "File Control Block table full";
+            break;
+        case ProDOSError::INVALID_REF_NUM:
+            error_msg = "Invalid reference number";
+            break;
+        case ProDOSError::PATH_NOT_FOUND:
+            error_msg = "Path not found";
+            break;
+        case ProDOSError::VOL_NOT_FOUND:
+            error_msg = "Volume directory not found";
+            break;
+        case ProDOSError::FILE_NOT_FOUND:
+            error_msg = "File not found";
+            break;
+        case ProDOSError::DUPLICATE_FILE:
+            error_msg = "Duplicate filename";
+            break;
+        case ProDOSError::DISK_FULL:
+            error_msg = "Disk full";
+            break;
+        case ProDOSError::VOL_DIR_FULL:
+            error_msg = "Volume directory full";
+            break;
+        case ProDOSError::INCOMPATIBLE_FORMAT:
+            error_msg = "Incompatible file format";
+            break;
+        case ProDOSError::UNSUPPORTED_STORAGE:
+            error_msg = "Unsupported storage type";
+            break;
+        case ProDOSError::END_OF_FILE:
+            error_msg = "End of file encountered";
+            break;
+        case ProDOSError::POSITION_OUT_OF_RANGE:
+            error_msg = "Position out of range";
+            break;
+        case ProDOSError::ACCESS_ERROR:
+            error_msg = "Access error";
+            break;
+        case ProDOSError::FILE_OPEN:
+            error_msg = "File is open";
+            break;
+        case ProDOSError::INVALID_PARAMETER:
+            error_msg = "Invalid parameter";
+            break;
+        default:
+            break;
         }
-        
+
         std::cout << "Message: " << error_msg << std::endl;
         std::cout << TrapManager::dump_cpu_state(cpu) << std::endl;
-        
+
         write_memory_dump(bus, "memory_dump.bin");
         std::cout << "=== HALTING ===" << std::endl;
         return false; // Signal to stop emulation
