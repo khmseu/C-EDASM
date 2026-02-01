@@ -186,14 +186,101 @@ constexpr uint16_t MINIVERS = 0xBFFC; // Minimum interpreter version
 constexpr uint16_t IVERSION = 0xBFFD; // Interpreter version
 
 // =================================================
-// Apple ][ Soft Switches (for reference)
+// Apple IIe I/O Memory Map ($C000-$C0FF)
+// Reference: docs/APPLE_IIE_MEMORY_MAP.md
 // =================================================
 
-constexpr uint16_t KBD = 0xC000;       // Keyboard
-constexpr uint16_t CLR80VID = 0xC00C;  // Clear 80-column mode
-constexpr uint16_t KBDSTROBE = 0xC010; // Keyboard strobe
-constexpr uint16_t RDBANK2 = 0xC080;   // Read only RAM bank 2
-constexpr uint16_t LCBANK2 = 0xC083;   // Read/Write RAM bank 2
+// Memory Management Soft Switches ($C000-$C00B)
+constexpr uint16_t _80STOREOFF = 0xC000;  // PAGE2 switches video pages
+constexpr uint16_t _80STOREON = 0xC001;   // PAGE2 switches main/aux. video memory
+constexpr uint16_t RAMRDOFF = 0xC002;     // Read from main memory $200-$BFFF
+constexpr uint16_t RAMRDON = 0xC003;      // Read from aux. memory $200-$BFFF
+constexpr uint16_t RAMWRTOFF = 0xC004;    // Write to main memory $200-$BFFF
+constexpr uint16_t RAMWRTON = 0xC005;     // Write to aux. memory $200-$BFFF
+constexpr uint16_t INTCXROMOFF = 0xC006;  // Enable slot ROM $C100-$CFFF
+constexpr uint16_t INTCXROMON = 0xC007;   // Enable internal ROM $C100-$CFFF
+constexpr uint16_t ALTZPOFF = 0xC008;     // Enable main memory $0000-$01FF and main BSR
+constexpr uint16_t ALTZPON = 0xC009;      // Enable aux. memory $0000-$01FF and aux. BSR
+constexpr uint16_t SLOTC3ROMOFF = 0xC00A; // Enable internal ROM $C300-$C3FF
+constexpr uint16_t SLOTC3ROMON = 0xC00B;  // Enable slot 3 ROM $C300-$C3FF
+
+// Video Control ($C00C-$C00F)
+constexpr uint16_t _80COLOFF = 0xC00C;      // Turn off 80-column display
+constexpr uint16_t _80COLON = 0xC00D;       // Turn on 80-column display
+constexpr uint16_t ALTCHARSETOFF = 0xC00E;  // Turn off alternate characters
+constexpr uint16_t ALTCHARSETON = 0xC00F;   // Turn on alternate characters
+
+// Keyboard and Built-In Device I/O ($C000, $C010-$C070)
+constexpr uint16_t KBD = 0xC000;       // Keyboard data (bits 0-6: ASCII) / strobe (bit 7)
+constexpr uint16_t KBDSTRB = 0xC010;   // Clear keyboard strobe
+constexpr uint16_t AKD = 0xC010;       // 1=key being pressed, 0=all keys released (R7)
+constexpr uint16_t CASSOUT = 0xC020;   // Toggle cassette output port state
+constexpr uint16_t SPEAKER = 0xC030;   // Toggle speaker state (click)
+constexpr uint16_t GCSTROBE = 0xC040;  // Generate game I/O connector strobe signal
+
+// Video Mode Soft Switches ($C050-$C057)
+constexpr uint16_t TEXTOFF = 0xC050;   // Select graphics mode
+constexpr uint16_t TEXTON = 0xC051;    // Select text mode
+constexpr uint16_t MIXEDOFF = 0xC052;  // Full screen graphics
+constexpr uint16_t MIXEDON = 0xC053;   // Graphics with 4 lines of text
+constexpr uint16_t PAGE20FF = 0xC054;  // Select page1 (or main video memory)
+constexpr uint16_t PAGE20N = 0xC055;   // Select page2 (or aux. video memory)
+constexpr uint16_t HIRESOFF = 0xC056;  // Select low-resolution graphics
+constexpr uint16_t HIRESON = 0xC057;   // Select high-resolution graphics
+
+// Annunciator Switches ($C058-$C05F)
+constexpr uint16_t CLRAN0 = 0xC058;    // Turn off annunciator 0
+constexpr uint16_t SETAN0 = 0xC059;    // Turn on annunciator 0
+constexpr uint16_t CLRAN1 = 0xC05A;    // Turn off annunciator 1
+constexpr uint16_t SETAN1 = 0xC05B;    // Turn on annunciator 1
+constexpr uint16_t CLRAN2 = 0xC05C;    // Turn off annunciator 2
+constexpr uint16_t SETAN2 = 0xC05D;    // Turn on annunciator 2
+constexpr uint16_t CLRAN3 = 0xC05E;    // Turn off annunciator 3
+constexpr uint16_t SETAN3 = 0xC05F;    // Turn on annunciator 3
+
+// Game Controllers ($C060-$C070)
+constexpr uint16_t CASSIN = 0xC060;    // 1=cassette input on
+constexpr uint16_t PB0 = 0xC061;       // 1=push button 0 pressed
+constexpr uint16_t PB1 = 0xC062;       // 1=push button 1 pressed
+constexpr uint16_t PB2 = 0xC063;       // 1=push button 2 pressed (OPEN-APPLE)
+constexpr uint16_t GC0 = 0xC064;       // 0=game controller 0 timed out
+constexpr uint16_t GC1 = 0xC065;       // 0=game controller 1 timed out
+constexpr uint16_t GC2 = 0xC066;       // 0=game controller 2 timed out
+constexpr uint16_t GC3 = 0xC067;       // 0=game controller 3 timed out
+constexpr uint16_t GCRESET = 0xC070;   // Reset game controller timers
+
+// Soft Switch Status Flags ($C011-$C01F)
+constexpr uint16_t BSRBANK2 = 0xC011;    // 1=bank2 BSR available, 0=bank1 available (R7)
+constexpr uint16_t BSRREADRAM = 0xC012;  // 1=BSR active for reads, 0=ROM active (R7)
+constexpr uint16_t RAMRD = 0xC013;       // 0=main $200-$BFFF active, 1=aux. active (R7)
+constexpr uint16_t RAMWRT = 0xC014;      // 0=main $200-$BFFF active, 1=aux. active (R7)
+constexpr uint16_t INTCXROM = 0xC015;    // 1=internal $C100-$CFFF active, 0=slot ROM (R7)
+constexpr uint16_t ALTZP = 0xC016;       // 1=aux. ZP/stack/BSR, 0=main ZP/stack/BSR (R7)
+constexpr uint16_t SLOTC3ROM = 0xC017;   // 1=slot 3 ROM active, 0=internal $C3 ROM (R7)
+constexpr uint16_t _80STORE = 0xC018;    // 1=PAGE2 switches main/aux., 0=pages (R7)
+constexpr uint16_t VERTBLANK = 0xC019;   // 1=vertical retrace on, 0=off (R7)
+constexpr uint16_t TEXT = 0xC01A;        // 1=text mode, 0=graphics mode (R7)
+constexpr uint16_t MIXED = 0xC01B;       // 1=mixed graphics/text, 0=full screen (R7)
+constexpr uint16_t PAGE2 = 0xC01C;       // 1=page2 or aux. video, 0=page1 or main (R7)
+constexpr uint16_t HIRES = 0xC01D;       // 1=high-res graphics, 0=low-res graphics (R7)
+constexpr uint16_t ALTCHARSET = 0xC01E;  // 1=alternate charset on, 0=primary (R7)
+constexpr uint16_t _80COL = 0xC01F;      // 1=80-column display on, 0=40-column (R7)
+
+// Bank-Switched RAM Control ($C080-$C08F)
+constexpr uint16_t READBSR2 = 0xC080;    // Bank 2, read RAM, write-protect
+constexpr uint16_t WRITEBSR2 = 0xC081;   // Bank 2, read ROM, write-enable (RR)
+constexpr uint16_t OFFBSR2 = 0xC082;     // Bank 2, read ROM, write-protect
+constexpr uint16_t RDWRBSR2 = 0xC083;    // Bank 2, read RAM, write-enable (RR)
+constexpr uint16_t READBSR1 = 0xC088;    // Bank 1, read RAM, write-protect
+constexpr uint16_t WRITEBSR1 = 0xC089;   // Bank 1, read ROM, write-enable (RR)
+constexpr uint16_t OFFBSR1 = 0xC08A;     // Bank 1, read ROM, write-protect
+constexpr uint16_t RDWRBSR1 = 0xC08B;    // Bank 1, read RAM, write-enable (RR)
+
+// Legacy aliases (kept for compatibility)
+constexpr uint16_t CLR80VID = _80COLOFF;   // Clear 80-column mode
+constexpr uint16_t KBDSTROBE = KBDSTRB;    // Keyboard strobe
+constexpr uint16_t RDBANK2 = READBSR2;     // Read only RAM bank 2
+constexpr uint16_t LCBANK2 = RDWRBSR2;     // Read/Write RAM bank 2
 
 // =================================================
 // Apple ][ Monitor Entry Points (for reference)
