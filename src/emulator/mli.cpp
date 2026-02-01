@@ -1324,6 +1324,9 @@ ProDOSError MLIHandler::handle_get_buf(Bus &bus, const std::vector<MLIParamValue
 namespace {
 
 // Convert ProDOS date/time format to ISO 8601 string
+// TODO: This function is reserved for future use when date/time parameters
+// need to be formatted in ISO 8601 format. Currently, date/time fields appear
+// only as outputs (in GET_FILE_INFO) which are not logged per requirements.
 std::string prodos_datetime_to_iso8601(uint16_t date_word, uint16_t time_word) {
     // ProDOS date format (2 bytes):
     // High byte: YYYYYYYM (year bits 6-0, month bit 3)
@@ -1381,14 +1384,10 @@ std::string format_param_value(const MLIParamDescriptor &param, const MLIParamVa
     }
     case MLIParamType::WORD: {
         uint16_t val = std::get<uint16_t>(value);
-        // Check if this is a date/time parameter
-        if (is_datetime_param(param.name)) {
-            // Need to get the corresponding date or time value
-            // This will be formatted later when we have both date and time
-            oss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << val;
-        } else {
-            oss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << val;
-        }
+        // TODO: In the future, check if this is a date/time parameter and format
+        // using prodos_datetime_to_iso8601(). Currently not needed as date/time
+        // parameters appear only as outputs which are not logged per requirements.
+        oss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << val;
         break;
     }
     case MLIParamType::THREE_BYTE: {

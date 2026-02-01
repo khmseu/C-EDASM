@@ -33,7 +33,7 @@ Parameters are formatted based on their type:
 - **Strings (PATHNAME_PTR)**: Quoted strings, e.g., `pathname="EDASM.ASM"`
 - **Buffers (BUFFER_PTR)**: Hex addresses, e.g., `io_buffer=$4000`
 - **Bytes/Words**: Hex values with $ prefix, e.g., `ref_num=$01`, `request_count=$000C`
-- **Date/Time (future enhancement)**: ISO 8601 format (YYYY-MM-DDTHH:MM)
+- **Date/Time**: ISO 8601 format (YYYY-MM-DDTHH:MM) - Reserved for future use. Currently, date/time fields appear only as outputs (e.g., in GET_FILE_INFO) which are not logged per requirements to exclude pointers.
 
 ## Examples
 
