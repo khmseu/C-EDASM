@@ -224,13 +224,7 @@ static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
          IN(WORD, INPUT, "reserved3"),
      }},
      nullptr},
-    {0x82,
-     "GET_TIME",
-     1,
-     {{
-         IN(WORD, INPUT, "date_time_ptr"),
-     }},
-     &MLIHandler::handle_get_time},
+    {0x82, "GET_TIME", 0, {{}}, &MLIHandler::handle_get_time},
 
     // Block device calls
     {0x80,
@@ -1329,37 +1323,33 @@ std::string prodos_datetime_to_iso8601(uint16_t date_word, uint16_t time_word) {
     // High byte: YYYYYYYM (year bits 6-0, month bit 3)
     // Low byte: MMMDDDDD (month bits 2-0, day bits 4-0)
     // Year is offset from 1900
-    
+
     // ProDOS time format (2 bytes):
     // High byte: hour (0-23)
     // Low byte: minute (0-59)
-    
+
     uint8_t date_low = date_word & 0xFF;
     uint8_t date_high = (date_word >> 8) & 0xFF;
-    
+
     uint8_t time_low = time_word & 0xFF;
     uint8_t time_high = (time_word >> 8) & 0xFF;
-    
+
     int year = ((date_high >> 1) & 0x7F) + 1900;
     int month = (((date_high & 0x01) << 3) | ((date_low >> 5) & 0x07));
     int day = date_low & 0x1F;
-    
+
     int hour = time_high;
     int minute = time_low;
-    
+
     // Handle zero date/time (not set)
     if (date_word == 0 && time_word == 0) {
         return "(not set)";
     }
-    
+
     // Format as ISO 8601: YYYY-MM-DDTHH:MM
     std::ostringstream oss;
-    oss << std::setfill('0')
-        << std::setw(4) << year << "-"
-        << std::setw(2) << month << "-"
-        << std::setw(2) << day << "T"
-        << std::setw(2) << hour << ":"
-        << std::setw(2) << minute;
+    oss << std::setfill('0') << std::setw(4) << year << "-" << std::setw(2) << month << "-"
+        << std::setw(2) << day << "T" << std::setw(2) << hour << ":" << std::setw(2) << minute;
     return oss.str();
 }
 
@@ -1372,15 +1362,14 @@ bool is_date_param(const char *name) {
 // Check if parameter name is a time parameter
 bool is_time_param(const char *name) {
     std::string param_name = name;
-    return param_name.find("_time") != std::string::npos && 
-           param_name != "date_time_ptr"; // Exclude the pointer itself
+    return param_name.find("_time") != std::string::npos;
 }
 
 // Format a parameter value for logging
 std::string format_param_value(const MLIParamDescriptor &param, const MLIParamValue &value,
                                const Bus &bus, uint16_t param_list_addr, uint8_t param_index) {
     std::ostringstream oss;
-    
+
     switch (param.type) {
     case MLIParamType::BYTE:
     case MLIParamType::REF_NUM: {
@@ -1410,7 +1399,7 @@ std::string format_param_value(const MLIParamDescriptor &param, const MLIParamVa
         break;
     }
     }
-    
+
     return oss.str();
 }
 
@@ -1487,38 +1476,38 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
                    const Bus &bus, uint16_t param_list_addr) {
     if (!MLIHandler::is_trace_enabled())
         return;
-    
+
     std::ostringstream oss;
     oss << desc.name << " ($" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
         << static_cast<int>(desc.call_number) << ")";
-    
+
     // Special case: GET_TIME has no parameter list
     if (desc.call_number == 0x82) {
         std::cout << oss.str() << std::endl;
         return;
     }
-    
+
     // Add input parameters
     size_t input_idx = 0;
     const uint8_t *mem = bus.data();
     std::vector<bool> param_logged(desc.param_count, false);
-    
+
     for (uint8_t i = 0; i < desc.param_count; ++i) {
         if (param_logged[i]) {
             continue; // Already logged as part of a date/time pair
         }
-        
+
         const auto &param = desc.params[i];
-        
+
         // Only log INPUT and INPUT_OUTPUT parameters
         if (param.direction == MLIParamDirection::OUTPUT) {
             continue;
         }
-        
+
         if (input_idx >= inputs.size()) {
             break;
         }
-        
+
         // Check if this is a date parameter with a matching time parameter
         if (is_date_param(param.name)) {
             std::string date_name = param.name;
@@ -1526,22 +1515,22 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
             size_t pos = time_name.find("_date");
             if (pos != std::string::npos) {
                 time_name.replace(pos, 5, "_time");
-                
+
                 // Find the matching time parameter
                 for (uint8_t j = i + 1; j < desc.param_count; ++j) {
-                    if (std::string(desc.params[j].name) == time_name && 
+                    if (std::string(desc.params[j].name) == time_name &&
                         desc.params[j].direction != MLIParamDirection::OUTPUT) {
-                        
+
                         // Found matching time - format as datetime
                         if (input_idx + 1 < inputs.size()) {
                             uint16_t date_val = std::get<uint16_t>(inputs[input_idx]);
                             uint16_t time_val = std::get<uint16_t>(inputs[input_idx + 1]);
-                            
+
                             // Use base name (without _date suffix) for the combined field
                             std::string base_name = date_name.substr(0, pos);
                             oss << " " << base_name << "=";
                             oss << prodos_datetime_to_iso8601(date_val, time_val);
-                            
+
                             param_logged[i] = true;
                             param_logged[j] = true;
                             input_idx += 2; // Skip both date and time
@@ -1551,16 +1540,16 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
                 }
             }
         }
-        
+
         // Normal parameter logging (not part of a date/time pair)
         oss << " " << param.name << "=";
         oss << format_param_value(param, inputs[input_idx], bus, param_list_addr, i);
         param_logged[i] = true;
         input_idx++;
-        
-        next_param:;
+
+    next_param:;
     }
-    
+
     std::cout << oss.str() << std::endl;
 }
 
@@ -1569,36 +1558,22 @@ void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamVal
                     ProDOSError error, const Bus &bus, uint16_t param_list_addr) {
     if (!MLIHandler::is_trace_enabled())
         return;
-    
-    // Special case: GET_TIME - log the system date-time as pseudo output
+
+    // Special case: GET_TIME - log the ProDOS system date-time from the system page
     if (desc.call_number == 0x82) {
-        // Get current system time and format it
-        auto now = std::chrono::system_clock::now();
-        std::time_t t = std::chrono::system_clock::to_time_t(now);
-        std::tm tm{};
-        localtime_r(&t, &tm);
-        
-        int year = tm.tm_year + 1900;
-        int month = tm.tm_mon + 1;
-        int day = tm.tm_mday;
-        int hour = tm.tm_hour;
-        int minute = tm.tm_min;
-        
+        // Read the date/time that was just written to the ProDOS system page
+        uint16_t date_word = bus.read(P8DATE) | (bus.read(static_cast<uint16_t>(P8DATE + 1)) << 8);
+        uint16_t time_word = bus.read(P8TIME) | (bus.read(static_cast<uint16_t>(P8TIME + 1)) << 8);
+
         std::ostringstream oss;
-        oss << "  Result: success datetime="
-            << std::setfill('0')
-            << std::setw(4) << year << "-"
-            << std::setw(2) << month << "-"
-            << std::setw(2) << day << "T"
-            << std::setw(2) << hour << ":"
-            << std::setw(2) << minute;
+        oss << "  Result: success datetime=" << prodos_datetime_to_iso8601(date_word, time_word);
         std::cout << oss.str() << std::endl;
         return;
     }
-    
+
     std::ostringstream oss;
     oss << "  Result:";
-    
+
     // Log result first
     if (error == ProDOSError::NO_ERROR) {
         oss << " success";
@@ -1606,33 +1581,34 @@ void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamVal
         oss << " error=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
             << static_cast<int>(error) << " (" << get_error_message(error) << ")";
     }
-    
+
     // Add output parameters (excluding pointers)
     if (error == ProDOSError::NO_ERROR) {
         size_t output_idx = 0;
         std::vector<bool> param_logged(desc.param_count, false);
-        
+
         for (uint8_t i = 0; i < desc.param_count; ++i) {
             if (param_logged[i]) {
                 continue; // Already logged as part of a date/time pair
             }
-            
+
             const auto &param = desc.params[i];
-            
+
             // Only log OUTPUT and INPUT_OUTPUT parameters (excluding pointers)
             if (param.direction == MLIParamDirection::INPUT) {
                 continue;
             }
-            
+
             // Skip pointer types
-            if (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR) {
+            if (param.type == MLIParamType::BUFFER_PTR ||
+                param.type == MLIParamType::PATHNAME_PTR) {
                 continue;
             }
-            
+
             if (output_idx >= outputs.size()) {
                 break;
             }
-            
+
             // Check if this is a date parameter with a matching time parameter
             if (is_date_param(param.name)) {
                 std::string date_name = param.name;
@@ -1640,24 +1616,24 @@ void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamVal
                 size_t pos = time_name.find("_date");
                 if (pos != std::string::npos) {
                     time_name.replace(pos, 5, "_time");
-                    
+
                     // Find the matching time parameter
                     for (uint8_t j = i + 1; j < desc.param_count; ++j) {
-                        if (std::string(desc.params[j].name) == time_name && 
+                        if (std::string(desc.params[j].name) == time_name &&
                             desc.params[j].direction != MLIParamDirection::INPUT &&
                             desc.params[j].type != MLIParamType::BUFFER_PTR &&
                             desc.params[j].type != MLIParamType::PATHNAME_PTR) {
-                            
+
                             // Found matching time - format as datetime
                             if (output_idx + 1 < outputs.size()) {
                                 uint16_t date_val = std::get<uint16_t>(outputs[output_idx]);
                                 uint16_t time_val = std::get<uint16_t>(outputs[output_idx + 1]);
-                                
+
                                 // Use base name (without _date suffix) for the combined field
                                 std::string base_name = date_name.substr(0, pos);
                                 oss << " " << base_name << "=";
                                 oss << prodos_datetime_to_iso8601(date_val, time_val);
-                                
+
                                 param_logged[i] = true;
                                 param_logged[j] = true;
                                 output_idx += 2; // Skip both date and time
@@ -1667,17 +1643,17 @@ void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamVal
                     }
                 }
             }
-            
+
             // Normal parameter logging (not part of a date/time pair)
             oss << " " << param.name << "=";
             oss << format_param_value(param, outputs[output_idx], bus, param_list_addr, i);
             param_logged[i] = true;
             output_idx++;
-            
-            next_param:;
+
+        next_param:;
         }
     }
-    
+
     std::cout << oss.str() << std::endl;
 }
 
@@ -1866,7 +1842,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
     // Read input parameters
     std::vector<MLIParamValue> inputs = read_input_params(bus, param_list, *desc);
-    
+
     // Log input parameters (first line)
     log_mli_input(*desc, inputs, bus, param_list);
 

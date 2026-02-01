@@ -67,11 +67,11 @@ class Bus {
     Bus();
 
     // Memory operations
-    uint8_t read(uint16_t addr);
+    uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t value);
 
     // Read 16-bit word (little-endian)
-    uint16_t read_word(uint16_t addr);
+    uint16_t read_word(uint16_t addr) const;
     void write_word(uint16_t addr, uint16_t value);
 
     // Load binary data at specific address

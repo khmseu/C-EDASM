@@ -63,7 +63,7 @@ WriteTrapHandler Bus::find_write_trap(uint16_t addr) {
     return nullptr;
 }
 
-uint8_t Bus::read(uint16_t addr) {
+uint8_t Bus::read(uint16_t addr) const {
     // Check for read trap handler first (for C000-C7FF and screen 400-7FF)
     const ReadTrapRange *trap_range = find_read_trap_range(addr);
     if (trap_range) {
@@ -98,7 +98,7 @@ void Bus::write(uint16_t addr, uint8_t value) {
     memory_[physical_offset] = value;
 }
 
-uint16_t Bus::read_word(uint16_t addr) {
+uint16_t Bus::read_word(uint16_t addr) const {
     // Note: On 6502, word reads wrap within page for zero page addresses
     // For simplicity, we allow reads across page boundaries here
     uint8_t lo = read(addr);
