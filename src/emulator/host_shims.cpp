@@ -126,11 +126,17 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 
     // $C000-$C00F: Keyboard and game I/O
     if (addr >= KBD && addr <= 0xC00F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         return handle_kbd_read(addr, value);
     }
 
     // $C010-$C01F: Keyboard strobe and soft switches
     if (addr >= KBDSTROBE && addr <= 0xC01F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         if (addr == KBDSTROBE) {
             return handle_kbdstrb_read(addr, value);
         }
@@ -141,6 +147,9 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 
     // $C020-$C02F: Cassette and misc I/O
     if (addr >= 0xC020 && addr <= 0xC02F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         value = 0;
         report_unhandled_io(addr, false, value);
         return true;
@@ -148,11 +157,17 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 
     // $C030-$C03F: Speaker toggle
     if (addr >= 0xC030 && addr <= 0xC03F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         return handle_speaker_toggle(addr, value);
     }
 
     // $C040-$C04F: Utility strobe (not used much)
     if (addr >= 0xC040 && addr <= 0xC04F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         value = 0;
         report_unhandled_io(addr, false, value);
         return true;
@@ -160,11 +175,17 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 
     // $C050-$C05F: Graphics mode switches
     if (addr >= 0xC050 && addr <= 0xC05F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         return handle_graphics_switches(addr, value, false);
     }
 
     // $C060-$C06F: Game paddles/buttons
     if (addr >= 0xC060 && addr <= 0xC06F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         // Return high bit clear (button not pressed)
         value = 0x00;
         return true;
@@ -172,6 +193,9 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 
     // $C070-$C07F: Game paddle triggers
     if (addr >= 0xC070 && addr <= 0xC07F) {
+        // Clear language card pending state for non-LC accesses
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = 0xFFFF;
         value = 0;
         report_unhandled_io(addr, false, value);
         return true;
@@ -185,6 +209,9 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     // $C090-$C7FF: Expansion slots and additional I/O
     // Each slot occupies 16 bytes: $C0n0-$C0nF (where n is slot 1-7)
     // For now, return 0 for undefined I/O
+    // Clear language card pending state for non-LC accesses
+    lc_.write_enable_pending = false;
+    lc_.last_control_addr = 0xFFFF;
     value = 0;
     report_unhandled_io(addr, false, value);
     return true;
