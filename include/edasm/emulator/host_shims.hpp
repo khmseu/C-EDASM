@@ -83,6 +83,11 @@ class HostShims {
 
         // Power-on state: RAM disabled and ROM active (per hardware behavior)
         bool power_on_rom_active = true;
+
+        // Track last accessed address for double-read requirement
+        // Addresses $C081, $C083, $C089, $C08B require two successive reads to enable write
+        uint16_t last_control_addr = 0xFFFF;
+        bool write_enable_pending = false;
     };
 
     LanguageCardState lc_;

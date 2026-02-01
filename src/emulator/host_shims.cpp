@@ -378,31 +378,56 @@ void HostShims::report_unhandled_io(uint16_t addr, bool is_write, uint8_t value)
 //   $C08B (RDWRBSR1):  Bank 1, Read RAM, Write Yes (RR - requires 2 reads)
 //   $C084-$C087 duplicate $C080-$C083, $C08C-$C08F duplicate $C088-$C08B
 //
-// NOTE: The current implementation does not handle the double-read requirement
-// for write-enable (addresses ending in 1 or 3). A single read/write enables
-// write mode, whereas the real hardware requires two successive reads.
 bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
-    // Map addresses into bank and mode
-    uint16_t offset = addr & 0x0F;                             // 0..15 within control page
-    // Bit 3 set ($C088-$C08F) = Bank 1, Bit 3 clear ($C080-$C087) = Bank 2
-    uint8_t bank = (addr >= 0xC088 && addr <= 0xC08F) ? 0 : 1; // bank1 => 0, bank2 => 1
-
-    // Map offset to mode (group by 4)
-    uint8_t group = offset & 0x03;               // 0..3
-    LCBankMode mode = LCBankMode::READ_ROM_ONLY; // power-on default/most conservative
-    switch (group) {
-    case 0:
-        mode = LCBankMode::READ_RAM_NO_WRITE; // C080/C088
-        break;
-    case 1:
-        mode = LCBankMode::READ_ROM_WRITE_RAM; // C081/C089
-        break;
-    case 2:
-        mode = LCBankMode::READ_ROM_ONLY; // C082/C08A
-        break;
-    case 3:
-        mode = LCBankMode::READ_RAM_WRITE_RAM; // C083/C08B
-        break;
+    // Extract control bits as documented
+    uint8_t offset = addr & 0x0F;
+    uint8_t bit3 = (offset >> 3) & 1;  // BANK-SELECT (1=Bank 1, 0=Bank 2)
+    uint8_t bit1 = (offset >> 1) & 1;  // READ-SELECT
+    uint8_t bit0 = offset & 1;         // WRITE-SELECT
+    
+    // Determine hardware bank (1 or 2) based on bit 3
+    uint8_t hw_bank = bit3 ? 1 : 2;
+    
+    // Convert to internal bank index (0 for Bank 1, 1 for Bank 2)
+    uint8_t bank = (hw_bank == 1) ? 0 : 1;
+    
+    // Determine read source: RAM if bit1 == bit0, ROM otherwise
+    bool read_from_ram = (bit1 == bit0);
+    
+    // Determine write enable: bit0=1 means write-enable (with double-read requirement)
+    bool write_enable_requested = (bit0 == 1);
+    
+    // Handle double-read requirement for write-enable
+    // Addresses ending in 1 or 3 require TWO successive reads to enable write
+    bool write_actually_enabled = false;
+    if (write_enable_requested) {
+        // Check if this is a second consecutive read of the same address
+        if (addr == lc_.last_control_addr && lc_.write_enable_pending) {
+            // Second read confirmed - enable write
+            write_actually_enabled = true;
+            lc_.write_enable_pending = false;
+        } else {
+            // First read - mark as pending
+            lc_.write_enable_pending = true;
+            lc_.last_control_addr = addr;
+            write_actually_enabled = false;
+        }
+    } else {
+        // No write enable requested - clear pending state
+        lc_.write_enable_pending = false;
+        lc_.last_control_addr = addr;
+    }
+    
+    // Determine the mode based on read source and write enable
+    LCBankMode mode;
+    if (read_from_ram && !write_actually_enabled) {
+        mode = LCBankMode::READ_RAM_NO_WRITE;
+    } else if (!read_from_ram && write_actually_enabled) {
+        mode = LCBankMode::READ_ROM_WRITE_RAM;
+    } else if (!read_from_ram && !write_actually_enabled) {
+        mode = LCBankMode::READ_ROM_ONLY;
+    } else { // read_from_ram && write_actually_enabled
+        mode = LCBankMode::READ_RAM_WRITE_RAM;
     }
 
     lc_.bank_mode[bank] = mode;
@@ -411,8 +436,13 @@ bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
         (mode == LCBankMode::READ_ROM_ONLY || mode == LCBankMode::READ_ROM_WRITE_RAM);
 
     std::cout << "[HostShims] Language Card control read at $" << std::hex << std::uppercase
-              << std::setw(4) << std::setfill('0') << addr << " -> bank=" << std::dec
-              << static_cast<int>(bank) << " mode=" << static_cast<int>(mode) << std::endl;
+              << std::setw(4) << std::setfill('0') << addr << " -> HW Bank " << std::dec
+              << static_cast<int>(hw_bank) << " (idx=" << static_cast<int>(bank) 
+              << ") mode=" << static_cast<int>(mode);
+    if (write_enable_requested) {
+        std::cout << (write_actually_enabled ? " [2nd read - write enabled]" : " [1st read - pending]");
+    }
+    std::cout << std::endl;
 
     // Update bank mappings for D000-FFFF (banks 26-31)
     update_lc_bank_mappings();
@@ -422,12 +452,13 @@ bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
 }
 
 bool HostShims::handle_language_control_write(uint16_t addr, uint8_t value) {
-    // Writes have same effect as reads for soft switches
+    // Writes have same effect as reads for language card soft switches
+    // They also count toward the double-access requirement
     uint8_t dummy;
     bool ok = handle_language_control_read(addr, dummy);
     std::cout << "[HostShims] Language Card control write at $" << std::hex << std::uppercase
               << std::setw(4) << std::setfill('0') << addr << " value=$" << std::setw(2)
-              << static_cast<int>(value) << std::endl;
+              << static_cast<int>(value) << " (same effect as read)" << std::endl;
     return ok;
 }
 
