@@ -26,7 +26,10 @@ for i in "${BINARY_PATH}/"*; do
 done
 
 # Copy test command file
-cp -avi "${ROOT}/tests/fixtures/test_input.txt" "${TESTDIR}/"
+for i in test_input.txt test_simple.src; do
+    cp -avi "${ROOT}/tests/fixtures/${i}" "${TESTDIR}/"
+done
+touch "${TESTDIR}/EDASM.AUTOST"
 
 cd "${TESTDIR}"
 touch EDASM.SWAP
