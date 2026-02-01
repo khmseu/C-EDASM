@@ -12,21 +12,21 @@ namespace edasm {
 
 // Trap kinds for statistics
 enum class TrapKind {
-    CALL,        // Opcode trap (call/JSR to trap address)
-    READ,        // Memory read trap
-    WRITE,       // Memory write trap
-    DOUBLE_READ  // Memory read trap that triggers twice
+    CALL,       // Opcode trap (call/JSR to trap address)
+    READ,       // Memory read trap
+    WRITE,      // Memory write trap
+    DOUBLE_READ // Memory read trap that triggers twice
 };
 
 // Information about a single trap occurrence
 struct TrapStatistic {
-    std::string name;       // Trap name (e.g., "ProDOS MLI", "KBD", etc.)
-    uint16_t address;       // Trap address
-    TrapKind kind;          // Type of trap
-    uint64_t count;         // Number of times this trap was triggered
-    std::string mli_call;   // For MLI traps: which MLI call (e.g., "OPEN", "READ")
-    bool is_second_read;    // For double-read traps: true if second read
-    
+    std::string name;     // Trap name (e.g., "ProDOS MLI", "KBD", etc.)
+    uint16_t address;     // Trap address
+    TrapKind kind;        // Type of trap
+    uint64_t count;       // Number of times this trap was triggered
+    std::string mli_call; // For MLI traps: which MLI call (e.g., "OPEN", "READ")
+    bool is_second_read;  // For double-read traps: true if second read
+
     TrapStatistic(const std::string &n, uint16_t addr, TrapKind k)
         : name(n), address(addr), kind(k), count(0), mli_call(""), is_second_read(false) {}
 };
@@ -36,14 +36,14 @@ class TrapStatistics {
   public:
     // Record a trap occurrence
     static void record_trap(const std::string &name, uint16_t address, TrapKind kind,
-                           const std::string &mli_call = "", bool is_second_read = false);
-    
+                            const std::string &mli_call = "", bool is_second_read = false);
+
     // Print statistics table to stdout, ordered by trap address
     static void print_statistics();
-    
+
     // Clear all statistics
     static void clear();
-    
+
   private:
     static std::vector<TrapStatistic> &get_statistics();
 };
@@ -59,7 +59,7 @@ class TrapManager {
 
     // Install a specific trap handler for a given address with optional name
     static void install_address_handler(uint16_t address, TrapHandler handler,
-                                       const std::string &name = "");
+                                        const std::string &name = "");
 
     // Clear specific handler for an address
     static void clear_address_handler(uint16_t address);
@@ -96,7 +96,7 @@ class TrapManager {
   private:
     // Registry of address-specific trap handlers
     static std::map<uint16_t, TrapHandler> &get_handler_registry();
-    
+
     // Registry of trap names for statistics
     static std::map<uint16_t, std::string> &get_name_registry();
 

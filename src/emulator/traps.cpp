@@ -73,7 +73,7 @@ bool TrapManager::general_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
 bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
     // Record trap statistic for unhandled traps
     TrapStatistics::record_trap("UNHANDLED", trap_pc, TrapKind::CALL);
-    
+
     std::cerr << "=== UNHANDLED TRAP at PC=$" << std::hex << std::uppercase << std::setw(4)
               << std::setfill('0') << trap_pc << " ===" << std::endl;
     log_cpu_state(cpu, bus, trap_pc);
@@ -196,7 +196,7 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
     // Record trap statistic
     TrapStatistics::record_trap("MONITOR SETNORM", trap_pc, TrapKind::CALL);
-    
+
     // SETNORM ($FE84): Set InvFlg ($32) to $FF (normal video mode) and Y to $FF
     bus.write(0x32, 0xFF);
     cpu.Y = 0xff;
@@ -223,7 +223,7 @@ std::vector<TrapStatistic> &TrapStatistics::get_statistics() {
 void TrapStatistics::record_trap(const std::string &name, uint16_t address, TrapKind kind,
                                  const std::string &mli_call, bool is_second_read) {
     auto &stats = get_statistics();
-    
+
     // Find existing entry with matching characteristics
     for (auto &stat : stats) {
         if (stat.address == address && stat.kind == kind && stat.name == name &&
@@ -232,7 +232,7 @@ void TrapStatistics::record_trap(const std::string &name, uint16_t address, Trap
             return;
         }
     }
-    
+
     // Create new entry
     TrapStatistic new_stat(name, address, kind);
     new_stat.mli_call = mli_call;
@@ -243,33 +243,82 @@ void TrapStatistics::record_trap(const std::string &name, uint16_t address, Trap
 
 void TrapStatistics::print_statistics() {
     auto &stats = get_statistics();
-    
+
     if (stats.empty()) {
         std::cout << "\nNo trap statistics collected." << std::endl;
         return;
     }
-    
+
     // Sort by trap address
     std::sort(stats.begin(), stats.end(),
               [](const TrapStatistic &a, const TrapStatistic &b) { return a.address < b.address; });
-    
+
     // Reset output format to defaults
     std::cout << std::dec << std::setfill(' ');
-    
+
     std::cout << "\n=== TRAP STATISTICS ===" << std::endl;
-    std::cout << std::left << std::setw(6) << "Addr" << " " << std::setw(8) << "Kind" << " "
-              << std::setw(20) << "Name" << " " << std::setw(6) << "Count" << " "
-              << std::setw(20) << "Details" << " " << "Symbol" << std::endl;
+    std::cout << std::left << std::setw(6) << "Addr"
+              << " " << std::setw(8) << "Kind"
+              << " " << std::setw(20) << "Name"
+              << " " << std::setw(6) << "Count"
+              << " " << std::setw(20) << "Details"
+              << " "
+              << "Symbol" << std::endl;
     std::cout << std::string(90, '-') << std::endl;
-    
-    for (const auto &stat : stats) {
+
+    // Accumulate SCREEN WRITE entries
+    uint64_t screen_write_total = 0;
+    std::vector<size_t> screen_write_indices;
+
+    for (size_t i = 0; i < stats.size(); ++i) {
+        const auto &stat = stats[i];
+        if (stat.name == "SCREEN" && stat.kind == TrapKind::WRITE) {
+            screen_write_total += stat.count;
+            // Only mark for consolidation if there's no symbol defined for this address
+            const std::string *symbol = lookup_disassembly_symbol(stat.address);
+            if (!symbol) {
+                screen_write_indices.push_back(i);
+            }
+        }
+    }
+
+    // Print accumulated SCREEN WRITE entry once (unless all have symbols)
+    bool printed_accumulated_screen = false;
+    if (!screen_write_indices.empty()) {
+        std::cout << std::left;
+        std::cout << std::setw(6) << ""; // Addr (empty, consolidated)
+        std::cout << std::setw(8) << "WRITE"
+                  << " ";
+        std::cout << std::setw(20) << "SCREEN"
+                  << " ";
+        std::cout << std::dec << std::setw(6) << screen_write_total << " ";
+        std::cout << std::setw(20) << "(consolidated)"
+                  << " ";
+        std::cout << std::endl;
+        printed_accumulated_screen = true;
+    }
+
+    // Print all other entries, plus SCREEN entries that have symbols
+    for (size_t i = 0; i < stats.size(); ++i) {
+        const auto &stat = stats[i];
+
+        // Skip SCREEN WRITE entries that we've consolidated (unless they have symbols)
+        if (stat.name == "SCREEN" && stat.kind == TrapKind::WRITE) {
+            const std::string *symbol = lookup_disassembly_symbol(stat.address);
+            if (!symbol && printed_accumulated_screen) {
+                continue; // Skip consolidated SCREEN entries
+            }
+            // If has symbol, print it separately below
+        }
+
         // Format address using stringstream to avoid stream state issues
         std::ostringstream addr_ss;
-        addr_ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << stat.address;
-        
+        addr_ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
+                << stat.address;
+
         // Print address
         std::cout << addr_ss.str() << " ";
-        
+
         // Print kind
         std::string kind_str;
         switch (stat.kind) {
@@ -287,13 +336,13 @@ void TrapStatistics::print_statistics() {
             break;
         }
         std::cout << std::left << std::setw(8) << kind_str << " ";
-        
+
         // Print name
         std::cout << std::setw(20) << stat.name << " ";
-        
+
         // Print count
         std::cout << std::dec << std::setw(6) << stat.count << " ";
-        
+
         // Print details
         std::string details;
         if (!stat.mli_call.empty()) {
@@ -305,16 +354,16 @@ void TrapStatistics::print_statistics() {
             details += stat.is_second_read ? "2nd read" : "1st read";
         }
         std::cout << std::setw(20) << details << " ";
-        
+
         // Look up and print symbol name if available
         const std::string *symbol = lookup_disassembly_symbol(stat.address);
         if (symbol) {
             std::cout << "<" << *symbol << ">";
         }
-        
+
         std::cout << std::endl;
     }
-    
+
     std::cout << std::string(90, '-') << std::endl;
     std::cout << "Total trap entries: " << stats.size() << std::endl;
     std::cout << "=======================" << std::endl;

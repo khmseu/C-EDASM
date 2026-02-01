@@ -5,11 +5,32 @@
 #include "edasm/emulator/host_shims.hpp"
 #include "edasm/emulator/traps.hpp"
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace edasm;
+
+// Helper function to read input lines from a text file
+std::vector<std::string> read_input_file(const std::string &filepath) {
+    std::vector<std::string> lines;
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        std::cerr << "Error: Failed to open input file: " << filepath << std::endl;
+        return lines;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        lines.push_back(line);
+    }
+
+    file.close();
+    std::cout << "Loaded " << lines.size() << " input lines from: " << filepath << std::endl;
+    return lines;
+}
 
 int main(int argc, char *argv[]) {
     std::cout << "C-EDASM Minimal Emulator" << std::endl;
@@ -17,6 +38,7 @@ int main(int argc, char *argv[]) {
 
     // Parse command line
     std::string binary_path = "third_party/EdAsm/EDASM.SYSTEM";
+    std::string input_file_path;
     uint16_t load_addr = 0x2000;
     uint16_t entry_point = 0x0000; // will follow hardware reset vector
     size_t max_instructions = 1000;
@@ -32,20 +54,24 @@ int main(int argc, char *argv[]) {
             entry_point = static_cast<uint16_t>(std::stoul(argv[++i], nullptr, 16));
         } else if (arg == "--max" && i + 1 < argc) {
             max_instructions = std::stoul(argv[++i]);
+        } else if (arg == "--input-file" && i + 1 < argc) {
+            input_file_path = argv[++i];
         } else if (arg == "--trace") {
             trace = true;
         } else if (arg == "--help") {
             std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
             std::cout << "Options:" << std::endl;
-            std::cout << "  --binary <path>   Binary file to load (default: "
+            std::cout << "  --binary <path>      Binary file to load (default: "
                          "third_party/EdAsm/EDASM.SYSTEM)"
                       << std::endl;
-            std::cout << "  --load <addr>     Load address in hex (default: 2000)" << std::endl;
-            std::cout << "  --entry <addr>    Entry point in hex (default: 2000)" << std::endl;
-            std::cout << "  --max <n>         Max instructions to execute (default: 1000)"
+            std::cout << "  --load <addr>        Load address in hex (default: 2000)" << std::endl;
+            std::cout << "  --entry <addr>       Entry point in hex (default: 2000)" << std::endl;
+            std::cout << "  --max <n>            Max instructions to execute (default: 1000)"
                       << std::endl;
-            std::cout << "  --trace           Enable instruction tracing" << std::endl;
-            std::cout << "  --help            Show this help" << std::endl;
+            std::cout << "  --input-file <path>  Text file with input lines (one per line)"
+                      << std::endl;
+            std::cout << "  --trace              Enable instruction tracing" << std::endl;
+            std::cout << "  --help               Show this help" << std::endl;
             return 0;
         }
     }
@@ -56,6 +82,14 @@ int main(int argc, char *argv[]) {
     Bus bus;
     CPU cpu(bus);
     HostShims shims;
+
+    // Load and queue input file if provided
+    if (!input_file_path.empty()) {
+        std::vector<std::string> input_lines = read_input_file(input_file_path);
+        if (!input_lines.empty()) {
+            shims.queue_input_lines(input_lines);
+        }
+    }
 
     std::cout << "Initializing emulator..." << std::endl;
     std::cout << "  Memory: 64KB filled with trap opcode ($02)" << std::endl;
@@ -87,8 +121,8 @@ int main(int argc, char *argv[]) {
     std::cout << "  Loading monitor ROM: " << rom_path.string() << std::endl;
     if (bus.load_binary_from_file(rom_base, rom_path.string())) {
         std::cout << "  Monitor ROM mapped at $F800-$FFFF" << std::endl;
-        bus.set_write_trap_range(rom_base, 0xFFFF, [](uint16_t, uint8_t) { return true; },
-                                 "ROM_WRITE_PROTECT");
+        bus.set_write_trap_range(
+            rom_base, 0xFFFF, [](uint16_t, uint8_t) { return true; }, "ROM_WRITE_PROTECT");
         std::cout << "  ROM writes are trapped (read-only region)" << std::endl;
     } else {
         std::cerr << "Error: Failed to load monitor ROM from " << rom_path.string() << std::endl;

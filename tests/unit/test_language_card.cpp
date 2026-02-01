@@ -70,7 +70,7 @@ bool test_lc_basic_write_read() {
     // underlying RAM
     // NOTE: Requires TWO successive reads to enable write
     bus.read(0xC081);
-    bus.read(0xC081); // Second read required
+    bus.read(0xC081);        // Second read required
     bus.write(0xD000, 0x88); // should write to underlying banked RAM
     bus.write(0xE000, 0x99); // should write to underlying fixed RAM
 

@@ -15,41 +15,44 @@ void HostShims::install_io_traps(Bus &bus) {
     bus_ = &bus;
 
     // Install I/O traps for full $C000-$C7FF range
-    bus.set_read_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t &value) {
-        return this->handle_io_read(addr, value);
-    }, "I/O");
+    bus.set_read_trap_range(
+        KBD, 0xC7FF,
+        [this](uint16_t addr, uint8_t &value) { return this->handle_io_read(addr, value); }, "I/O");
 
-    bus.set_write_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t value) {
-        return this->handle_io_write(addr, value);
-    }, "I/O");
+    bus.set_write_trap_range(
+        KBD, 0xC7FF,
+        [this](uint16_t addr, uint8_t value) { return this->handle_io_write(addr, value); }, "I/O");
 
     // Install write trap for text page 1 ($0400-$07FF)
-    bus.set_write_trap_range(0x0400, 0x07FF, [this](uint16_t addr, uint8_t value) {
-        // Record screen write statistics
-        TrapStatistics::record_trap("SCREEN", addr, TrapKind::WRITE);
-        
-        // Mark screen as dirty but allow normal write to proceed
-        screen_dirty_ = true;
+    bus.set_write_trap_range(
+        0x0400, 0x07FF,
+        [this](uint16_t addr, uint8_t value) {
+            // Record screen write statistics
+            TrapStatistics::record_trap("SCREEN", addr, TrapKind::WRITE);
 
-        // Check if writing to first character position ($0400)
-        // Strip high bit and check for 'E' (handles normal, inverse, and flashing text)
-        if (addr == 0x0400) {
-            // Check for 'E' by masking high bit (handles all Apple II text modes)
-            char ch = static_cast<char>(value & 0x7F);
-            if (ch == 'E' || ch == 'e') {
-                std::cout
-                    << "\n[HostShims] First screen character set to 'E' - logging and stopping\n"
-                    << std::endl;
-                log_text_screen();
-                if (bus_) {
-                    TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
+            // Mark screen as dirty but allow normal write to proceed
+            screen_dirty_ = true;
+
+            // Check if writing to first character position ($0400)
+            // Strip high bit and check for 'E' (handles normal, inverse, and flashing text)
+            if (addr == 0x0400) {
+                // Check for 'E' by masking high bit (handles all Apple II text modes)
+                char ch = static_cast<char>(value & 0x7F);
+                if (ch == 'E' || ch == 'e') {
+                    std::cout << "\n[HostShims] First screen character set to 'E' - logging and "
+                                 "stopping\n"
+                              << std::endl;
+                    log_text_screen();
+                    if (bus_) {
+                        TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
+                    }
+                    stop_requested_ = true;
                 }
-                stop_requested_ = true;
             }
-        }
 
-        return false;
-    }, "SCREEN");
+            return false;
+        },
+        "SCREEN");
 
     // NOTE: Language card window ($D000-$FFFF) no longer uses traps
     // It's now handled via bank mapping in Bus::set_bank_mapping()
@@ -109,6 +112,17 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
             } else {
                 value = 0; // No key available
             }
+        } else if (kbd_data_ == 0 && !has_queued_input()) {
+            // No more input - log screen and stop emulator
+            std::cout
+                << "\n[HostShims] KBD read with no queued input - logging screen and stopping\n"
+                << std::endl;
+            log_text_screen();
+            if (bus_) {
+                TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
+            }
+            stop_requested_ = true;
+            value = 0; // Return no key available
         } else {
             // Return last key without high bit (strobe cleared)
             value = kbd_data_;
@@ -129,7 +143,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
     if (addr < 0xC080 || addr > 0xC08F) {
         TrapStatistics::record_trap("I/O", addr, TrapKind::READ);
     }
-    
+
     // Dispatch to specific handlers based on address
 
     // $C000-$C00F: Keyboard and game I/O
@@ -230,7 +244,7 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
     if (addr < 0xC080 || addr > 0xC08F) {
         TrapStatistics::record_trap("I/O", addr, TrapKind::WRITE);
     }
-    
+
     // Dispatch to specific handlers based on address
 
     // $C000-$C00F: Keyboard/game I/O (typically read-only)
@@ -421,22 +435,22 @@ void HostShims::report_unhandled_io(uint16_t addr, bool is_write, uint8_t value)
 bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
     // Extract control bits as documented
     uint8_t offset = addr & 0x0F;
-    uint8_t bit3 = (offset >> 3) & 1;  // BANK-SELECT (1=Bank 1, 0=Bank 2)
-    uint8_t bit1 = (offset >> 1) & 1;  // READ-SELECT
-    uint8_t bit0 = offset & 1;         // WRITE-SELECT
-    
+    uint8_t bit3 = (offset >> 3) & 1; // BANK-SELECT (1=Bank 1, 0=Bank 2)
+    uint8_t bit1 = (offset >> 1) & 1; // READ-SELECT
+    uint8_t bit0 = offset & 1;        // WRITE-SELECT
+
     // Determine hardware bank (1 or 2) based on bit 3
     uint8_t hw_bank = bit3 ? 1 : 2;
-    
+
     // Convert to internal bank index (0 for Bank 1, 1 for Bank 2)
     uint8_t bank = (hw_bank == 1) ? 0 : 1;
-    
+
     // Determine read source: RAM if bit1 == bit0, ROM otherwise
     bool read_from_ram = (bit1 == bit0);
-    
+
     // Determine write enable: bit0=1 means write-enable (with double-read requirement)
     bool write_enable_requested = (bit0 == 1);
-    
+
     // Handle double-read requirement for write-enable
     // Addresses ending in 1 or 3 require TWO successive reads to enable write
     bool write_actually_enabled = false;
@@ -455,18 +469,19 @@ bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
             write_actually_enabled = false;
             is_second_read = false;
         }
-        
+
         // Record trap statistics for double-read traps
-        TrapStatistics::record_trap("LANGUAGE_CARD", addr, TrapKind::DOUBLE_READ, "", is_second_read);
+        TrapStatistics::record_trap("LANGUAGE_CARD", addr, TrapKind::DOUBLE_READ, "",
+                                    is_second_read);
     } else {
         // No write enable requested - clear pending state
         lc_.write_enable_pending = false;
         lc_.last_control_addr = addr;
-        
+
         // Record regular read trap statistics (not double-read)
         TrapStatistics::record_trap("LANGUAGE_CARD", addr, TrapKind::READ);
     }
-    
+
     // Determine the mode based on read source and write enable
     LCBankMode mode;
     if (read_from_ram && !write_actually_enabled) {
@@ -486,10 +501,11 @@ bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
 
     std::cout << "[HostShims] Language Card control read at $" << std::hex << std::uppercase
               << std::setw(4) << std::setfill('0') << addr << " -> HW Bank " << std::dec
-              << static_cast<int>(hw_bank) << " (idx=" << static_cast<int>(bank) 
+              << static_cast<int>(hw_bank) << " (idx=" << static_cast<int>(bank)
               << ") mode=" << static_cast<int>(mode);
     if (write_enable_requested) {
-        std::cout << (write_actually_enabled ? " [2nd read - write enabled]" : " [1st read - pending]");
+        std::cout << (write_actually_enabled ? " [2nd read - write enabled]"
+                                             : " [1st read - pending]");
     }
     std::cout << std::endl;
 
