@@ -446,7 +446,7 @@ void register_default_disassembly_symbols() {
     EDASM_REGISTER_SYMBOL(IVERSION);
 
     // Memory management soft switches (register less common ones first)
-    EDASM_REGISTER_SYMBOL(_80STOREOFF);  // $C000 (also KBD - will be overwritten)
+    EDASM_REGISTER_SYMBOL(_80STOREOFF); // $C000 (also KBD - will be overwritten)
     EDASM_REGISTER_SYMBOL(_80STOREON);
     EDASM_REGISTER_SYMBOL(RAMRDOFF);
     EDASM_REGISTER_SYMBOL(RAMRDON);
@@ -458,6 +458,7 @@ void register_default_disassembly_symbols() {
     EDASM_REGISTER_SYMBOL(ALTZPON);
     EDASM_REGISTER_SYMBOL(SLOTC3ROMOFF);
     EDASM_REGISTER_SYMBOL(SLOTC3ROMON);
+    EDASM_REGISTER_SYMBOL(CLRROM);
 
     // Video control
     EDASM_REGISTER_SYMBOL(_80COLOFF);
@@ -524,8 +525,8 @@ void register_default_disassembly_symbols() {
     EDASM_REGISTER_SYMBOL(RDWRBSR1);
 
     // Keyboard and device I/O (register after overlapping addresses to take priority)
-    EDASM_REGISTER_SYMBOL(KBD);          // $C000 - overwrites _80STOREOFF
-    EDASM_REGISTER_SYMBOL(KBDSTRB);      // $C010 - overwrites AKD 
+    EDASM_REGISTER_SYMBOL(KBD);     // $C000 - overwrites _80STOREOFF
+    EDASM_REGISTER_SYMBOL(KBDSTRB); // $C010 - overwrites AKD
     EDASM_REGISTER_SYMBOL(CASSOUT);
     EDASM_REGISTER_SYMBOL(SPEAKER);
     EDASM_REGISTER_SYMBOL(GCSTROBE);
