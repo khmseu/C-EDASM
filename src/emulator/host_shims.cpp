@@ -359,9 +359,32 @@ void HostShims::report_unhandled_io(uint16_t addr, bool is_write, uint8_t value)
 }
 
 // Language Card control: handle reads/writes to $C080..$C08F
+// Reference: docs/APPLE_IIE_MEMORY_MAP.md "Bank-Switched RAM Control"
+//
+// The Apple IIe uses control bits in the address to determine behavior:
+//   Bit 3: BANK-SELECT (1=Bank 1, 0=Bank 2)
+//   Bit 2: (unused)
+//   Bit 1: READ-SELECT (if equals write-select bit, read from RAM; else ROM)
+//   Bit 0: WRITE-SELECT (1 + double-read = write to RAM; else ROM)
+//
+// Address mapping:
+//   $C080 (READBSR2):  Bank 2, Read RAM, Write No
+//   $C081 (WRITEBSR2): Bank 2, Read ROM, Write Yes (RR - requires 2 reads)
+//   $C082 (OFFBSR2):   Bank 2, Read ROM, Write No
+//   $C083 (RDWRBSR2):  Bank 2, Read RAM, Write Yes (RR - requires 2 reads)
+//   $C088 (READBSR1):  Bank 1, Read RAM, Write No
+//   $C089 (WRITEBSR1): Bank 1, Read ROM, Write Yes (RR - requires 2 reads)
+//   $C08A (OFFBSR1):   Bank 1, Read ROM, Write No
+//   $C08B (RDWRBSR1):  Bank 1, Read RAM, Write Yes (RR - requires 2 reads)
+//   $C084-$C087 duplicate $C080-$C083, $C08C-$C08F duplicate $C088-$C08B
+//
+// NOTE: The current implementation does not handle the double-read requirement
+// for write-enable (addresses ending in 1 or 3). A single read/write enables
+// write mode, whereas the real hardware requires two successive reads.
 bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
     // Map addresses into bank and mode
     uint16_t offset = addr & 0x0F;                             // 0..15 within control page
+    // Bit 3 set ($C088-$C08F) = Bank 1, Bit 3 clear ($C080-$C087) = Bank 2
     uint8_t bank = (addr >= 0xC088 && addr <= 0xC08F) ? 0 : 1; // bank1 => 0, bank2 => 1
 
     // Map offset to mode (group by 4)
