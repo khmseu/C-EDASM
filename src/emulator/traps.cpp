@@ -1,6 +1,8 @@
 #include "edasm/emulator/traps.hpp"
 #include "edasm/constants.hpp"
+#include "edasm/emulator/disassembly.hpp"
 #include "edasm/emulator/mli.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <ctime>
 #include <fstream>
@@ -31,16 +33,27 @@ std::map<uint16_t, TrapHandler> &TrapManager::get_handler_registry() {
     return registry;
 }
 
-void TrapManager::install_address_handler(uint16_t address, TrapHandler handler) {
+std::map<uint16_t, std::string> &TrapManager::get_name_registry() {
+    static std::map<uint16_t, std::string> name_registry;
+    return name_registry;
+}
+
+void TrapManager::install_address_handler(uint16_t address, TrapHandler handler,
+                                          const std::string &name) {
     get_handler_registry()[address] = handler;
+    if (!name.empty()) {
+        get_name_registry()[address] = name;
+    }
 }
 
 void TrapManager::clear_address_handler(uint16_t address) {
     get_handler_registry().erase(address);
+    get_name_registry().erase(address);
 }
 
 void TrapManager::clear_all_handlers() {
     get_handler_registry().clear();
+    get_name_registry().clear();
 }
 
 bool TrapManager::general_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
@@ -49,15 +62,18 @@ bool TrapManager::general_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
     auto it = registry.find(trap_pc);
 
     if (it != registry.end()) {
-        // Call the registered handler
+        // Call the registered handler (which will record statistics)
         return it->second(cpu, bus, trap_pc);
     }
 
-    // Fall back to default handler
+    // Fall back to default handler (which will also record statistics)
     return default_trap_handler(cpu, bus, trap_pc);
 }
 
 bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
+    // Record trap statistic for unhandled traps
+    TrapStatistics::record_trap("UNHANDLED", trap_pc, TrapKind::CALL);
+    
     std::cerr << "=== UNHANDLED TRAP at PC=$" << std::hex << std::uppercase << std::setw(4)
               << std::setfill('0') << trap_pc << " ===" << std::endl;
     log_cpu_state(cpu, bus, trap_pc);
@@ -178,6 +194,9 @@ bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap
 }
 
 bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
+    // Record trap statistic
+    TrapStatistics::record_trap("MONITOR SETNORM", trap_pc, TrapKind::CALL);
+    
     // SETNORM ($FE84): Set InvFlg ($32) to $FF (normal video mode) and Y to $FF
     bus.write(0x32, 0xFF);
     cpu.Y = 0xff;
@@ -193,6 +212,116 @@ bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t
     cpu.PC = static_cast<uint16_t>(ret_addr + 1);
 
     return true;
+}
+
+// TrapStatistics implementation
+std::vector<TrapStatistic> &TrapStatistics::get_statistics() {
+    static std::vector<TrapStatistic> statistics;
+    return statistics;
+}
+
+void TrapStatistics::record_trap(const std::string &name, uint16_t address, TrapKind kind,
+                                 const std::string &mli_call, bool is_second_read) {
+    auto &stats = get_statistics();
+    
+    // Find existing entry with matching characteristics
+    for (auto &stat : stats) {
+        if (stat.address == address && stat.kind == kind && stat.name == name &&
+            stat.mli_call == mli_call && stat.is_second_read == is_second_read) {
+            stat.count++;
+            return;
+        }
+    }
+    
+    // Create new entry
+    TrapStatistic new_stat(name, address, kind);
+    new_stat.mli_call = mli_call;
+    new_stat.is_second_read = is_second_read;
+    new_stat.count = 1;
+    stats.push_back(new_stat);
+}
+
+void TrapStatistics::print_statistics() {
+    auto &stats = get_statistics();
+    
+    if (stats.empty()) {
+        std::cout << "\nNo trap statistics collected." << std::endl;
+        return;
+    }
+    
+    // Sort by trap address
+    std::sort(stats.begin(), stats.end(),
+              [](const TrapStatistic &a, const TrapStatistic &b) { return a.address < b.address; });
+    
+    // Reset output format to defaults
+    std::cout << std::dec << std::setfill(' ');
+    
+    std::cout << "\n=== TRAP STATISTICS ===" << std::endl;
+    std::cout << std::left << std::setw(6) << "Addr" << " " << std::setw(8) << "Kind" << " "
+              << std::setw(20) << "Name" << " " << std::setw(6) << "Count" << " "
+              << std::setw(20) << "Details" << " " << "Symbol" << std::endl;
+    std::cout << std::string(90, '-') << std::endl;
+    
+    for (const auto &stat : stats) {
+        // Format address using stringstream to avoid stream state issues
+        std::ostringstream addr_ss;
+        addr_ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << stat.address;
+        
+        // Print address
+        std::cout << addr_ss.str() << " ";
+        
+        // Print kind
+        std::string kind_str;
+        switch (stat.kind) {
+        case TrapKind::CALL:
+            kind_str = "CALL";
+            break;
+        case TrapKind::READ:
+            kind_str = "READ";
+            break;
+        case TrapKind::WRITE:
+            kind_str = "WRITE";
+            break;
+        case TrapKind::DOUBLE_READ:
+            kind_str = "DBL_READ";
+            break;
+        }
+        std::cout << std::left << std::setw(8) << kind_str << " ";
+        
+        // Print name
+        std::cout << std::setw(20) << stat.name << " ";
+        
+        // Print count
+        std::cout << std::dec << std::setw(6) << stat.count << " ";
+        
+        // Print details
+        std::string details;
+        if (!stat.mli_call.empty()) {
+            details = "MLI:" + stat.mli_call;
+        }
+        if (stat.kind == TrapKind::DOUBLE_READ) {
+            if (!details.empty())
+                details += ", ";
+            details += stat.is_second_read ? "2nd read" : "1st read";
+        }
+        std::cout << std::setw(20) << details << " ";
+        
+        // Look up and print symbol name if available
+        const std::string *symbol = lookup_disassembly_symbol(stat.address);
+        if (symbol) {
+            std::cout << "<" << *symbol << ">";
+        }
+        
+        std::cout << std::endl;
+    }
+    
+    std::cout << std::string(90, '-') << std::endl;
+    std::cout << "Total trap entries: " << stats.size() << std::endl;
+    std::cout << "=======================" << std::endl;
+}
+
+void TrapStatistics::clear() {
+    get_statistics().clear();
 }
 
 } // namespace edasm

@@ -17,14 +17,17 @@ void HostShims::install_io_traps(Bus &bus) {
     // Install I/O traps for full $C000-$C7FF range
     bus.set_read_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t &value) {
         return this->handle_io_read(addr, value);
-    });
+    }, "I/O");
 
     bus.set_write_trap_range(KBD, 0xC7FF, [this](uint16_t addr, uint8_t value) {
         return this->handle_io_write(addr, value);
-    });
+    }, "I/O");
 
     // Install write trap for text page 1 ($0400-$07FF)
     bus.set_write_trap_range(0x0400, 0x07FF, [this](uint16_t addr, uint8_t value) {
+        // Record screen write statistics
+        TrapStatistics::record_trap("SCREEN", addr, TrapKind::WRITE);
+        
         // Mark screen as dirty but allow normal write to proceed
         screen_dirty_ = true;
 
@@ -46,7 +49,7 @@ void HostShims::install_io_traps(Bus &bus) {
         }
 
         return false;
-    });
+    }, "SCREEN");
 
     // NOTE: Language card window ($D000-$FFFF) no longer uses traps
     // It's now handled via bank mapping in Bus::set_bank_mapping()
@@ -122,6 +125,11 @@ bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
 }
 
 bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
+    // Record I/O read statistics (except for language card which has its own recording)
+    if (addr < 0xC080 || addr > 0xC08F) {
+        TrapStatistics::record_trap("I/O", addr, TrapKind::READ);
+    }
+    
     // Dispatch to specific handlers based on address
 
     // $C000-$C00F: Keyboard and game I/O
@@ -218,6 +226,11 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 }
 
 bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
+    // Record I/O write statistics (except for language card which has its own recording)
+    if (addr < 0xC080 || addr > 0xC08F) {
+        TrapStatistics::record_trap("I/O", addr, TrapKind::WRITE);
+    }
+    
     // Dispatch to specific handlers based on address
 
     // $C000-$C00F: Keyboard/game I/O (typically read-only)
@@ -427,22 +440,31 @@ bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
     // Handle double-read requirement for write-enable
     // Addresses ending in 1 or 3 require TWO successive reads to enable write
     bool write_actually_enabled = false;
+    bool is_second_read = false;
     if (write_enable_requested) {
         // Check if this is a second consecutive read of the same address
         if (addr == lc_.last_control_addr && lc_.write_enable_pending) {
             // Second read confirmed - enable write
             write_actually_enabled = true;
+            is_second_read = true;
             lc_.write_enable_pending = false;
         } else {
             // First read - mark as pending
             lc_.write_enable_pending = true;
             lc_.last_control_addr = addr;
             write_actually_enabled = false;
+            is_second_read = false;
         }
+        
+        // Record trap statistics for double-read traps
+        TrapStatistics::record_trap("LANGUAGE_CARD", addr, TrapKind::DOUBLE_READ, "", is_second_read);
     } else {
         // No write enable requested - clear pending state
         lc_.write_enable_pending = false;
         lc_.last_control_addr = addr;
+        
+        // Record regular read trap statistics (not double-read)
+        TrapStatistics::record_trap("LANGUAGE_CARD", addr, TrapKind::READ);
     }
     
     // Determine the mode based on read source and write enable

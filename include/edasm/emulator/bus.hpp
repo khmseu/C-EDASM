@@ -19,6 +19,7 @@ struct ReadTrapRange {
     uint16_t start;
     uint16_t end;
     ReadTrapHandler handler;
+    std::string name;  // Name for statistics tracking
 
     bool contains(uint16_t addr) const {
         return addr >= start && addr <= end;
@@ -29,6 +30,7 @@ struct WriteTrapRange {
     uint16_t start;
     uint16_t end;
     WriteTrapHandler handler;
+    std::string name;  // Name for statistics tracking
 
     bool contains(uint16_t addr) const {
         return addr >= start && addr <= end;
@@ -80,10 +82,12 @@ class Bus {
     void reset();
 
     // Set read/write trap handlers for specific address or range
-    void set_read_trap(uint16_t addr, ReadTrapHandler handler);
-    void set_write_trap(uint16_t addr, WriteTrapHandler handler);
-    void set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler);
-    void set_write_trap_range(uint16_t start, uint16_t end, WriteTrapHandler handler);
+    void set_read_trap(uint16_t addr, ReadTrapHandler handler, const std::string &name = "");
+    void set_write_trap(uint16_t addr, WriteTrapHandler handler, const std::string &name = "");
+    void set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler,
+                            const std::string &name = "");
+    void set_write_trap_range(uint16_t start, uint16_t end, WriteTrapHandler handler,
+                             const std::string &name = "");
 
     // Clear trap handlers
     void clear_read_traps();
@@ -136,6 +140,10 @@ class Bus {
     // Helper to find trap handler for an address
     ReadTrapHandler find_read_trap(uint16_t addr);
     WriteTrapHandler find_write_trap(uint16_t addr);
+    
+    // Helper to find trap range (including name) for an address
+    const ReadTrapRange *find_read_trap_range(uint16_t addr) const;
+    const WriteTrapRange *find_write_trap_range(uint16_t addr) const;
 };
 
 } // namespace edasm

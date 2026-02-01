@@ -1,4 +1,5 @@
 #include "edasm/emulator/bus.hpp"
+#include "edasm/emulator/traps.hpp"
 #include <algorithm>
 #include <fstream>
 
@@ -64,10 +65,10 @@ WriteTrapHandler Bus::find_write_trap(uint16_t addr) {
 
 uint8_t Bus::read(uint16_t addr) {
     // Check for read trap handler first (for C000-C7FF and screen 400-7FF)
-    auto handler = find_read_trap(addr);
-    if (handler) {
+    const ReadTrapRange *trap_range = find_read_trap_range(addr);
+    if (trap_range) {
         uint8_t value = 0;
-        if (handler(addr, value)) {
+        if (trap_range->handler(addr, value)) {
             return value; // Trap handled, return provided value
         }
     }
@@ -82,9 +83,9 @@ uint8_t Bus::read(uint16_t addr) {
 
 void Bus::write(uint16_t addr, uint8_t value) {
     // Check for write trap handler first (for C000-C7FF and screen 400-7FF)
-    auto handler = find_write_trap(addr);
-    if (handler) {
-        if (handler(addr, value)) {
+    const WriteTrapRange *trap_range = find_write_trap_range(addr);
+    if (trap_range) {
+        if (trap_range->handler(addr, value)) {
             return; // Trap handled, don't write to memory
         }
     }
@@ -138,22 +139,24 @@ bool Bus::load_binary_from_file(uint16_t addr, const std::string &filename) {
     return load_binary(addr, buffer);
 }
 
-void Bus::set_read_trap(uint16_t addr, ReadTrapHandler handler) {
-    set_read_trap_range(addr, addr, handler);
+void Bus::set_read_trap(uint16_t addr, ReadTrapHandler handler, const std::string &name) {
+    set_read_trap_range(addr, addr, handler, name);
 }
 
-void Bus::set_write_trap(uint16_t addr, WriteTrapHandler handler) {
-    set_write_trap_range(addr, addr, handler);
+void Bus::set_write_trap(uint16_t addr, WriteTrapHandler handler, const std::string &name) {
+    set_write_trap_range(addr, addr, handler, name);
 }
 
-void Bus::set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler) {
+void Bus::set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler,
+                              const std::string &name) {
     // Add a new trap range
-    read_trap_ranges_.push_back({start, end, handler});
+    read_trap_ranges_.push_back({start, end, handler, name});
 }
 
-void Bus::set_write_trap_range(uint16_t start, uint16_t end, WriteTrapHandler handler) {
+void Bus::set_write_trap_range(uint16_t start, uint16_t end, WriteTrapHandler handler,
+                               const std::string &name) {
     // Add a new trap range
-    write_trap_ranges_.push_back({start, end, handler});
+    write_trap_ranges_.push_back({start, end, handler, name});
 }
 
 void Bus::clear_read_traps() {
@@ -162,6 +165,24 @@ void Bus::clear_read_traps() {
 
 void Bus::clear_write_traps() {
     write_trap_ranges_.clear();
+}
+
+const ReadTrapRange *Bus::find_read_trap_range(uint16_t addr) const {
+    for (const auto &range : read_trap_ranges_) {
+        if (range.contains(addr)) {
+            return &range;
+        }
+    }
+    return nullptr;
+}
+
+const WriteTrapRange *Bus::find_write_trap_range(uint16_t addr) const {
+    for (const auto &range : write_trap_ranges_) {
+        if (range.contains(addr)) {
+            return &range;
+        }
+    }
+    return nullptr;
 }
 
 void Bus::set_bank_mapping(uint8_t bank_index, uint32_t read_offset, uint32_t write_offset) {

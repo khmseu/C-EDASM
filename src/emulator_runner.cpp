@@ -87,7 +87,8 @@ int main(int argc, char *argv[]) {
     std::cout << "  Loading monitor ROM: " << rom_path.string() << std::endl;
     if (bus.load_binary_from_file(rom_base, rom_path.string())) {
         std::cout << "  Monitor ROM mapped at $F800-$FFFF" << std::endl;
-        bus.set_write_trap_range(rom_base, 0xFFFF, [](uint16_t, uint8_t) { return true; });
+        bus.set_write_trap_range(rom_base, 0xFFFF, [](uint16_t, uint8_t) { return true; },
+                                 "ROM_WRITE_PROTECT");
         std::cout << "  ROM writes are trapped (read-only region)" << std::endl;
     } else {
         std::cerr << "Error: Failed to load monitor ROM from " << rom_path.string() << std::endl;
@@ -120,8 +121,10 @@ int main(int argc, char *argv[]) {
 
     // Install general trap handler with ProDOS MLI handler at $BF00
     TrapManager::set_trace(trace);
-    TrapManager::install_address_handler(PRODOS8, TrapManager::prodos_mli_trap_handler);
-    TrapManager::install_address_handler(0xFE84, TrapManager::monitor_setnorm_trap_handler);
+    TrapManager::install_address_handler(PRODOS8, TrapManager::prodos_mli_trap_handler,
+                                         "ProDOS MLI");
+    TrapManager::install_address_handler(0xFE84, TrapManager::monitor_setnorm_trap_handler,
+                                         "MONITOR SETNORM");
     cpu.set_trap_handler(TrapManager::general_trap_handler);
     std::cout << "  General trap handler installed with ProDOS MLI at $BF00" << std::endl;
     std::cout << "  Monitor ROM SETNORM handler installed at $FE84" << std::endl;
@@ -158,6 +161,9 @@ int main(int argc, char *argv[]) {
     std::cout << "Execution stopped after " << std::dec << count << " instructions" << std::endl;
     std::cout << "Final CPU state:" << std::endl;
     std::cout << TrapManager::dump_cpu_state(cpu.state()) << std::endl;
+
+    // Print trap statistics
+    TrapStatistics::print_statistics();
 
     if (running) {
         std::cout << std::endl << "Reached maximum instruction limit" << std::endl;
