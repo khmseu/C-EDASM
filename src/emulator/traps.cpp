@@ -252,6 +252,9 @@ void TrapStatistics::print_statistics() {
     std::sort(stats.begin(), stats.end(),
               [](const TrapStatistic &a, const TrapStatistic &b) { return a.address < b.address; });
     
+    // Reset output format to defaults
+    std::cout << std::dec << std::setfill(' ');
+    
     std::cout << "\n=== TRAP STATISTICS ===" << std::endl;
     std::cout << std::left << std::setw(6) << "Addr" << " " << std::setw(8) << "Kind" << " "
               << std::setw(20) << "Name" << " " << std::setw(6) << "Count" << " "
@@ -259,9 +262,12 @@ void TrapStatistics::print_statistics() {
     std::cout << std::string(70, '-') << std::endl;
     
     for (const auto &stat : stats) {
+        // Format address using stringstream to avoid stream state issues
+        std::ostringstream addr_ss;
+        addr_ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << stat.address;
+        
         // Print address
-        std::cout << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
-                  << stat.address << std::setfill(' ') << " ";
+        std::cout << addr_ss.str() << " ";
         
         // Print kind
         std::string kind_str;
