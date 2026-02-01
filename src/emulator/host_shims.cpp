@@ -229,11 +229,12 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
 
     // Pascal 1.1 Firmware Protocol signature bytes ($Cx0B, $Cx0C for slots 1-7)
     // Return actual memory content for these addresses
-    if ((addr & 0xFF0F) == 0xC00B || (addr & 0xFF0F) == 0xC00C) {
+    if ((addr & 0xF0FF) == 0xC00B || (addr & 0xF0FF) == 0xC00C) {
         // Check if it's in valid slot range (1-7)
         uint8_t slot = (addr >> 8) & 0x0F;
         if (slot >= 1 && slot <= 7) {
-            value = bus_->read(addr);
+            // Read directly from memory to avoid recursion through trap handler
+            value = bus_->data()[addr];
             return true;
         }
     }
