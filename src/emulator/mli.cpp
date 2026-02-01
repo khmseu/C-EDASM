@@ -479,10 +479,13 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
         const auto &param = desc.params[i];
 
         // For OUTPUT parameters:
-        // - Pointer types (BUFFER_PTR, PATHNAME_PTR): READ the pointer (handler needs to know where to write)
-        // - Value types (BYTE, WORD, THREE_BYTE, REF_NUM): SKIP (handler will generate and return via outputs)
+        // - Pointer types (BUFFER_PTR, PATHNAME_PTR): READ the pointer (handler needs to know where
+        // to write)
+        // - Value types (BYTE, WORD, THREE_BYTE, REF_NUM): SKIP (handler will generate and return
+        // via outputs)
         if (param.direction == MLIParamDirection::OUTPUT) {
-            if (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR) {
+            if (param.type == MLIParamType::BUFFER_PTR ||
+                param.type == MLIParamType::PATHNAME_PTR) {
                 // Read the pointer value (handler needs to know where to write output)
                 uint16_t ptr =
                     mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
@@ -636,14 +639,16 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
     // Handlers return OUTPUT value parameters and INPUT_OUTPUT parameters.
     // OUTPUT pointer parameters (BUFFER_PTR, PATHNAME_PTR) are handled directly by the handler.
 
-    // Count expected outputs (exclude OUTPUT pointer types)
+    // Count expected outputs (exclude OUTPUT/INPUT_OUTPUT pointer types)
     size_t expected_outputs = 0;
     for (uint8_t i = 0; i < desc.param_count; ++i) {
         const auto &param = desc.params[i];
         if (param.direction != MLIParamDirection::INPUT) {
-            // Skip OUTPUT pointer types (handler writes directly to memory)
-            if (param.direction == MLIParamDirection::OUTPUT &&
-                (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR)) {
+            // Skip pointer types (handler writes directly to memory for both OUTPUT and INPUT_OUTPUT)
+            if ((param.direction == MLIParamDirection::OUTPUT ||
+                 param.direction == MLIParamDirection::INPUT_OUTPUT) &&
+                (param.type == MLIParamType::BUFFER_PTR ||
+                 param.type == MLIParamType::PATHNAME_PTR)) {
                 continue;
             }
             ++expected_outputs;
@@ -659,7 +664,8 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
     // Skip parameter count byte
     uint16_t offset = 1;
 
-    size_t out_idx = 0; // index into values (only output/input_output params, excluding OUTPUT pointers)
+    size_t out_idx =
+        0; // index into values (only output/input_output params, excluding OUTPUT pointers)
 
     for (uint8_t i = 0; i < desc.param_count; ++i) {
         const auto &param = desc.params[i];
@@ -683,8 +689,9 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
             continue;
         }
 
-        // OUTPUT pointer types: skip (handler writes directly to memory)
-        if (param.direction == MLIParamDirection::OUTPUT &&
+        // OUTPUT/INPUT_OUTPUT pointer types: skip (handler writes directly to memory)
+        if ((param.direction == MLIParamDirection::OUTPUT ||
+             param.direction == MLIParamDirection::INPUT_OUTPUT) &&
             (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR)) {
             offset += 2; // Pointer is always 2 bytes
             continue;
@@ -1171,15 +1178,15 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
         std::cerr << "GET_FILE_INFO ($C4): file not found: " << host_path
                   << " (error: " << ec.message() << ")" << std::endl;
         // Push zero placeholders for all 9 output parameters
-        outputs.push_back(uint8_t(0));    // access
-        outputs.push_back(uint8_t(0));    // file_type
-        outputs.push_back(uint16_t(0));   // aux_type
-        outputs.push_back(uint8_t(0));    // storage_type
-        outputs.push_back(uint16_t(0));   // blocks_used
-        outputs.push_back(uint16_t(0));   // mod_date
-        outputs.push_back(uint16_t(0));   // mod_time
-        outputs.push_back(uint16_t(0));   // create_date
-        outputs.push_back(uint16_t(0));   // create_time
+        outputs.push_back(uint8_t(0));  // access
+        outputs.push_back(uint8_t(0));  // file_type
+        outputs.push_back(uint16_t(0)); // aux_type
+        outputs.push_back(uint8_t(0));  // storage_type
+        outputs.push_back(uint16_t(0)); // blocks_used
+        outputs.push_back(uint16_t(0)); // mod_date
+        outputs.push_back(uint16_t(0)); // mod_time
+        outputs.push_back(uint16_t(0)); // create_date
+        outputs.push_back(uint16_t(0)); // create_time
         return ProDOSError::FILE_NOT_FOUND;
     }
 
@@ -1631,7 +1638,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         write_memory_dump(bus, "memory_dump.bin");
         std::cout << "=== HALTING ===" << std::endl;
-        
+
         set_error(cpu, error);
         return false; // Signal to stop emulation
     }
