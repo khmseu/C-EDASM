@@ -228,10 +228,10 @@ void test_read_input_params_byte_and_word() {
     assert(values.size() == 1);
     assert(std::get<uint8_t>(values[0]) == 5);
 
-    // Test with GET_MARK (ref_num + 3-byte output)
+    // Test with GET_MARK (ref_num input + 3-byte output)
     bus.write(0x2000, 2);    // param_count
     bus.write(0x2001, 7);    // ref_num
-    bus.write(0x2002, 0x00); // position (output, but we still need space)
+    bus.write(0x2002, 0x00); // position (output, will not be in inputs)
     bus.write(0x2003, 0x00);
     bus.write(0x2004, 0x00);
 
@@ -239,10 +239,9 @@ void test_read_input_params_byte_and_word() {
     assert(desc != nullptr);
 
     values = MLIHandler::read_input_params(bus, 0x2000, *desc);
-    assert(values.size() == 2);
+    // After refactor: only INPUT params are in values, OUTPUT value types are skipped
+    assert(values.size() == 1);
     assert(std::get<uint8_t>(values[0]) == 7);
-    // Second value is output-only, so should be placeholder
-    assert(std::get<uint8_t>(values[1]) == 0);
 
     std::cout << "✓ test_read_input_params_byte_and_word passed" << std::endl;
 }
@@ -289,10 +288,9 @@ void test_write_output_params_byte_and_word() {
     const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xC8); // OPEN
     assert(desc != nullptr);
 
+    // After refactor: outputs vector contains ONLY OUTPUT values (not INPUT values)
     std::vector<MLIParamValue> values = {
-        std::string(""),  // pathname (input, not written)
-        uint16_t(0x4000), // io_buffer (input, not written)
-        uint8_t(3)        // ref_num (output)
+        uint8_t(3) // ref_num (output)
     };
 
     MLIHandler::write_output_params(bus, 0x1000, *desc, values);
@@ -316,8 +314,8 @@ void test_write_output_params_three_byte() {
     const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xD1); // GET_EOF
     assert(desc != nullptr);
 
+    // After refactor: outputs vector contains ONLY OUTPUT values (not INPUT values)
     std::vector<MLIParamValue> values = {
-        uint8_t(5),        // ref_num (input, not written back)
         uint32_t(0x012345) // eof (output) - 24-bit value
     };
 
