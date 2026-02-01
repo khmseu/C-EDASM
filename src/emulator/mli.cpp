@@ -644,7 +644,8 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
     for (uint8_t i = 0; i < desc.param_count; ++i) {
         const auto &param = desc.params[i];
         if (param.direction != MLIParamDirection::INPUT) {
-            // Skip pointer types (handler writes directly to memory for both OUTPUT and INPUT_OUTPUT)
+            // Skip pointer types (handler writes directly to memory for both OUTPUT and
+            // INPUT_OUTPUT)
             if ((param.direction == MLIParamDirection::OUTPUT ||
                  param.direction == MLIParamDirection::INPUT_OUTPUT) &&
                 (param.type == MLIParamType::BUFFER_PTR ||
