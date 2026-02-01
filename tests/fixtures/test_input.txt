@@ -1,2 +1,3 @@
-
-
+LOAD test_simple.src
+LIST
+SAVE test_exec_output.src
