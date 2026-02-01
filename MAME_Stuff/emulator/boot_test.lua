@@ -1,3 +1,4 @@
+---@diagnostic disable: lowercase-global
 -- boot_test.lua
 -- MAME Lua script to boot ProDOS and launch EDASM with proper keyboard injection
 -- Usage: mame apple2e -flop1 EDASM_SRC.2mg -video none -sound none -nothrottle -autoboot_script boot_test.lua

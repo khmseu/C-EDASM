@@ -1,3 +1,4 @@
+---@diagnostic disable: lowercase-global
 -- MAME Lua automation for EDASM assembly - adapted from boot_test.lua
 -- Usage: mame apple2gs -flop3 /tmp/edasm_work.2mg -autoboot_script tests/emulator/edasm_assemble.lua
 
@@ -120,6 +121,7 @@ local function on_screen_memory_write(offset, data, mask)
 
         -- State machine based on screen changes
         if current_state == STATE_WAITING_FOR_PRODOS then
+            ---@diagnostic disable-next-line: undefined-global
             if check_for_prompt(BASIC_PROMPT_CHAR) then
                 print_elapsed("✓ ProDOS prompt detected")
                 read_text_screen("prodos_ready")
@@ -128,12 +130,11 @@ local function on_screen_memory_write(offset, data, mask)
                 send_string("RUN EDASM.SYSTEM,S5")
                 send_return()
             end
-
         elseif current_state == STATE_STARTING_EDASM then
             read_text_screen("edasm_starting")
             current_state = STATE_WAITING_FOR_EDASM
-
         elseif current_state == STATE_WAITING_FOR_EDASM then
+            ---@diagnostic disable-next-line: undefined-global
             if check_for_prompt(EDASM_PROMPT_CHAR) then
                 print_elapsed("✓ EDASM prompt detected")
                 read_text_screen("edasm_ready")
@@ -142,28 +143,24 @@ local function on_screen_memory_write(offset, data, mask)
                 send_string("L SIMPLE.SRC")
                 send_return()
             end
-
         elseif current_state == STATE_LOADING_FILE then
             read_text_screen("file_loaded")
             current_state = STATE_ASSEMBLING
             print_elapsed("Assembling...")
             send_string("A")
             send_return()
-
         elseif current_state == STATE_ASSEMBLING then
             read_text_screen("assembled")
             current_state = STATE_SAVING
             print_elapsed("Saving binary...")
             send_string("S SIMPLE.BIN")
             send_return()
-
         elseif current_state == STATE_SAVING then
             read_text_screen("saved")
             current_state = STATE_QUITTING
             print_elapsed("Quitting EDASM...")
             send_string("Q")
             send_return()
-
         elseif current_state == STATE_QUITTING then
             read_text_screen("final_state")
             current_state = STATE_COMPLETE
@@ -357,6 +354,7 @@ local function on_start()
     -- Enable natural keyboard mode for proper input handling
     manager.machine.natkeyboard.in_use = true
     print_elapsed("Natural keyboard mode enabled")
+end
 
 -- Check if a prompt is visible on screen (line starting with prompt_char and otherwise blank)
 local function check_for_prompt(prompt_char)
@@ -372,7 +370,7 @@ local function check_for_prompt(prompt_char)
             local is_blank = true
             for col = 1, 39 do
                 local char = mem:read_u8(TEXT_PAGE1_START + line_offset + col)
-                char = char & 0x7F -- Clear high bit
+                char = char & 0x7F               -- Clear high bit
                 if char ~= 32 and char ~= 0 then -- Not space or null
                     is_blank = false
                     break

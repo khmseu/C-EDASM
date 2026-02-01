@@ -1,3 +1,4 @@
+---@diagnostic disable: lowercase-global
 -- assemble_test.lua
 -- MAME Lua script to automate EDASM assembly of test files with proper keyboard injection
 -- Usage: mame apple2e -flop1 EDASM_SRC.2mg -flop2 test_disk.2mg -video none -sound none -nothrottle -autoboot_script assemble_test.lua
