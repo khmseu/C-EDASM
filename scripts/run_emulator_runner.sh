@@ -26,9 +26,9 @@ for i in "${BINARY_PATH}/"*; do
 done
 
 # Copy test command file
-cp -avi "${ROOT}/tests/fixtures/empty_input.txt" "${TESTDIR}/"
+cp -avi "${ROOT}/tests/fixtures/test_input.txt" "${TESTDIR}/"
 
 cd "${TESTDIR}"
 touch EDASM.SWAP
-"${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM --input-file empty_input.txt "$@" &>emulator_runner.log
+"${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM --input-file test_input.txt "$@" &>emulator_runner.log
 echo "Emulator stopped with no errors."
