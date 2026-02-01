@@ -67,10 +67,6 @@ uint8_t Bus::read(uint16_t addr) {
     // Check for read trap handler first (for C000-C7FF and screen 400-7FF)
     const ReadTrapRange *trap_range = find_read_trap_range(addr);
     if (trap_range) {
-        // Record trap statistic
-        std::string trap_name = trap_range->name.empty() ? "READ" : trap_range->name;
-        TrapStatistics::record_trap(trap_name, addr, TrapKind::READ);
-        
         uint8_t value = 0;
         if (trap_range->handler(addr, value)) {
             return value; // Trap handled, return provided value
@@ -89,10 +85,6 @@ void Bus::write(uint16_t addr, uint8_t value) {
     // Check for write trap handler first (for C000-C7FF and screen 400-7FF)
     const WriteTrapRange *trap_range = find_write_trap_range(addr);
     if (trap_range) {
-        // Record trap statistic
-        std::string trap_name = trap_range->name.empty() ? "WRITE" : trap_range->name;
-        TrapStatistics::record_trap(trap_name, addr, TrapKind::WRITE);
-        
         if (trap_range->handler(addr, value)) {
             return; // Trap handled, don't write to memory
         }
