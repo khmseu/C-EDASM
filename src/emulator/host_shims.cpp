@@ -95,6 +95,21 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
         screen_dirty_ = false;
     }
 
+    // Check if we're out of input and should stop
+    if (!has_queued_input() && !kbd_strobe_) {
+        // No more input and no pending keystroke - stop emulator
+        std::cout
+            << "\n[HostShims] KBD read with no queued input - logging screen and stopping\n"
+            << std::endl;
+        log_text_screen();
+        if (bus_) {
+            TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
+        }
+        stop_requested_ = true;
+        value = 0; // Return no key available
+        return true;
+    }
+
     // Read keyboard data register
     if (kbd_strobe_) {
         // Key available - return with high bit set
@@ -112,17 +127,6 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
             } else {
                 value = 0; // No key available
             }
-        } else if (kbd_data_ == 0 && !has_queued_input()) {
-            // No more input - log screen and stop emulator
-            std::cout
-                << "\n[HostShims] KBD read with no queued input - logging screen and stopping\n"
-                << std::endl;
-            log_text_screen();
-            if (bus_) {
-                TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
-            }
-            stop_requested_ = true;
-            value = 0; // Return no key available
         } else {
             // Return last key without high bit (strobe cleared)
             value = kbd_data_;
