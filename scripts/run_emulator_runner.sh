@@ -24,7 +24,11 @@ for i in "${BINARY_PATH}/"*; do
     fname_nohash="${fname%%#*}"
     cp -avi "${i}" "${TESTDIR}/${fname_nohash}"
 done
+
+# Copy test command file
+cp -avi "${ROOT}/tests/fixtures/test_exec_commands.txt" "${TESTDIR}/"
+
 cd "${TESTDIR}"
 touch EDASM.SWAP
-"${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM "$@" &>emulator_runner.log
+"${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM --input-file test_exec_commands.txt "$@" &>emulator_runner.log
 echo "Emulator stopped with no errors."
