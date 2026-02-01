@@ -921,6 +921,7 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
     if (!entry) {
         std::cerr << "READ ($CA): invalid refnum (" << std::dec << static_cast<int>(refnum) << ")"
                   << std::endl;
+        outputs.push_back(uint16_t(0)); // trans_count = 0 on error
         return ProDOSError::INVALID_REF_NUM;
     }
 
@@ -928,16 +929,19 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
         std::cerr << "READ ($CA): buffer overflow (data_buffer=$" << std::hex << std::uppercase
                   << std::setw(4) << std::setfill('0') << data_buffer
                   << ", request_count=" << std::dec << request_count << ")" << std::endl;
+        outputs.push_back(uint16_t(0)); // trans_count = 0 on error
         return ProDOSError::BAD_BUFFER_ADDR;
     }
 
     if (!entry->fp) {
         std::cerr << "READ ($CA): file not open" << std::endl;
+        outputs.push_back(uint16_t(0)); // trans_count = 0 on error
         return ProDOSError::INVALID_REF_NUM;
     }
 
     if (std::fseek(entry->fp, static_cast<long>(entry->mark), SEEK_SET) != 0) {
         std::cerr << "READ ($CA): fseek failed" << std::endl;
+        outputs.push_back(uint16_t(0)); // trans_count = 0 on error
         return ProDOSError::IO_ERROR;
     }
 
@@ -1166,6 +1170,16 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     if (ec) {
         std::cerr << "GET_FILE_INFO ($C4): file not found: " << host_path
                   << " (error: " << ec.message() << ")" << std::endl;
+        // Push zero placeholders for all 9 output parameters
+        outputs.push_back(uint8_t(0));    // access
+        outputs.push_back(uint8_t(0));    // file_type
+        outputs.push_back(uint16_t(0));   // aux_type
+        outputs.push_back(uint8_t(0));    // storage_type
+        outputs.push_back(uint16_t(0));   // blocks_used
+        outputs.push_back(uint16_t(0));   // mod_date
+        outputs.push_back(uint16_t(0));   // mod_time
+        outputs.push_back(uint16_t(0));   // create_date
+        outputs.push_back(uint16_t(0));   // create_time
         return ProDOSError::FILE_NOT_FOUND;
     }
 
