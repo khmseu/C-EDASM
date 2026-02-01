@@ -10,10 +10,11 @@ All MLI handlers (except GET_TIME) now log two lines:
 
 ## Special Case: GET_TIME
 
-GET_TIME is a special case because it has no parameter list - it writes directly to ProDOS memory locations ($BF90-$BF93). Therefore, GET_TIME logs only a single line with the call name and number:
+GET_TIME is a special case because it has no parameter list - it writes directly to ProDOS memory locations ($BF90-$BF93). Therefore, GET_TIME logs only a single line with the call name and number, followed by a result line with the system date-time:
 
 ```
 GET_TIME ($82)
+  Result: success datetime=2026-02-01T22:40
 ```
 
 The handler still logs its internal details separately for debugging:
@@ -22,8 +23,8 @@ GET_TIME: wrote date/time to $BF90-$BF93
   Year (since 1900): 126
   Month: 2
   Day: 1
-  Hour: 21
-  Minute: 33
+  Hour: 22
+  Minute: 40
 ```
 
 ## Parameter Value Formatting
@@ -33,7 +34,7 @@ Parameters are formatted based on their type:
 - **Strings (PATHNAME_PTR)**: Quoted strings, e.g., `pathname="EDASM.ASM"`
 - **Buffers (BUFFER_PTR)**: Hex addresses, e.g., `io_buffer=$4000`
 - **Bytes/Words**: Hex values with $ prefix, e.g., `ref_num=$01`, `request_count=$000C`
-- **Date/Time**: ISO 8601 format (YYYY-MM-DDTHH:MM) - Reserved for future use. Currently, date/time fields appear only as outputs (e.g., in GET_FILE_INFO) which are not logged per requirements to exclude pointers.
+- **Date/Time Pairs**: Date and time parameters are combined and formatted as ISO 8601 (YYYY-MM-DDTHH:MM). For example, `mod_date` and `mod_time` are combined as `mod=2026-02-01T14:30`. If both values are zero (not set), displays `(not set)`.
 
 ## Examples
 
@@ -44,12 +45,14 @@ SET_PREFIX ($C6) pathname="/"
   Result: success
 ```
 
-### Successful Call with Output: OPEN
+### Successful Call with Date/Time: GET_FILE_INFO
 
 ```
-OPEN ($C8) pathname="EDASM.ASM" io_buffer=$4000
-  Result: success ref_num=$01
+GET_FILE_INFO ($C4) pathname="EDASM.ASM"
+  Result: success access=$C3 file_type=$06 aux_type=$0000 storage_type=$01 blocks_used=$0001 mod=2026-02-01T14:30 create=2026-01-15T09:00
 ```
+
+Note: Date/time pairs (`mod_date`/`mod_time`, `create_date`/`create_time`) are combined into single fields (`mod`, `create`) with ISO 8601 format.
 
 ### Call with Multiple Parameters: READ
 
