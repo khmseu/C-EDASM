@@ -22,7 +22,9 @@ bool test_lc_basic_write_read() {
     }
 
     // Activate bank2 LCBANK2 (read/write RAM) -> address C083
+    // NOTE: Requires TWO successive reads to enable write (per Apple IIe spec)
     bus.read(0xC083);
+    bus.read(0xC083); // Second read required to enable write
 
     // Write value to $D000 and read back
     bus.write(0xD000, 0x55);
@@ -53,7 +55,9 @@ bool test_lc_basic_write_read() {
     }
 
     // Back to LCBANK2 and write new value
+    // NOTE: Requires TWO successive reads to enable write
     bus.read(0xC083);
+    bus.read(0xC083); // Second read required
     bus.write(0xD000, 0x77);
     v = bus.read(0xD000);
     if (v != 0x77) {
@@ -64,7 +68,9 @@ bool test_lc_basic_write_read() {
 
     // Test ROMIN2: reads should return ROM image (initially 0) across D000..FFFF, but writes update
     // underlying RAM
+    // NOTE: Requires TWO successive reads to enable write
     bus.read(0xC081);
+    bus.read(0xC081); // Second read required
     bus.write(0xD000, 0x88); // should write to underlying banked RAM
     bus.write(0xE000, 0x99); // should write to underlying fixed RAM
 
@@ -83,7 +89,9 @@ bool test_lc_basic_write_read() {
     }
 
     // Switch back to LCBANK2 to read the RAM region and verify the writes happened
+    // NOTE: Requires TWO successive reads to enable write
     bus.read(0xC083);
+    bus.read(0xC083); // Second read required
     v = bus.read(0xD000);
     if (v != 0x88) {
         std::cerr << "Expected RAM 0x88 after returning from ROMIN2, got $" << std::hex
