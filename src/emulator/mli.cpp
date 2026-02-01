@@ -478,26 +478,37 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
     for (uint8_t i = 0; i < desc.param_count; ++i) {
         const auto &param = desc.params[i];
 
-        // Only read INPUT and INPUT_OUTPUT parameters
+        // For OUTPUT parameters:
+        // - Pointer types (BUFFER_PTR, PATHNAME_PTR): READ the pointer (handler needs to know where to write)
+        // - Value types (BYTE, WORD, THREE_BYTE, REF_NUM): SKIP (handler will generate and return via outputs)
         if (param.direction == MLIParamDirection::OUTPUT) {
-            // Add a type-correct placeholder for output-only params
-            switch (param.type) {
-            case MLIParamType::BYTE:
-            case MLIParamType::REF_NUM:
-                values.push_back(uint8_t(0));
-                break;
-            case MLIParamType::WORD:
-            case MLIParamType::PATHNAME_PTR:
-            case MLIParamType::BUFFER_PTR:
-                values.push_back(uint16_t(0));
-                break;
-            case MLIParamType::THREE_BYTE:
-                values.push_back(uint32_t(0));
-                break;
+            if (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR) {
+                // Read the pointer value (handler needs to know where to write output)
+                uint16_t ptr =
+                    mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+                values.push_back(ptr);
+                offset += 2;
+            } else {
+                // Skip value-type OUTPUT parameters (handler will write to outputs vector)
+                switch (param.type) {
+                case MLIParamType::BYTE:
+                case MLIParamType::REF_NUM:
+                    offset += 1;
+                    break;
+                case MLIParamType::WORD:
+                    offset += 2;
+                    break;
+                case MLIParamType::THREE_BYTE:
+                    offset += 3;
+                    break;
+                default:
+                    break; // BUFFER_PTR and PATHNAME_PTR handled above
+                }
             }
             continue;
         }
 
+        // Read INPUT and INPUT_OUTPUT parameters
         switch (param.type) {
         case MLIParamType::BYTE:
         case MLIParamType::REF_NUM: {
@@ -549,18 +560,94 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
     return values;
 }
 
+MLIParamValue MLIHandler::read_param_value(const Bus &bus, uint16_t param_list_addr,
+                                           const MLICallDescriptor &desc, uint8_t param_index) {
+    if (param_index >= desc.param_count) {
+        throw std::out_of_range("Parameter index out of range");
+    }
+
+    const uint8_t *mem = bus.data();
+    uint16_t offset = 1; // Skip parameter count byte
+
+    // Calculate offset to the requested parameter
+    for (uint8_t i = 0; i < param_index; ++i) {
+        const auto &param = desc.params[i];
+        switch (param.type) {
+        case MLIParamType::BYTE:
+        case MLIParamType::REF_NUM:
+            offset += 1;
+            break;
+        case MLIParamType::WORD:
+        case MLIParamType::PATHNAME_PTR:
+        case MLIParamType::BUFFER_PTR:
+            offset += 2;
+            break;
+        case MLIParamType::THREE_BYTE:
+            offset += 3;
+            break;
+        }
+    }
+
+    // Read the parameter value
+    const auto &param = desc.params[param_index];
+    switch (param.type) {
+    case MLIParamType::BYTE:
+    case MLIParamType::REF_NUM: {
+        uint8_t val = mem[param_list_addr + offset];
+        return val;
+    }
+    case MLIParamType::WORD: {
+        uint16_t val = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+        return val;
+    }
+    case MLIParamType::THREE_BYTE: {
+        uint32_t val = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8) |
+                       (mem[param_list_addr + offset + 2] << 16);
+        return val;
+    }
+    case MLIParamType::PATHNAME_PTR: {
+        uint16_t ptr = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+
+        // Read length-prefixed pathname
+        uint8_t len = mem[ptr];
+        std::string pathname;
+        uint8_t max_len = (len > 64) ? 64 : len;
+        uint16_t str_start = static_cast<uint16_t>(ptr + 1);
+        for (uint8_t j = 0; j < max_len; ++j) {
+            uint16_t addr = static_cast<uint16_t>(str_start + j);
+            pathname += static_cast<char>(mem[addr]);
+        }
+        return pathname;
+    }
+    case MLIParamType::BUFFER_PTR: {
+        uint16_t ptr = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+        return ptr;
+    }
+    }
+
+    // Should never reach here
+    return uint8_t(0);
+}
+
 void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
                                      const MLICallDescriptor &desc,
                                      const std::vector<MLIParamValue> &values) {
 
-    // Handlers are allowed to return only output (or input_output) parameters in order.
-    // Map the returned values into the parameter descriptor slots when direction != INPUT.
+    // Handlers return OUTPUT value parameters and INPUT_OUTPUT parameters.
+    // OUTPUT pointer parameters (BUFFER_PTR, PATHNAME_PTR) are handled directly by the handler.
 
-    // Count expected output parameters
+    // Count expected outputs (exclude OUTPUT pointer types)
     size_t expected_outputs = 0;
     for (uint8_t i = 0; i < desc.param_count; ++i) {
-        if (desc.params[i].direction != MLIParamDirection::INPUT)
+        const auto &param = desc.params[i];
+        if (param.direction != MLIParamDirection::INPUT) {
+            // Skip OUTPUT pointer types (handler writes directly to memory)
+            if (param.direction == MLIParamDirection::OUTPUT &&
+                (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR)) {
+                continue;
+            }
             ++expected_outputs;
+        }
     }
 
     if (values.size() != expected_outputs) {
@@ -572,7 +659,7 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
     // Skip parameter count byte
     uint16_t offset = 1;
 
-    size_t out_idx = 0; // index into values (only output/input_output params)
+    size_t out_idx = 0; // index into values (only output/input_output params, excluding OUTPUT pointers)
 
     for (uint8_t i = 0; i < desc.param_count; ++i) {
         const auto &param = desc.params[i];
@@ -593,6 +680,13 @@ void MLIHandler::write_output_params(Bus &bus, uint16_t param_list_addr,
                 offset += 3;
                 break;
             }
+            continue;
+        }
+
+        // OUTPUT pointer types: skip (handler writes directly to memory)
+        if (param.direction == MLIParamDirection::OUTPUT &&
+            (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR)) {
+            offset += 2; // Pointer is always 2 bytes
             continue;
         }
 
@@ -1523,9 +1617,10 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
         write_memory_dump(bus, "memory_dump.bin");
         std::cout << "=== HALTING ===" << std::endl;
+        
+        set_error(cpu, error);
         return false; // Signal to stop emulation
     }
-    set_error(cpu, error);
 
     // Return to caller
     return_to_caller();

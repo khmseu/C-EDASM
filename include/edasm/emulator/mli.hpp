@@ -115,6 +115,8 @@ class MLIHandler {
     static void write_output_params(Bus &bus, uint16_t param_list_addr,
                                     const MLICallDescriptor &desc,
                                     const std::vector<MLIParamValue> &values);
+    static MLIParamValue read_param_value(const Bus &bus, uint16_t param_list_addr,
+                                         const MLICallDescriptor &desc, uint8_t param_index);
 
     // Individual MLI call handlers - return ProDOSError
     // System calls
