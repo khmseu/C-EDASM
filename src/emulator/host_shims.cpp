@@ -261,8 +261,8 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
     // $C010-$C01F: Keyboard strobe and soft switches
     if (addr >= KBDSTROBE && addr <= 0xC01F) {
         if (addr == KBDSTROBE) {
-            // Writing to KBDSTROBE also clears strobe
-            kbd_strobe_ = false;
+            // Writing to KBDSTROBE also clears strobe (clear high bit)
+            kbd_value_ = kbd_value_ & 0x7F;
         }
         return true;
     }
