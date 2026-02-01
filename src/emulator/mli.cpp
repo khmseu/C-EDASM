@@ -1320,6 +1320,255 @@ ProDOSError MLIHandler::handle_get_buf(Bus &bus, const std::vector<MLIParamValue
     return ProDOSError::BAD_CALL_NUMBER;
 }
 
+// Helper functions for new logging format
+namespace {
+
+// Convert ProDOS date/time format to ISO 8601 string
+std::string prodos_datetime_to_iso8601(uint16_t date_word, uint16_t time_word) {
+    // ProDOS date format (2 bytes):
+    // High byte: YYYYYYYM (year bits 6-0, month bit 3)
+    // Low byte: MMMDDDDD (month bits 2-0, day bits 4-0)
+    // Year is offset from 1900
+    
+    // ProDOS time format (2 bytes):
+    // High byte: hour (0-23)
+    // Low byte: minute (0-59)
+    
+    uint8_t date_low = date_word & 0xFF;
+    uint8_t date_high = (date_word >> 8) & 0xFF;
+    
+    uint8_t time_low = time_word & 0xFF;
+    uint8_t time_high = (time_word >> 8) & 0xFF;
+    
+    int year = ((date_high >> 1) & 0x7F) + 1900;
+    int month = (((date_high & 0x01) << 3) | ((date_low >> 5) & 0x07));
+    int day = date_low & 0x1F;
+    
+    int hour = time_high;
+    int minute = time_low;
+    
+    // Format as ISO 8601: YYYY-MM-DDTHH:MM
+    std::ostringstream oss;
+    oss << std::setfill('0')
+        << std::setw(4) << year << "-"
+        << std::setw(2) << month << "-"
+        << std::setw(2) << day << "T"
+        << std::setw(2) << hour << ":"
+        << std::setw(2) << minute;
+    return oss.str();
+}
+
+// Check if parameter name indicates date/time
+bool is_datetime_param(const char *name) {
+    std::string param_name = name;
+    return (param_name.find("date") != std::string::npos ||
+            param_name.find("time") != std::string::npos) &&
+           param_name != "date_time_ptr"; // Exclude the pointer itself
+}
+
+// Format a parameter value for logging
+std::string format_param_value(const MLIParamDescriptor &param, const MLIParamValue &value,
+                               const Bus &bus, uint16_t param_list_addr, uint8_t param_index) {
+    std::ostringstream oss;
+    
+    switch (param.type) {
+    case MLIParamType::BYTE:
+    case MLIParamType::REF_NUM: {
+        uint8_t val = std::get<uint8_t>(value);
+        oss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+            << static_cast<int>(val);
+        break;
+    }
+    case MLIParamType::WORD: {
+        uint16_t val = std::get<uint16_t>(value);
+        // Check if this is a date/time parameter
+        if (is_datetime_param(param.name)) {
+            // Need to get the corresponding date or time value
+            // This will be formatted later when we have both date and time
+            oss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << val;
+        } else {
+            oss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << val;
+        }
+        break;
+    }
+    case MLIParamType::THREE_BYTE: {
+        uint32_t val = std::get<uint32_t>(value);
+        oss << "$" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << val;
+        break;
+    }
+    case MLIParamType::PATHNAME_PTR: {
+        std::string pathname = std::get<std::string>(value);
+        oss << "\"" << pathname << "\"";
+        break;
+    }
+    case MLIParamType::BUFFER_PTR: {
+        uint16_t ptr = std::get<uint16_t>(value);
+        oss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << ptr;
+        break;
+    }
+    }
+    
+    return oss.str();
+}
+
+// Get error message for ProDOS error code
+std::string get_error_message(ProDOSError error) {
+    switch (error) {
+    case ProDOSError::NO_ERROR:
+        return "Success";
+    case ProDOSError::BAD_CALL_NUMBER:
+        return "Bad system call number";
+    case ProDOSError::BAD_PARAM_COUNT:
+        return "Bad system call parameter count";
+    case ProDOSError::INTERRUPT_TABLE_FULL:
+        return "Interrupt vector table full";
+    case ProDOSError::IO_ERROR:
+        return "I/O error";
+    case ProDOSError::NO_DEVICE:
+        return "No device detected";
+    case ProDOSError::WRITE_PROTECTED:
+        return "Disk write protected";
+    case ProDOSError::DISK_SWITCHED:
+        return "Disk switched";
+    case ProDOSError::INVALID_PATH_SYNTAX:
+        return "Invalid pathname syntax";
+    case ProDOSError::FCB_FULL:
+        return "File Control Block table full";
+    case ProDOSError::INVALID_REF_NUM:
+        return "Invalid reference number";
+    case ProDOSError::PATH_NOT_FOUND:
+        return "Path not found";
+    case ProDOSError::VOL_NOT_FOUND:
+        return "Volume directory not found";
+    case ProDOSError::FILE_NOT_FOUND:
+        return "File not found";
+    case ProDOSError::DUPLICATE_FILE:
+        return "Duplicate filename";
+    case ProDOSError::DISK_FULL:
+        return "Disk full";
+    case ProDOSError::VOL_DIR_FULL:
+        return "Volume directory full";
+    case ProDOSError::INCOMPATIBLE_FORMAT:
+        return "Incompatible file format";
+    case ProDOSError::UNSUPPORTED_STORAGE:
+        return "Unsupported storage type";
+    case ProDOSError::END_OF_FILE:
+        return "End of file encountered";
+    case ProDOSError::POSITION_OUT_OF_RANGE:
+        return "Position out of range";
+    case ProDOSError::ACCESS_ERROR:
+        return "Access error";
+    case ProDOSError::FILE_OPEN:
+        return "File is open";
+    case ProDOSError::DIR_COUNT_ERROR:
+        return "Directory count error";
+    case ProDOSError::NOT_PRODOS_DISK:
+        return "Not a ProDOS disk";
+    case ProDOSError::INVALID_PARAMETER:
+        return "Invalid parameter";
+    case ProDOSError::VCB_FULL:
+        return "Volume Control Block table full";
+    case ProDOSError::BAD_BUFFER_ADDR:
+        return "Bad buffer address";
+    case ProDOSError::DUPLICATE_VOLUME:
+        return "Duplicate volume";
+    case ProDOSError::BITMAP_IMPOSSIBLE:
+        return "Bit map disk address is impossible";
+    default:
+        return "Unknown error";
+    }
+}
+
+// Log input parameters (first line)
+void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValue> &inputs,
+                   const Bus &bus, uint16_t param_list_addr) {
+    if (!MLIHandler::is_trace_enabled())
+        return;
+    
+    std::ostringstream oss;
+    oss << desc.name << " ($" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+        << static_cast<int>(desc.call_number) << ")";
+    
+    // Special case: GET_TIME has no parameter list
+    if (desc.call_number == 0x82) {
+        std::cout << oss.str() << std::endl;
+        return;
+    }
+    
+    // Add input parameters
+    size_t input_idx = 0;
+    const uint8_t *mem = bus.data();
+    
+    for (uint8_t i = 0; i < desc.param_count; ++i) {
+        const auto &param = desc.params[i];
+        
+        // Only log INPUT and INPUT_OUTPUT parameters
+        if (param.direction == MLIParamDirection::OUTPUT) {
+            continue;
+        }
+        
+        if (input_idx < inputs.size()) {
+            oss << " " << param.name << "=";
+            oss << format_param_value(param, inputs[input_idx], bus, param_list_addr, i);
+            input_idx++;
+        }
+    }
+    
+    std::cout << oss.str() << std::endl;
+}
+
+// Log output parameters and result (second line)
+void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamValue> &outputs,
+                    ProDOSError error, const Bus &bus, uint16_t param_list_addr) {
+    if (!MLIHandler::is_trace_enabled())
+        return;
+    
+    // Special case: GET_TIME has no parameter list
+    if (desc.call_number == 0x82) {
+        return;
+    }
+    
+    std::ostringstream oss;
+    oss << "  Result:";
+    
+    // Log result first
+    if (error == ProDOSError::NO_ERROR) {
+        oss << " success";
+    } else {
+        oss << " error=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+            << static_cast<int>(error) << " (" << get_error_message(error) << ")";
+    }
+    
+    // Add output parameters (excluding pointers)
+    if (error == ProDOSError::NO_ERROR) {
+        size_t output_idx = 0;
+        
+        for (uint8_t i = 0; i < desc.param_count; ++i) {
+            const auto &param = desc.params[i];
+            
+            // Only log OUTPUT and INPUT_OUTPUT parameters (excluding pointers)
+            if (param.direction == MLIParamDirection::INPUT) {
+                continue;
+            }
+            
+            // Skip pointer types
+            if (param.type == MLIParamType::BUFFER_PTR || param.type == MLIParamType::PATHNAME_PTR) {
+                continue;
+            }
+            
+            if (output_idx < outputs.size()) {
+                oss << " " << param.name << "=";
+                oss << format_param_value(param, outputs[output_idx], bus, param_list_addr, i);
+                output_idx++;
+            }
+        }
+    }
+    
+    std::cout << oss.str() << std::endl;
+}
+
+} // anonymous namespace
+
 bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
     // When JSR $BF00 is executed, the return address-1 is pushed onto the stack
     // Stack pointer points to the next free location, so:
@@ -1471,43 +1720,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
     };
 
-    auto log_call_summary = [&]() {
-        if (!is_trace_enabled())
-            return;
-        std::ostringstream oss;
-        oss << "[PRODOS] call=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-            << static_cast<int>(call_num) << " (";
-        {
-            const MLICallDescriptor *desc = get_call_descriptor(call_num);
-            oss << (desc ? desc->name : "UNKNOWN");
-        }
-        oss << ") params=$" << std::setw(4) << param_list;
-
-        // Capture a snapshot of the parameter block (up to 16 bytes)
-        oss << " params_bytes=";
-        size_t max_bytes = std::min<size_t>(16, Bus::MEMORY_SIZE - param_list);
-        oss << "[";
-        for (size_t i = 0; i < max_bytes; ++i) {
-            if (i > 0)
-                oss << ' ';
-            oss << std::hex << std::setw(2) << std::setfill('0')
-                << static_cast<int>(mem[param_list + i]);
-        }
-        oss << "]";
-
-        oss << " A=$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-            << static_cast<int>(cpu.A);
-
-        std::cout << oss.str() << std::endl;
-    };
-
-    auto return_success = [&]() -> bool {
-        if (cpu.A == 0) {
-            log_call_summary();
-        }
-        return true;
-    };
-
     log_call_details("trace");
 
     // New architecture: use descriptor-based dispatch
@@ -1535,14 +1747,14 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                   << ") not yet implemented" << std::endl;
         set_error(cpu, ProDOSError::BAD_CALL_NUMBER);
         return_to_caller();
-        if (cpu.A == 0) {
-            log_call_summary();
-        }
         return true;
     }
 
     // Read input parameters
     std::vector<MLIParamValue> inputs = read_input_params(bus, param_list, *desc);
+    
+    // Log input parameters (first line)
+    log_mli_input(*desc, inputs, bus, param_list);
 
     // Create empty outputs vector
     std::vector<MLIParamValue> outputs;
@@ -1552,6 +1764,9 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
     // Write output parameters
     write_output_params(bus, param_list, *desc, outputs);
+
+    // Log output parameters (second line) - do this before error handling
+    log_mli_output(*desc, outputs, error, bus, param_list);
 
     // Set CPU state based on error code
     if (error == ProDOSError::NO_ERROR) {
@@ -1646,11 +1861,6 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
     // Return to caller
     return_to_caller();
-
-    // Log if successful
-    if (cpu.A == 0) {
-        log_call_summary();
-    }
 
     return true;
 }
