@@ -197,6 +197,23 @@ constexpr uint16_t IVERSION = 0xBFFD; // Interpreter version
 // Reference: docs/APPLE_IIE_MEMORY_MAP.md
 // =================================================
 
+// Pascal 1.1 Firmware Protocol - Signature Bytes for Peripheral Card Slots
+// Each slot has a generic signature byte at $Cx0B and device signature byte at $Cx0C
+constexpr uint16_t S1PFPGS = 0xC10B; // Slot 1: Generic signature byte
+constexpr uint16_t S1PFPDS = 0xC10C; // Slot 1: Device signature byte
+constexpr uint16_t S2PFPGS = 0xC20B; // Slot 2: Generic signature byte
+constexpr uint16_t S2PFPDS = 0xC20C; // Slot 2: Device signature byte
+constexpr uint16_t S3PFPGS = 0xC30B; // Slot 3: Generic signature byte
+constexpr uint16_t S3PFPDS = 0xC30C; // Slot 3: Device signature byte
+constexpr uint16_t S4PFPGS = 0xC40B; // Slot 4: Generic signature byte
+constexpr uint16_t S4PFPDS = 0xC40C; // Slot 4: Device signature byte
+constexpr uint16_t S5PFPGS = 0xC50B; // Slot 5: Generic signature byte
+constexpr uint16_t S5PFPDS = 0xC50C; // Slot 5: Device signature byte
+constexpr uint16_t S6PFPGS = 0xC60B; // Slot 6: Generic signature byte
+constexpr uint16_t S6PFPDS = 0xC60C; // Slot 6: Device signature byte
+constexpr uint16_t S7PFPGS = 0xC70B; // Slot 7: Generic signature byte
+constexpr uint16_t S7PFPDS = 0xC70C; // Slot 7: Device signature byte
+
 // Memory Management Soft Switches ($C000-$C00B)
 constexpr uint16_t _80STOREOFF = 0xC000;  // PAGE2 switches video pages
 constexpr uint16_t _80STOREON = 0xC001;   // PAGE2 switches main/aux. video memory
