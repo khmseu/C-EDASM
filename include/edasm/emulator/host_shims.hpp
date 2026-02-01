@@ -56,8 +56,7 @@ class HostShims {
     void log_text_screen();
 
     // Apple II soft switch state
-    uint8_t kbd_data_; // $C000: Keyboard data
-    bool kbd_strobe_;  // Keyboard available flag
+    uint8_t kbd_value_; // $C000: Keyboard data (with high bit indicating new key available)
     bool text_mode_;   // $C050/$C051: Text/Graphics
     bool mixed_mode_;  // $C052/$C053: Full/Mixed screen
     bool page2_;       // $C054/$C055: Page 1/Page 2

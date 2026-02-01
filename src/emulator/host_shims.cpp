@@ -8,7 +8,7 @@
 namespace edasm {
 
 HostShims::HostShims()
-    : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_data_(0), kbd_strobe_(false),
+    : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_value_(0),
       text_mode_(true), mixed_mode_(false), page2_(false), hires_(false), stop_requested_(false) {}
 
 void HostShims::install_io_traps(Bus &bus) {
@@ -95,41 +95,33 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
         screen_dirty_ = false;
     }
 
-    // Read keyboard data register
-    if (kbd_strobe_) {
-        // Key available - return with high bit set
-        value = kbd_data_ | 0x80;
-    } else {
-        // Strobe cleared - return last key without high bit
-        // Only fetch new character if kbd_data_ is 0 (no previous key)
-        if (kbd_data_ == 0 && has_queued_input()) {
-            char ch = get_next_char();
-            if (ch != 0) {
-                // Convert to Apple II keyboard format
-                kbd_data_ = static_cast<uint8_t>(ch) & 0x7F;
-                kbd_strobe_ = true;
-                value = kbd_data_ | 0x80;
-            } else {
-                value = 0; // No key available
-            }
-        } else {
-            // Return last key without high bit (strobe cleared)
-            value = kbd_data_;
+    // Apple II keyboard semantics:
+    // - High bit (0x80) set = new key is available
+    // - High bit clear = key strobe has been cleared, same character remains
+    // - When high bit is clear and we read KBD, load next character (if available)
+
+    // If high bit is clear, load next character on this read
+    if ((kbd_value_ & 0x80) == 0 && has_queued_input()) {
+        char ch = get_next_char();
+        if (ch != 0) {
+            // Load new character with high bit set
+            kbd_value_ = (static_cast<uint8_t>(ch) & 0x7F) | 0x80;
         }
     }
+
+    // Return current keyboard value
+    value = kbd_value_;
     return true; // Trap handled
 }
 
 bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
-    // Reading KBDSTROBE clears the keyboard strobe
+    // Reading KBDSTROBE clears the keyboard strobe by clearing the high bit
     value = 0;
-    kbd_strobe_ = false;
+    kbd_value_ = kbd_value_ & 0x7F; // Clear high bit
 
     // Check if we're out of input and should stop
-    // When strobe is cleared with no more input pending, it's time to stop
-    if (!has_queued_input() && kbd_data_ != 0) {
-        // We have a character in the buffer but no more input coming
-        // Program will continue to poll this, so stop now
+    // When strobe is cleared with no more input, program will loop forever polling
+    if (!has_queued_input()) {
         std::cout
             << "\n[HostShims] KBDSTRB read with no more input - logging screen and stopping\n"
             << std::endl;
