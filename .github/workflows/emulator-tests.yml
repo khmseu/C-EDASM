@@ -1,8 +1,11 @@
 name: Emulator Tests
 
+permissions:
+    contents: read
+
 on:
     push:
-        branches: [main, develop, "copilot/**"]
+        branches: [main, develop, copilot/**]
     pull_request:
         branches: [main, develop]
     workflow_dispatch:
