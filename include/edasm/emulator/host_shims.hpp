@@ -57,10 +57,10 @@ class HostShims {
 
     // Apple II soft switch state
     uint8_t kbd_value_; // $C000: Keyboard data (with high bit indicating new key available)
-    bool text_mode_;   // $C050/$C051: Text/Graphics
-    bool mixed_mode_;  // $C052/$C053: Full/Mixed screen
-    bool page2_;       // $C054/$C055: Page 1/Page 2
-    bool hires_;       // $C056/$C057: Lo-res/Hi-res
+    bool text_mode_;    // $C050/$C051: Text/Graphics
+    bool mixed_mode_;   // $C052/$C053: Full/Mixed screen
+    bool page2_;        // $C054/$C055: Page 1/Page 2
+    bool hires_;        // $C056/$C057: Lo-res/Hi-res
 
     // 80-column state (CLR80VID / SET80VID)
     bool eighty_col_enabled_ = false;

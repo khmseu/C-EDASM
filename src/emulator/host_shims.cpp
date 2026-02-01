@@ -8,8 +8,8 @@
 namespace edasm {
 
 HostShims::HostShims()
-    : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_value_(0),
-      text_mode_(true), mixed_mode_(false), page2_(false), hires_(false), stop_requested_(false) {}
+    : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_value_(0), text_mode_(true),
+      mixed_mode_(false), page2_(false), hires_(false), stop_requested_(false) {}
 
 void HostShims::install_io_traps(Bus &bus) {
     bus_ = &bus;
@@ -122,9 +122,8 @@ bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
     // Check if we're out of input and should stop
     // When strobe is cleared with no more input, program will loop forever polling
     if (!has_queued_input()) {
-        std::cout
-            << "\n[HostShims] KBDSTRB read with no more input - logging screen and stopping\n"
-            << std::endl;
+        std::cout << "\n[HostShims] KBDSTRB read with no more input - logging screen and stopping\n"
+                  << std::endl;
         log_text_screen();
         if (bus_) {
             TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
