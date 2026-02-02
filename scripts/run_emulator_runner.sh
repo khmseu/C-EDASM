@@ -27,7 +27,7 @@ done
 
 # Copy test command file
 for i in test_input.txt test_simple.src; do
-    cp -avi "${ROOT}/tests/fixtures/${i}" "${TESTDIR}/"
+    tr '\n' '\r' <"${ROOT}/tests/fixtures/${i}" >"${TESTDIR}/${i}"
 done
 touch "${TESTDIR}/EDASM.AUTOST"
 
