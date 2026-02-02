@@ -1,25 +1,30 @@
-// Editor implementation for EDASM text editor
-//
-// This file implements the text editor from EDASM.SRC/EDITOR/
-// Primary references: EDITOR1.S, EDITOR2.S, EDITOR3.S
-//
-// Key routines from EDITOR modules:
-//   EDITOR1.S: File commands (LOCK/UNLOCK/DELETE/RENAME), line printing
-//   EDITOR2.S: Text buffer manipulation, cursor movement, search/replace
-//   EDITOR3.S: Insert/delete operations, command execution
-//
-// Original EDASM editor features:
-//   - Split buffer text management (gap buffer style)
-//   - Sweet16 pseudo-machine for 16-bit pointer operations (C++ uses native pointers)
-//   - Text buffer from $0801 to $9900 (HiMem) - C++ uses dynamic allocation
-//   - Swap mode support for multiple buffers
-//
-// Zero page variables from EDITOR/EQUATES.S mapped to C++ class members:
-//   Z60 (TabChar) -> tab_expand_mode_
-//   Z7A-Z82 (workspace) -> move_workspace_
-//
-// This C++ implementation preserves EDASM command semantics while using
-// modern data structures (std::string, std::vector) for memory management.
+/**
+ * @file editor.cpp
+ * @brief Editor implementation for EDASM text editor
+ * 
+ * Implements the text editor from EDASM.SRC/EDITOR/ modules.
+ * 
+ * Primary references: EDITOR1.S, EDITOR2.S, EDITOR3.S
+ * 
+ * Key routines from EDITOR modules:
+ * - EDITOR1.S: File commands (LOCK/UNLOCK/DELETE/RENAME), line printing
+ * - EDITOR2.S: Text buffer manipulation, cursor movement, search/replace
+ * - EDITOR3.S: Insert/delete operations, command execution
+ * 
+ * Original EDASM editor features:
+ * - Split buffer text management (gap buffer style)
+ * - Sweet16 pseudo-machine for 16-bit pointer operations (C++ uses native pointers)
+ * - Text buffer from $0801 to $9900 (HiMem) - C++ uses dynamic allocation
+ * - Swap mode support for multiple buffers
+ * 
+ * Zero page variables from EDITOR/EQUATES.S mapped to C++ class members:
+ * - Z60 (TabChar) -> tab_expand_mode_
+ * - Z7A-Z82 (workspace) -> move_workspace_
+ * 
+ * This C++ implementation preserves EDASM command semantics while using
+ * modern data structures (std::string, std::vector) for memory management.
+ */
+
 #include "edasm/editor/editor.hpp"
 
 #include <algorithm>
