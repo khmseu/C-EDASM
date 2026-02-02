@@ -68,6 +68,9 @@ ProdosFileType type_from_extension(std::string_view ext) {
     if (lower == ".txt") {
         return ProdosFileType::Text;
     }
+    if (lower == ".autost") {
+        return ProdosFileType::Text;
+    }
     if (lower == ".bin") {
         return ProdosFileType::Binary;
     }

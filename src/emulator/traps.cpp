@@ -86,7 +86,7 @@ bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
               << std::setfill('0') << trap_pc << " ===" << std::endl;
     log_cpu_state(cpu, bus, trap_pc);
     log_memory_window(bus, trap_pc, 32);
-    std::cerr << "=== HALTING ===" << std::endl;
+    std::cerr << "=== HALTING (returning false) ===" << std::endl;
 
     // Write memory dump before halting
     write_memory_dump(bus, "memory_dump.bin");
