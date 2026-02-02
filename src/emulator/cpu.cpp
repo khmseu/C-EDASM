@@ -1479,9 +1479,6 @@ bool CPU::execute_instruction(uint8_t opcode) {
         // Unimplemented opcode - treat as trap
         // Decrement PC to point to the unimplemented opcode
         state_.PC--;
-        if (trap_handler_) {
-            return trap_handler_(state_, bus_, state_.PC);
-        }
         return false; // Halt on unimplemented opcode
     }
 
