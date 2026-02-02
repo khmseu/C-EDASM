@@ -1,3 +1,11 @@
+/**
+ * @file disassembly.cpp
+ * @brief 6502 instruction disassembler implementation
+ * 
+ * Provides disassembly of 6502 machine code to assembly mnemonics.
+ * Used for debugging and tracing emulator execution.
+ */
+
 #include "edasm/emulator/disassembly.hpp"
 #include "edasm/constants.hpp"
 #include <cstring>

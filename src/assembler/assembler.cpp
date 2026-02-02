@@ -1,16 +1,21 @@
-// Assembler implementation for EDASM 6502 assembler
-//
-// This file implements the two-pass assembler logic from EDASM.SRC/ASM/
-// Primary source reference: ASM2.S (Pass 1 & 2 logic)
-// Secondary references: ASM3.S (directives, expression evaluation)
-//
-// Key entry points from ASM2.S:
-//   - ExecAsm ($7806): Main assembly coordinator -> Assembler::assemble()
-//   - DoPass1 ($7E1E): First pass - symbol table building -> pass1()
-//   - DoPass2 ($7F69): Second pass - code generation -> pass2()
-//   - InitASM ($7DC3): Initialize assembler state -> reset()
-//
-// ASM3.S directive handlers are implemented in process_directive_pass1/pass2()
+/**
+ * @file assembler.cpp
+ * @brief Assembler implementation for EDASM 6502 assembler
+ * 
+ * Implements the two-pass assembler logic from EDASM.SRC/ASM/.
+ * 
+ * Primary source reference: ASM2.S (Pass 1 & 2 logic)
+ * Secondary references: ASM3.S (directives, expression evaluation)
+ * 
+ * Key entry points from ASM2.S:
+ * - ExecAsm ($7806): Main assembly coordinator -> Assembler::assemble()
+ * - DoPass1 ($7E1E): First pass - symbol table building -> pass1()
+ * - DoPass2 ($7F69): Second pass - code generation -> pass2()
+ * - InitASM ($7DC3): Initialize assembler state -> reset()
+ * 
+ * ASM3.S directive handlers are implemented in process_directive_pass1/pass2()
+ */
+
 #include "edasm/assembler/assembler.hpp"
 
 #include <algorithm>

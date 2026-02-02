@@ -1,3 +1,11 @@
+/**
+ * @file screen.cpp
+ * @brief Terminal screen management implementation using ncurses
+ * 
+ * Provides simple ncurses wrapper for text-mode screen output.
+ * Handles initialization, cleanup, and basic display operations.
+ */
+
 #include "edasm/screen.hpp"
 
 #include <curses.h>

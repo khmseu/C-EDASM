@@ -1,19 +1,24 @@
-// Symbol table implementation for EDASM assembler
-//
-// This file implements symbol table management from EDASM.SRC/ASM/
-// Primary references: ASM2.S (symbol lookup/add), ASM1.S (sorting/printing)
-//
-// Key routines from ASM2.S:
-//   - FindSym ($88C3): Hash table lookup -> lookup()
-//   - AddNode ($89A9): Add symbol to hash chain -> define()
-//   - HashFn ($8955): 3-character hash function (simplified in C++ to std::unordered_map)
-//
-// Key routines from ASM1.S:
-//   - DoSort ($D1D6): Shell sort algorithm -> sorted_by_name(), sorted_by_value()
-//   - DoPass3 ($D000): Symbol table printing (implemented in listing.cpp)
-//
-// Original EDASM uses 128-entry hash table with chaining. C++ uses std::unordered_map
-// which provides similar O(1) lookup with automatic resizing and collision handling.
+/**
+ * @file symbol_table.cpp
+ * @brief Symbol table implementation for EDASM assembler
+ * 
+ * Implements symbol table management from EDASM.SRC/ASM/.
+ * 
+ * Primary references: ASM2.S (symbol lookup/add), ASM1.S (sorting/printing)
+ * 
+ * Key routines from ASM2.S:
+ * - FindSym ($88C3): Hash table lookup -> lookup()
+ * - AddNode ($89A9): Add symbol to hash chain -> define()
+ * - HashFn ($8955): 3-character hash function (simplified in C++ to std::unordered_map)
+ * 
+ * Key routines from ASM1.S:
+ * - DoSort ($D1D6): Shell sort algorithm -> sorted_by_name(), sorted_by_value()
+ * - DoPass3 ($D000): Symbol table printing (implemented in listing.cpp)
+ * 
+ * Original EDASM uses 128-entry hash table with chaining. C++ uses std::unordered_map
+ * which provides similar O(1) lookup with automatic resizing and collision handling.
+ */
+
 #include "edasm/assembler/symbol_table.hpp"
 
 #include <algorithm>

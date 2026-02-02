@@ -1,3 +1,21 @@
+/**
+ * @file linker.hpp
+ * @brief Linker for EDASM relocatable (REL) object files
+ * 
+ * Implements the 6-phase linking process from LINKER/LINK.S:
+ * 1. Read command options (file list, output type, origin)
+ * 2. Build symbol tables from ESD records
+ * 3. Resolve external references
+ * 4. Relocate code segments
+ * 5. Generate output RLD/ESD (for REL output)
+ * 6. Create load maps (optional)
+ * 
+ * Supports multiple output formats: BIN (binary executable), REL
+ * (relocatable for further linking), SYS (system file).
+ * 
+ * Reference: LINKER/LINK.S from EDASM.SRC
+ */
+
 #pragma once
 
 #include <cstdint>

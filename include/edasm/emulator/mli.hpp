@@ -1,3 +1,19 @@
+/**
+ * @file mli.hpp
+ * @brief ProDOS Machine Language Interface (MLI) handler
+ * 
+ * Implements ProDOS MLI system calls for the emulator. Maps ProDOS file
+ * operations to Linux filesystem operations with 1:1 path correspondence.
+ * 
+ * Supported MLI calls:
+ * - System: ALLOC_INTERRUPT, DEALLOC_INTERRUPT, QUIT, GET_TIME
+ * - Housekeeping: CREATE, DESTROY, RENAME, GET/SET_FILE_INFO, ONLINE, GET/SET_PREFIX  
+ * - Filing: OPEN, NEWLINE, READ, WRITE, CLOSE, FLUSH, GET/SET_MARK, GET/SET_EOF, GET/SET_BUF
+ * - Block: READ_BLOCK, WRITE_BLOCK
+ * 
+ * Reference: Apple ProDOS 8 Technical Reference Manual
+ */
+
 #ifndef EDASM_MLI_HPP
 #define EDASM_MLI_HPP
 
