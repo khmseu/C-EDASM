@@ -1,3 +1,24 @@
+/**
+ * @file bus.hpp
+ * @brief Memory bus for 65C02 emulator
+ * 
+ * Implements 64KB address space with bank switching for Apple II language card.
+ * Supports memory traps for incremental system call discovery.
+ * 
+ * Memory layout:
+ * - 64KB main RAM (address space $0000-$FFFF)
+ * - 16KB language card RAM (bank-switched into $D000-$FFFF)
+ * - 2KB write-sink for ROM writes
+ * - Total: 82KB physical memory
+ * 
+ * Features:
+ * - Read/write traps for address ranges
+ * - Bank mapping for language card emulation
+ * - Trap opcode ($02) initialization for discovery
+ * 
+ * Reference: docs/EMULATOR_MINIMAL_PLAN.md
+ */
+
 #ifndef EDASM_BUS_HPP
 #define EDASM_BUS_HPP
 
