@@ -86,4 +86,25 @@ ProdosFileName parse_linux_name(const std::string &name) {
     return out;
 }
 
+uint8_t prodos_type_code(ProdosFileType type) {
+    // ProDOS numeric file type codes (commonly used values)
+    // TXT = $04, BIN = $06, REL = $FE, SYS = $FF
+    switch (type) {
+    case ProdosFileType::Source:
+        return 0x04; // treat source as text
+    case ProdosFileType::Listing:
+    case ProdosFileType::Text:
+        return 0x04; // TXT
+    case ProdosFileType::Object:
+        return 0xFE; // REL
+    case ProdosFileType::System:
+        return 0xFF; // SYS
+    case ProdosFileType::Binary:
+        return 0x06; // BIN
+    case ProdosFileType::Unknown:
+    default:
+        return 0x06; // default to BIN
+    }
+}
+
 } // namespace edasm

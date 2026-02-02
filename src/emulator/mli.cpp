@@ -1,6 +1,7 @@
 #include "edasm/emulator/mli.hpp"
 #include "edasm/constants.hpp"
 #include "edasm/emulator/traps.hpp"
+#include "edasm/files/prodos_file.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -1188,8 +1189,15 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     uint32_t size32 = static_cast<uint32_t>(file_size);
     uint16_t blocks_used = static_cast<uint16_t>((size32 + 511) / 512);
 
-    outputs.push_back(uint8_t(0xC3));    // access
-    outputs.push_back(uint8_t(0x06));    // file_type
+    outputs.push_back(uint8_t(0xC3)); // access
+
+    // Determine a likely ProDOS file type from the host filename extension
+    std::filesystem::path p(host_path);
+    std::string ext = p.extension().string();
+    auto pf_type = edasm::type_from_extension(ext);
+    uint8_t prodos_ftype = edasm::prodos_type_code(pf_type);
+    outputs.push_back(prodos_ftype); // file_type
+
     outputs.push_back(uint16_t(0x0000)); // aux_type
     outputs.push_back(uint8_t(0x01));    // storage_type
     outputs.push_back(blocks_used);      // blocks_used
