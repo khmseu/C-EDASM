@@ -1,11 +1,11 @@
 /**
  * @file host_shims.hpp
  * @brief Host I/O shims for emulator
- * 
+ *
  * Provides shims for Apple II I/O operations, mapping them to host system.
  * Handles keyboard input, screen output, and other peripherals needed for
  * EDASM.SYSTEM execution.
- * 
+ *
  * Features:
  * - I/O trap handlers for Apple II soft switches
  * - Input queue for automated testing

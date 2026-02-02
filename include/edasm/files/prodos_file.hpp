@@ -1,7 +1,7 @@
 /**
  * @file prodos_file.hpp
  * @brief ProDOS filename parsing and mapping
- * 
+ *
  * Parses Linux filenames to determine ProDOS file types and vice versa.
  * Handles extension-based type detection for compatibility with ProDOS
  * file semantics.
@@ -17,11 +17,11 @@ namespace edasm {
 
 /**
  * @brief Parsed ProDOS filename
- * 
+ *
  * Separates stem (base name) from type (extension).
  */
 struct ProdosFileName {
-    std::string stem;                       ///< Base filename without extension
+    std::string stem;                             ///< Base filename without extension
     ProdosFileType type{ProdosFileType::Unknown}; ///< File type from extension
 
     /**

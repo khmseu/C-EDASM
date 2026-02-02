@@ -1,16 +1,16 @@
 /**
  * @file emulator_runner.cpp
  * @brief Standalone 65C02 emulator runner for EDASM.SYSTEM
- * 
+ *
  * Runs the EDASM.SYSTEM binary in emulation mode, executing the editor/
  * assembler with ProDOS MLI emulation for file I/O.
- * 
+ *
  * Features:
  * - Loads EDASM.SYSTEM binary at correct address
  * - Emulates ProDOS MLI calls for file operations
  * - Maps ProDOS paths 1:1 to Linux filesystem
  * - Provides trace output for debugging
- * 
+ *
  * Reference: docs/EMULATOR_MINIMAL_PLAN.md
  */
 

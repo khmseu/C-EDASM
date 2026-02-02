@@ -1,7 +1,7 @@
 /**
  * @file host_shims.cpp
  * @brief Host I/O shims implementation
- * 
+ *
  * Implements Apple II I/O operations, mapping them to host system.
  * Handles keyboard input, screen output, and soft switches.
  */

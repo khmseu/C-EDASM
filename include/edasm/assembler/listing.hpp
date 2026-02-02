@@ -1,15 +1,15 @@
 /**
  * @file listing.hpp
  * @brief Assembly listing file generator
- * 
+ *
  * Generates formatted listing output with addresses, machine code bytes,
  * source lines, and symbol table. Implements listing logic from ASM1.S
  * and ASM2.S.
- * 
+ *
  * Listing format:
  * - Line number, address, bytes, source text
  * - Symbol table at end (optional, in columns)
- * 
+ *
  * Reference: ASM1.S DoPass3, ASM2.S listing routines
  */
 
@@ -25,7 +25,7 @@ namespace edasm {
 
 /**
  * @brief Listing file generator
- * 
+ *
  * Accumulates listing lines during assembly and generates formatted
  * output with optional symbol table.
  */
@@ -84,8 +84,8 @@ class ListingGenerator {
     std::string to_string() const;
 
   private:
-    Options options_;                   ///< Listing options
-    std::vector<ListingLine> lines_;    ///< Accumulated listing lines
+    Options options_;                     ///< Listing options
+    std::vector<ListingLine> lines_;      ///< Accumulated listing lines
     const SymbolTable *symbols_{nullptr}; ///< Symbol table reference
 
     /**

@@ -1,7 +1,7 @@
 /**
  * @file traps.cpp
  * @brief Trap management and statistics implementation
- * 
+ *
  * Provides trap handler registration, dispatch, and statistics tracking
  * for incremental discovery of system calls and I/O operations.
  */

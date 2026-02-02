@@ -1,7 +1,7 @@
 /**
  * @file cpu.cpp
  * @brief 65C02 CPU emulator implementation
- * 
+ *
  * Implements complete 65C02 instruction set with all addressing modes.
  * Provides trap handling for incremental system call discovery.
  */

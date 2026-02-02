@@ -1,22 +1,22 @@
 /**
  * @file expression.cpp
  * @brief Expression evaluation implementation for EDASM assembler
- * 
+ *
  * Implements expression parsing and evaluation from EDASM.SRC/ASM/.
- * 
+ *
  * Primary reference: ASM2.S ($8561-$8829) and ASM3.S
- * 
+ *
  * Key routines from ASM2.S:
  * - EvalExpr ($8561): Main expression evaluator -> evaluate()
  * - EvalTerm ($8724): Parse terms (constants, identifiers) -> parse_simple()
  * - EvalSExpr ($8662): Evaluate sub-expressions -> parse_full()
  * - ExprADD/SUB/MUL/DIV/AND/EOR/ORA ($8787-$8829): Binary operators
- * 
+ *
  * Expression operators from ASM3.S Operators table ($8829):
  * - + (addition), - (subtraction), * (multiplication), / (division)
  * - & (bitwise AND), | (bitwise OR), ^ (bitwise XOR), ! (bitwise NOT)
  * - < (low byte), > (high byte)
- * 
+ *
  * Original EDASM uses recursive descent parser with operator precedence.
  * This C++ implementation follows the same approach with modern syntax.
  */

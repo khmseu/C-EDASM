@@ -1,7 +1,7 @@
 /**
  * @file tokenizer.cpp
  * @brief Tokenizer implementation for 6502 assembly source
- * 
+ *
  * Parses assembly source lines into components: label, mnemonic, operand, comment.
  * Implements tokenization logic compatible with EDASM source format.
  */

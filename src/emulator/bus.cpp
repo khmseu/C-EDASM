@@ -1,7 +1,7 @@
 /**
  * @file bus.cpp
  * @brief Memory bus implementation with bank switching
- * 
+ *
  * Implements 64KB address space with language card bank switching and
  * memory traps for I/O emulation.
  */

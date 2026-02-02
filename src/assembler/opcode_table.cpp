@@ -1,16 +1,16 @@
 /**
  * @file opcode_table.cpp
  * @brief Opcode table implementation for EDASM assembler
- * 
+ *
  * Implements 6502/65C02 instruction encoding from EDASM.SRC/ASM/.
- * 
+ *
  * Primary reference: ASM1.S OpcodeT ($D835-$D909) - Opcode tables by addressing mode
- * 
+ *
  * Key data structures from ASM1.S:
  * - OpcodeT ($D835): Master opcode table organized by addressing mode
  * - CycTimes ($D90A): CPU cycle timing table (not implemented in C++)
  * - ModWrdL/ModWrdH: Addressing mode flag bytes (implemented in C++ as enums)
- * 
+ *
  * Original EDASM has 13 addressing modes stored in mode-specific tables.
  * C++ implementation uses a map-based approach with addressing mode detection.
  */

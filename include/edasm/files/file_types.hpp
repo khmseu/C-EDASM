@@ -1,10 +1,10 @@
 /**
  * @file file_types.hpp
  * @brief ProDOS file type mappings
- * 
+ *
  * Maps ProDOS file types to Linux file extensions and vice versa.
  * Supports standard EDASM file types: source, object, listing, etc.
- * 
+ *
  * Reference: docs/Apple ProDOS 8 Technical Reference Manual.txt
  */
 
@@ -18,7 +18,7 @@ namespace edasm {
 
 /**
  * @brief ProDOS file type enumeration
- * 
+ *
  * Common file types used in EDASM development.
  */
 enum class ProdosFileType {

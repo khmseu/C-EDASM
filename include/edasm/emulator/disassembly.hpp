@@ -1,7 +1,7 @@
 /**
  * @file disassembly.hpp
  * @brief 6502 instruction disassembler
- * 
+ *
  * Provides disassembly of 6502 machine code to assembly mnemonics.
  * Used for debugging and tracing emulator execution.
  */
@@ -15,13 +15,13 @@ namespace edasm {
 
 /**
  * @brief 6502 opcode information for disassembly
- * 
+ *
  * Contains mnemonic, byte count, and addressing mode for each opcode.
  */
 struct OpcodeInfo {
     const char *mnemonic; ///< Instruction mnemonic
     int bytes;            ///< Instruction length in bytes
-    
+
     /**
      * @brief Addressing mode enumeration
      */
@@ -39,12 +39,12 @@ struct OpcodeInfo {
         IndexedIndirect, ///< Indexed indirect (X)
         IndirectIndexed, ///< Indirect indexed (Y)
         Relative         ///< Relative branch
-    } mode; ///< Addressing mode
+    } mode;              ///< Addressing mode
 };
 
 /**
  * @brief Complete 6502 opcode table
- * 
+ *
  * Array of 256 entries, one per possible opcode byte.
  */
 extern const OpcodeInfo opcode_table[256];

@@ -1,7 +1,7 @@
 /**
  * @file main.cpp
  * @brief Main entry point for EDASM CLI application
- * 
+ *
  * Simple entry point that creates and runs the App instance.
  */
 

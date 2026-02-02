@@ -1,16 +1,16 @@
 /**
  * @file constants.hpp
  * @brief Constants and shared definitions for EDASM
- * 
+ *
  * Implements shared constants from EDASM.SRC/COMMONEQUS.S including:
  * - ASCII control codes (CTRL-A through DEL)
  * - ProDOS file types: TXT=$04, BIN=$06, REL=$FE, SYS=$FF
  * - Symbol table flags (SYM_*)
  * - Assembly directive constants
- * 
+ *
  * This C++ header preserves essential constants from the original while
  * removing Apple II-specific hardware addresses that don't apply to Linux.
- * 
+ *
  * Reference: COMMONEQUS.S - Shared equates across all EDASM modules
  */
 

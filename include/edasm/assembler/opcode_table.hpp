@@ -1,11 +1,11 @@
 /**
  * @file opcode_table.hpp
  * @brief 6502 opcode lookup table
- * 
+ *
  * Provides fast lookup of 6502 opcodes by mnemonic and addressing mode.
  * Contains all legal 6502 opcodes with their binary codes, byte counts,
  * and cycle timings.
- * 
+ *
  * Reference: 6502_INSTRUCTION_SET.md, ASM opcode tables
  */
 
@@ -20,7 +20,7 @@ namespace edasm {
 
 /**
  * @brief 6502 addressing modes
- * 
+ *
  * All addressing modes supported by the 6502 processor.
  * Reference: 6502_INSTRUCTION_SET.md
  */
@@ -42,7 +42,7 @@ enum class AddressingMode {
 
 /**
  * @brief Opcode entry with metadata
- * 
+ *
  * Contains all information about a specific 6502 opcode variant.
  */
 struct Opcode {
@@ -56,7 +56,7 @@ struct Opcode {
 
 /**
  * @brief Opcode lookup table
- * 
+ *
  * Fast lookup of 6502 opcodes by mnemonic and addressing mode.
  * Initialized with all legal 6502 opcodes at construction.
  */
@@ -100,23 +100,23 @@ class OpcodeTable {
              bool page_cross = false);
 
     // Initialization methods for opcode groups
-    void init_load_store();         ///< Load/store instructions
-    void init_arithmetic();         ///< Arithmetic instructions
+    void init_load_store();          ///< Load/store instructions
+    void init_arithmetic();          ///< Arithmetic instructions
     void init_increment_decrement(); ///< INC/DEC instructions
-    void init_logical();            ///< Logical operations
-    void init_shift_rotate();       ///< Shift/rotate instructions
-    void init_compare();            ///< Compare instructions
-    void init_branch();             ///< Branch instructions
-    void init_jump();               ///< Jump instructions
-    void init_transfer();           ///< Register transfer
-    void init_stack();              ///< Stack operations
-    void init_flags();              ///< Flag operations
-    void init_system();             ///< System instructions
+    void init_logical();             ///< Logical operations
+    void init_shift_rotate();        ///< Shift/rotate instructions
+    void init_compare();             ///< Compare instructions
+    void init_branch();              ///< Branch instructions
+    void init_jump();                ///< Jump instructions
+    void init_transfer();            ///< Register transfer
+    void init_stack();               ///< Stack operations
+    void init_flags();               ///< Flag operations
+    void init_system();              ///< System instructions
 };
 
 /**
  * @brief Addressing mode detection helper
- * 
+ *
  * Detects addressing mode from operand syntax.
  */
 class AddressingModeDetector {

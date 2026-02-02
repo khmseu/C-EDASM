@@ -1,21 +1,21 @@
 /**
  * @file rel_file.hpp
  * @brief REL (Relocatable) file format parser and builder
- * 
+ *
  * Implements the EDASM REL file format with:
  * - CODE IMAGE: Machine code with 2-byte length header
  * - RLD (Relocation Dictionary): Locations needing relocation
  * - ESD (External Symbol Dictionary): Entry points and external refs
- * 
+ *
  * RLD entries describe:
  * - Absolute references (no relocation)
  * - Relative references (add module base)
  * - External references (resolve from other modules)
- * 
+ *
  * ESD entries define:
  * - Entry points (ENT directive): symbols exported to other modules
  * - External references (EXT directive): symbols imported from other modules
- * 
+ *
  * Reference: ASM3.S and LINKER/LINK.S from EDASM.SRC
  */
 

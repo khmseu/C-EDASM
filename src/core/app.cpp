@@ -1,31 +1,31 @@
 /**
  * @file app.cpp
  * @brief Application main loop implementation for EDASM
- * 
+ *
  * Implements the main interpreter loop from EDASM.SRC/EI/EDASMINT.S.
  * Provides command parsing, dispatch, and module coordination for the
  * editor, assembler, and file operations.
- * 
+ *
  * Key routines from EDASMINT.S:
  * - Entry point at $B100: Command interpreter and main loop -> run()
  * - Module loader/unloader for Editor, Assembler, Linker
  * - ProDOS interface and file management (adapted for Linux)
  * - Command parsing and dispatch
  * - RESET vector ($03F2) and Ctrl-Y vector ($03F8) handlers
- * 
+ *
  * Global page at $BD00-$BEFF used for inter-module communication.
  * C++ equivalent uses class member variables for state sharing.
- * 
+ *
  * Zero page variables from EI/EQUATES.S mapped to C++ class members:
  * - TxtBgn/TxtEnd ($0A-$0F) -> text_begin_/text_end_
  * - StackP ($49) -> saved/restored by App
  * - FileType ($51) -> file_type_ (in assembler/file modules)
  * - ExecMode ($53) -> exec_mode_
  * - SwapMode ($74) -> swap_mode_ (in editor)
- * 
+ *
  * This C++ implementation adapts the original Apple II/ProDOS model to Linux
  * while maintaining command compatibility and semantic equivalence.
- * 
+ *
  * Reference: EI/EDASMINT.S - EDASM Interpreter main module
  */
 
