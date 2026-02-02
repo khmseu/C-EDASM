@@ -1,3 +1,19 @@
+/**
+ * @file assembler.hpp
+ * @brief Two-pass 6502 assembler for EDASM
+ * 
+ * Implements the complete 6502 assembler from ASM*.S modules including:
+ * - Two-pass assembly (symbol table building and code generation)
+ * - Expression evaluation with EDASM-specific operators
+ * - All 6502 opcodes and addressing modes
+ * - Directives: ORG, EQU, DA, DW, DB, ASC, DCI, DS, END, LST, MSB
+ * - REL file format with ENT/EXT directives
+ * - INCLUDE file preprocessing
+ * - Conditional assembly (DO/ELSE/FIN)
+ * 
+ * Reference: ASM2.S, ASM3.S from EDASM.SRC
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -13,37 +29,72 @@
 
 namespace edasm {
 
+/**
+ * @brief 6502 assembler with two-pass assembly and full EDASM compatibility
+ * 
+ * Provides complete 6502 assembly with all addressing modes, directives,
+ * and EDASM-specific features including REL file format and conditional assembly.
+ */
 class Assembler {
   public:
+    /**
+     * @brief Assembly result containing generated code and status
+     */
     struct Result {
-        bool success{false};
-        std::vector<std::string> errors;
-        std::vector<std::string> warnings;
-        std::vector<uint8_t> code;    // Generated machine code
-        uint16_t org_address{0x0800}; // ORG address (default $0800)
-        uint16_t code_length{0};
-        std::string listing; // Listing output (if enabled)
+        bool success{false};                  ///< True if assembly succeeded
+        std::vector<std::string> errors;      ///< Error messages
+        std::vector<std::string> warnings;    ///< Warning messages
+        std::vector<uint8_t> code;            ///< Generated machine code
+        uint16_t org_address{0x0800};         ///< ORG address (default $0800)
+        uint16_t code_length{0};              ///< Length of generated code
+        std::string listing;                  ///< Listing output (if enabled)
 
         // REL file format data (only populated if rel_mode is true)
-        bool is_rel_file{false};
-        std::vector<uint8_t> rel_file_data; // Complete REL format with RLD/ESD
+        bool is_rel_file{false};              ///< True if REL directive used
+        std::vector<uint8_t> rel_file_data;   ///< Complete REL format with RLD/ESD
     };
 
+    /**
+     * @brief Assembly options for controlling output format
+     */
     struct Options {
-        bool generate_listing = false;
-        bool list_symbols = true;
-        bool sort_symbols_by_value = false;
-        int symbol_columns = 4; // 2, 4, or 6
+        bool generate_listing = false;        ///< Generate listing file
+        bool list_symbols = true;             ///< Include symbol table in listing
+        bool sort_symbols_by_value = false;   ///< Sort symbols by value vs name
+        int symbol_columns = 4;               ///< Symbol table columns (2, 4, or 6)
     };
 
+    /**
+     * @brief Construct a new Assembler object
+     */
     Assembler();
+    
+    /**
+     * @brief Assemble source code with default options
+     * @param source Source code text
+     * @return Result Assembly result
+     */
     Result assemble(const std::string &source) {
         return assemble(source, Options{});
     }
+    
+    /**
+     * @brief Assemble source code with specified options
+     * @param source Source code text
+     * @param opts Assembly options
+     * @return Result Assembly result
+     */
     Result assemble(const std::string &source, const Options &opts);
+    
+    /**
+     * @brief Reset assembler state for new assembly
+     */
     void reset();
 
-    // Access to symbol table for debugging/listing
+    /**
+     * @brief Get symbol table for debugging/listing
+     * @return const SymbolTable& Reference to symbol table
+     */
     const SymbolTable &symbols() const {
         return symbols_;
     }

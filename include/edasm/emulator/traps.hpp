@@ -1,3 +1,19 @@
+/**
+ * @file traps.hpp
+ * @brief Trap management and statistics for emulator
+ * 
+ * Provides trap handler registration, dispatch, and statistics tracking.
+ * Traps are used for incremental discovery of system calls and I/O operations.
+ * 
+ * Features:
+ * - Address-specific trap handlers (opcode $02)
+ * - Read/write memory traps
+ * - Trap statistics and reporting
+ * - Default handlers for common operations
+ * 
+ * Reference: docs/EMULATOR_MINIMAL_PLAN.md
+ */
+
 #ifndef EDASM_TRAPS_HPP
 #define EDASM_TRAPS_HPP
 

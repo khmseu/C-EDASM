@@ -1,3 +1,11 @@
+/**
+ * @file bus.cpp
+ * @brief Memory bus implementation with bank switching
+ * 
+ * Implements 64KB address space with language card bank switching and
+ * memory traps for I/O emulation.
+ */
+
 #include "edasm/emulator/bus.hpp"
 #include "edasm/emulator/traps.hpp"
 #include <algorithm>

@@ -1,3 +1,13 @@
+/**
+ * @file mli.cpp
+ * @brief ProDOS MLI (Machine Language Interface) handler implementation
+ * 
+ * Implements ProDOS system calls for the emulator, mapping ProDOS file
+ * operations to Linux filesystem with 1:1 path correspondence.
+ * 
+ * Reference: Apple ProDOS 8 Technical Reference Manual
+ */
+
 #include "edasm/emulator/mli.hpp"
 #include "edasm/constants.hpp"
 #include "edasm/emulator/traps.hpp"
