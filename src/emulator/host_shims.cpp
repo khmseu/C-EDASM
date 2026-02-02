@@ -50,7 +50,7 @@ void HostShims::install_io_traps(Bus &bus) {
                     std::cout << "\n[HostShims] First screen character set to 'E' - logging and "
                                  "stopping\n"
                               << std::endl;
-                    log_text_screen();
+                    log_text_screen("First screen character set to 'E'");
                     if (bus_) {
                         TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
                     }
@@ -99,7 +99,7 @@ char HostShims::get_next_char() {
 
 bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
     if (screen_dirty_ && bus_) {
-        log_text_screen();
+        log_text_screen("screen_dirty_");
         screen_dirty_ = false;
     }
 
@@ -132,7 +132,7 @@ bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
     if (!has_queued_input()) {
         std::cout << "\n[HostShims] KBDSTRB read with no more input - logging screen and stopping\n"
                   << std::endl;
-        log_text_screen();
+        log_text_screen("KBDSTRB read with no more input");
         if (bus_) {
             TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
         }
@@ -389,14 +389,15 @@ bool HostShims::handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_
     return true;
 }
 
-void HostShims::log_text_screen() {
+void HostShims::log_text_screen(const std::string &why) {
     if (!bus_) {
         return;
     }
 
     const uint16_t base = page2_ ? 0x0800 : 0x0400;
 
-    std::cout << "[HostShims] Text screen snapshot (page " << (page2_ ? 2 : 1) << ")\n";
+    std::cout << "[HostShims] Text screen snapshot (page " << (page2_ ? 2 : 1) << ") " << why
+              << "\n";
 
     for (int row = 0; row < 24; ++row) {
         std::cout << std::setw(2) << row << ": ";
@@ -405,7 +406,9 @@ void HostShims::log_text_screen() {
                 static_cast<uint16_t>(base + (row % 8) * 128 + (row / 8) * 40 + col);
             uint8_t byte = bus_->read(addr);
             char ch = static_cast<char>(byte & 0x7F);
-            if (ch < 0x20 || ch > 0x7E) {
+            if (ch < 0x20)
+                ch += 0x40;
+            else if (ch == 0x7f) {
                 ch = '.';
             }
             std::cout << ch;
@@ -423,7 +426,7 @@ void HostShims::report_unhandled_io(uint16_t addr, bool is_write, uint8_t value)
               << " value=$" << std::setw(2) << static_cast<int>(value) << " - stopping"
               << std::endl;
     if (bus_) {
-        log_text_screen();
+        log_text_screen("UNIMPLEMENTED I/O access");
         TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
     }
     stop_requested_ = true;
@@ -516,15 +519,17 @@ bool HostShims::handle_language_control_read(uint16_t addr, uint8_t &value) {
     lc_.power_on_rom_active =
         (mode == LCBankMode::READ_ROM_ONLY || mode == LCBankMode::READ_ROM_WRITE_RAM);
 
-    std::cout << "[HostShims] Language Card control read at $" << std::hex << std::uppercase
-              << std::setw(4) << std::setfill('0') << addr << " -> HW Bank " << std::dec
-              << static_cast<int>(hw_bank) << " (idx=" << static_cast<int>(bank)
-              << ") mode=" << static_cast<int>(mode);
-    if (write_enable_requested) {
-        std::cout << (write_actually_enabled ? " [2nd read - write enabled]"
-                                             : " [1st read - pending]");
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[HostShims] Language Card control read at $" << std::hex << std::uppercase
+                  << std::setw(4) << std::setfill('0') << addr << " -> HW Bank " << std::dec
+                  << static_cast<int>(hw_bank) << " (idx=" << static_cast<int>(bank)
+                  << ") mode=" << static_cast<int>(mode);
+        if (write_enable_requested) {
+            std::cout << (write_actually_enabled ? " [2nd read - write enabled]"
+                                                 : " [1st read - pending]");
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
 
     // Update bank mappings for D000-FFFF (banks 26-31)
     update_lc_bank_mappings();
@@ -538,9 +543,11 @@ bool HostShims::handle_language_control_write(uint16_t addr, uint8_t value) {
     // They also count toward the double-access requirement
     uint8_t dummy;
     bool ok = handle_language_control_read(addr, dummy);
-    std::cout << "[HostShims] Language Card control write at $" << std::hex << std::uppercase
-              << std::setw(4) << std::setfill('0') << addr << " value=$" << std::setw(2)
-              << static_cast<int>(value) << " (same effect as read)" << std::endl;
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[HostShims] Language Card control write at $" << std::hex << std::uppercase
+                  << std::setw(4) << std::setfill('0') << addr << " value=$" << std::setw(2)
+                  << static_cast<int>(value) << " (same effect as read)" << std::endl;
+    }
     return ok;
 }
 

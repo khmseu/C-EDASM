@@ -66,7 +66,7 @@ class HostShims {
     bool handle_speaker_toggle(uint16_t addr, uint8_t &value);
     bool handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_write);
 
-    void log_text_screen();
+    void log_text_screen(const std::string &why);
 
     // Apple II soft switch state
     uint8_t kbd_value_; // $C000: Keyboard data (with high bit indicating new key available)
