@@ -1,2 +1,3 @@
-LOAD input.src
-ASM 
+ASM input.src
+CAT
+END
