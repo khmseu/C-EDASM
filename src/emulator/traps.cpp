@@ -71,9 +71,17 @@ bool TrapManager::general_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
 
     if (it != registry.end()) {
         // Call the registered handler (which will record statistics)
-        return it->second(cpu, bus, trap_pc);
+        std::cerr << "[TRAP HANDLER] Address $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << trap_pc << " found a handler" << std::endl;
+        auto ret = it->second(cpu, bus, trap_pc);
+        std::cerr << "[TRAP HANDLER] Address $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << trap_pc << " handled by registered handler, returns "
+                  << ret << std::endl;
+        return ret;
     }
 
+    std::cerr << "Unknown CALL_TRAP address " << std::hex << std::uppercase << std::setw(4)
+              << std::setfill('0') << trap_pc << std::endl;
     // Fall back to default handler (which will also record statistics)
     return default_trap_handler(cpu, bus, trap_pc);
 }
@@ -86,7 +94,7 @@ bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
               << std::setfill('0') << trap_pc << " ===" << std::endl;
     log_cpu_state(cpu, bus, trap_pc);
     log_memory_window(bus, trap_pc, 32);
-    std::cerr << "=== HALTING (returning false) ===" << std::endl;
+    std::cerr << "=== HALTING ===" << std::endl;
 
     // Write memory dump before halting
     write_memory_dump(bus, "memory_dump.bin");

@@ -198,6 +198,8 @@ int main(int argc, char *argv[]) {
         }
 
         running = cpu.step();
+        if (!running)
+            std::cout << "\nEmulator stopped by cpu.step()" << std::endl;
         count++;
 
         // Check if HostShims requested a stop (e.g., first screen char is 'E')

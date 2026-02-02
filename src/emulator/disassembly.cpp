@@ -10,6 +10,7 @@
 #include "edasm/constants.hpp"
 #include <cstring>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <unordered_map>
 
@@ -22,10 +23,13 @@ std::unordered_map<uint16_t, std::string> &symbol_table() {
     return table;
 }
 
-void append_symbol(std::ostringstream &oss, uint16_t address) {
+void append_symbol(std::ostringstream &oss, uint16_t address, uint8_t opcode) {
     const auto &table = symbol_table();
     auto it = table.find(address);
     if (it == table.end()) {
+        if (opcode == 0x02)
+            std::cerr << "No symbol found for address $" << std::hex << std::uppercase
+                      << std::setw(4) << std::setfill('0') << address << std::endl;
         return;
     }
     oss << " <" << it->second << ">";
@@ -351,53 +355,53 @@ std::string format_disassembly(const Bus &bus, uint16_t pc) {
             break;
         case OpcodeInfo::ZeroPage:
             oss << "$" << std::setw(2) << static_cast<int>(arg1);
-            append_symbol(oss, static_cast<uint16_t>(arg1));
+            append_symbol(oss, static_cast<uint16_t>(arg1), opcode);
             break;
         case OpcodeInfo::ZeroPageX:
             oss << "$" << std::setw(2) << static_cast<int>(arg1) << ",X";
-            append_symbol(oss, static_cast<uint16_t>(arg1));
+            append_symbol(oss, static_cast<uint16_t>(arg1), opcode);
             break;
         case OpcodeInfo::ZeroPageY:
             oss << "$" << std::setw(2) << static_cast<int>(arg1) << ",Y";
-            append_symbol(oss, static_cast<uint16_t>(arg1));
+            append_symbol(oss, static_cast<uint16_t>(arg1), opcode);
             break;
         case OpcodeInfo::Absolute:
             oss << "$" << std::setw(4) << addr;
-            append_symbol(oss, addr);
+            append_symbol(oss, addr, opcode);
             break;
         case OpcodeInfo::AbsoluteX:
             oss << "$" << std::setw(4) << addr << ",X";
-            append_symbol(oss, addr);
+            append_symbol(oss, addr, opcode);
             break;
         case OpcodeInfo::AbsoluteY:
             oss << "$" << std::setw(4) << addr << ",Y";
-            append_symbol(oss, addr);
+            append_symbol(oss, addr, opcode);
             break;
         case OpcodeInfo::Indirect:
             oss << "($" << std::setw(4) << addr << ")";
-            append_symbol(oss, addr);
+            append_symbol(oss, addr, opcode);
             break;
         case OpcodeInfo::IndexedIndirect:
             oss << "($" << std::setw(2) << static_cast<int>(arg1) << ",X)";
-            append_symbol(oss, static_cast<uint16_t>(arg1));
+            append_symbol(oss, static_cast<uint16_t>(arg1), opcode);
             break;
         case OpcodeInfo::IndirectIndexed:
             oss << "($" << std::setw(2) << static_cast<int>(arg1) << "),Y";
-            append_symbol(oss, static_cast<uint16_t>(arg1));
+            append_symbol(oss, static_cast<uint16_t>(arg1), opcode);
             break;
         case OpcodeInfo::Relative: {
             // Calculate target address for branch
             int8_t offset = static_cast<int8_t>(arg1);
             uint16_t target = static_cast<uint16_t>(pc + 2 + offset);
             oss << "$" << std::setw(4) << target;
-            append_symbol(oss, target);
+            append_symbol(oss, target, opcode);
             break;
         }
         default:
             break;
         }
     } else if (std::strcmp(info.mnemonic, "CALL_TRAP") == 0) {
-        append_symbol(oss, pc);
+        append_symbol(oss, pc, opcode);
     }
 
     return oss.str();
