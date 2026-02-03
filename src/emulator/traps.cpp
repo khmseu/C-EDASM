@@ -184,7 +184,7 @@ std::string TrapManager::dump_memory(const Bus &bus, uint16_t addr, size_t size)
     return oss.str();
 }
 
-bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename) {
+bool TrapManager::write_memory_dump(Bus &bus, const std::string &filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
         std::cerr << "Error: Failed to open " << filename << " for writing" << std::endl;
@@ -193,11 +193,10 @@ bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename)
 
     // Use translate_read_range to get the proper memory ranges for the entire 64KB address space
     auto ranges = bus.translate_read_range(0, Bus::MEMORY_SIZE);
-    const uint8_t *mem = bus.physical_memory();
     
     // Write each range to file
     for (const auto &range : ranges) {
-        file.write(reinterpret_cast<const char *>(mem + range.physical_offset), range.length);
+        file.write(reinterpret_cast<const char *>(range.data()), range.size());
         if (!file) {
             std::cerr << "Error: Failed to write memory dump" << std::endl;
             return false;
