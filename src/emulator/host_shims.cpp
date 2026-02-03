@@ -106,10 +106,10 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
     // Apple II keyboard semantics:
     // - High bit (0x80) set = new key is available
     // - High bit clear = key strobe has been cleared, same character remains
-    // - Only load a new character when kbd_value_ is 0 (no character loaded)
+    // - When high bit is clear and we read KBD, load next character (if available)
 
-    // If no character is loaded (kbd_value_ == 0), load next character from input queue
-    if (kbd_value_ == 0 && has_queued_input()) {
+    // If high bit is clear, load next character on this read
+    if ((kbd_value_ & 0x80) == 0 && has_queued_input()) {
         char ch = get_next_char();
         if (ch != 0) {
             // Load new character with high bit set
@@ -125,15 +125,7 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
 bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
     // Reading KBDSTROBE clears the keyboard strobe by clearing the high bit
     value = 0;
-    
-    // If high bit is already clear, this is a signal to move to the next character
-    if ((kbd_value_ & 0x80) == 0) {
-        // Clear kbd_value_ to allow next character to be loaded
-        kbd_value_ = 0;
-    } else {
-        // First strobe read - just clear the high bit
-        kbd_value_ = kbd_value_ & 0x7F; // Clear high bit
-    }
+    kbd_value_ = kbd_value_ & 0x7F; // Clear high bit
 
     // Check if we're out of input and should stop
     // When strobe is cleared with no more input, program will loop forever polling
