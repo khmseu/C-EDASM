@@ -314,8 +314,7 @@ const OpcodeInfo opcode_table[256] = {
 };
 
 std::string format_disassembly(const Bus &bus, uint16_t pc) {
-    const uint8_t *mem = bus.data();
-    uint8_t opcode = mem[pc];
+    uint8_t opcode = bus.read(pc);
     const OpcodeInfo &info = opcode_table[opcode];
 
     std::ostringstream oss;
@@ -330,7 +329,7 @@ std::string format_disassembly(const Bus &bus, uint16_t pc) {
         if (i > 0)
             bytes_str += " ";
         char buf[3];
-        snprintf(buf, sizeof(buf), "%02X", mem[pc + i]);
+        snprintf(buf, sizeof(buf), "%02X", bus.read(static_cast<uint16_t>(pc + i)));
         bytes_str += buf;
     }
     // Pad bytes string to 9 characters
@@ -345,8 +344,8 @@ std::string format_disassembly(const Bus &bus, uint16_t pc) {
 
     // Format operand based on addressing mode
     if (info.bytes > 1) {
-        uint8_t arg1 = mem[pc + 1];
-        uint8_t arg2 = (info.bytes > 2) ? mem[pc + 2] : 0;
+        uint8_t arg1 = bus.read(static_cast<uint16_t>(pc + 1));
+        uint8_t arg2 = (info.bytes > 2) ? bus.read(static_cast<uint16_t>(pc + 2)) : 0;
         uint16_t addr = arg1 | (arg2 << 8);
 
         switch (info.mode) {

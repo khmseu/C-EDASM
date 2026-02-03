@@ -18,22 +18,17 @@ void test_single_vs_double_read() {
     shims.install_io_traps(bus);
 
     // Initialize all memory including language card banks to 0xFF (simulating ROM content)
-    // Main RAM ROM area
-    for (uint32_t addr = 0xD000; addr < 0x10000; ++addr) {
-        bus.data()[Bus::MAIN_RAM_OFFSET + addr] = 0xFF;
+    // Use translate_write_range to access physical memory directly for initialization
+    auto ranges = bus.translate_write_range(0xD000, 0x3000);
+    uint8_t *mem = bus.physical_memory();
+    for (const auto &range : ranges) {
+        std::fill_n(mem + range.physical_offset, range.length, 0xFF);
     }
-    // Language card Bank 1
-    for (uint32_t addr = 0; addr < 0x1000; ++addr) {
-        bus.data()[Bus::LC_BANK1_OFFSET + addr] = 0xFF;
-    }
-    // Language card Bank 2
-    for (uint32_t addr = 0; addr < 0x1000; ++addr) {
-        bus.data()[Bus::LC_BANK2_OFFSET + addr] = 0xFF;
-    }
-    // Language card fixed RAM
-    for (uint32_t addr = 0; addr < 0x2000; ++addr) {
-        bus.data()[Bus::LC_FIXED_RAM_OFFSET + addr] = 0xFF;
-    }
+    
+    // Initialize language card banks
+    std::fill_n(mem + Bus::LC_BANK1_OFFSET, 0x1000, 0xFF);
+    std::fill_n(mem + Bus::LC_BANK2_OFFSET, 0x1000, 0xFF);
+    std::fill_n(mem + Bus::LC_FIXED_RAM_OFFSET, 0x2000, 0xFF);
 
     std::cout << "1. Testing SINGLE read of $C083 (should NOT enable write):" << std::endl;
     std::cout << "   - Reading $C083 once..." << std::endl;

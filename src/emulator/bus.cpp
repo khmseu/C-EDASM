@@ -29,6 +29,90 @@ void Bus::reset() {
     clear_write_traps();
 }
 
+std::vector<MemoryRange> Bus::translate_read_range(uint16_t start_addr, size_t length) const {
+    std::vector<MemoryRange> ranges;
+    if (length == 0) {
+        return ranges;
+    }
+
+    uint16_t current_addr = start_addr;
+    size_t remaining = length;
+
+    while (remaining > 0) {
+        // Calculate which bank this address falls in
+        uint8_t bank_index = current_addr / BANK_SIZE;
+        uint32_t offset_in_bank = current_addr % BANK_SIZE;
+        uint32_t physical_offset = read_bank_offsets_[bank_index] + offset_in_bank;
+
+        // How many bytes can we read from this bank before crossing to next?
+        size_t bytes_in_this_bank = BANK_SIZE - offset_in_bank;
+        size_t bytes_to_read = std::min(remaining, bytes_in_this_bank);
+
+        // Check if this continues the previous range or starts a new one
+        if (!ranges.empty() && 
+            ranges.back().physical_offset + ranges.back().length == physical_offset) {
+            // Extend the previous range
+            ranges.back().length += static_cast<uint16_t>(bytes_to_read);
+        } else {
+            // Start a new range
+            ranges.push_back({physical_offset, static_cast<uint16_t>(bytes_to_read)});
+        }
+
+        // Handle address wraparound at 64KB boundary
+        current_addr = static_cast<uint16_t>(current_addr + bytes_to_read);
+        remaining -= bytes_to_read;
+        
+        // If we wrapped around to 0, we've covered the entire address space
+        if (current_addr == 0 && remaining > 0) {
+            // Continue from address 0 for remaining bytes
+        }
+    }
+
+    return ranges;
+}
+
+std::vector<MemoryRange> Bus::translate_write_range(uint16_t start_addr, size_t length) const {
+    std::vector<MemoryRange> ranges;
+    if (length == 0) {
+        return ranges;
+    }
+
+    uint16_t current_addr = start_addr;
+    size_t remaining = length;
+
+    while (remaining > 0) {
+        // Calculate which bank this address falls in
+        uint8_t bank_index = current_addr / BANK_SIZE;
+        uint32_t offset_in_bank = current_addr % BANK_SIZE;
+        uint32_t physical_offset = write_bank_offsets_[bank_index] + offset_in_bank;
+
+        // How many bytes can we write to this bank before crossing to next?
+        size_t bytes_in_this_bank = BANK_SIZE - offset_in_bank;
+        size_t bytes_to_write = std::min(remaining, bytes_in_this_bank);
+
+        // Check if this continues the previous range or starts a new one
+        if (!ranges.empty() && 
+            ranges.back().physical_offset + ranges.back().length == physical_offset) {
+            // Extend the previous range
+            ranges.back().length += static_cast<uint16_t>(bytes_to_write);
+        } else {
+            // Start a new range
+            ranges.push_back({physical_offset, static_cast<uint16_t>(bytes_to_write)});
+        }
+
+        // Handle address wraparound at 64KB boundary
+        current_addr = static_cast<uint16_t>(current_addr + bytes_to_write);
+        remaining -= bytes_to_write;
+        
+        // If we wrapped around to 0, we've covered the entire address space
+        if (current_addr == 0 && remaining > 0) {
+            // Continue from address 0 for remaining bytes
+        }
+    }
+
+    return ranges;
+}
+
 void Bus::reset_bank_mappings() {
     // Power-on state per problem statement:
     // - 0000-CFFF (banks 0-25): point to main RAM
@@ -121,12 +205,27 @@ void Bus::write_word(uint16_t addr, uint16_t value) {
 }
 
 bool Bus::load_binary(uint16_t addr, const std::vector<uint8_t> &data) {
+    if (data.empty()) {
+        return true; // Nothing to load
+    }
+    
     if (addr + data.size() > MEMORY_SIZE) {
-        return false; // Would overflow memory
+        return false; // Would overflow address space
     }
 
-    // Copy data directly to memory (bypassing traps)
-    std::copy(data.begin(), data.end(), memory_.begin() + addr);
+    // Use write translation to handle bank switching correctly
+    // This respects the bank mapping but bypasses traps
+    auto ranges = translate_write_range(addr, static_cast<uint16_t>(data.size()));
+    
+    size_t data_offset = 0;
+    for (const auto &range : ranges) {
+        // Copy this portion of data to the physical memory location
+        std::copy(data.begin() + data_offset, 
+                  data.begin() + data_offset + range.length,
+                  memory_.begin() + range.physical_offset);
+        data_offset += range.length;
+    }
+    
     return true;
 }
 

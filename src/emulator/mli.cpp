@@ -42,8 +42,8 @@ struct FileEntry {
 constexpr size_t kMaxFiles = 16; // ProDOS refnums are 1-15; slot 0 unused
 std::array<FileEntry, kMaxFiles> s_file_table{};
 
-uint16_t read_word_mem(const uint8_t *mem, uint16_t addr) {
-    return static_cast<uint16_t>(mem[addr] | (mem[addr + 1] << 8));
+uint16_t read_word_bus(const Bus &bus, uint16_t addr) {
+    return static_cast<uint16_t>(bus.read(addr) | (bus.read(static_cast<uint16_t>(addr + 1)) << 8));
 }
 
 std::string current_prefix() {
@@ -177,12 +177,17 @@ bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) 
         return false;
     }
 
-    const uint8_t *mem = bus.data();
-    file.write(reinterpret_cast<const char *>(mem), Bus::MEMORY_SIZE);
-
-    if (!file) {
-        std::cerr << "Error: Failed to write memory dump" << std::endl;
-        return false;
+    // Use translate_read_range to get the proper memory ranges for the entire 64KB address space
+    auto ranges = bus.translate_read_range(0, Bus::MEMORY_SIZE);
+    const uint8_t *mem = bus.physical_memory();
+    
+    // Write each range to file
+    for (const auto &range : ranges) {
+        file.write(reinterpret_cast<const char *>(mem + range.physical_offset), range.length);
+        if (!file) {
+            std::cerr << "Error: Failed to write memory dump" << std::endl;
+            return false;
+        }
     }
 
     file.close();
@@ -475,7 +480,6 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
                                                          const MLICallDescriptor &desc) {
 
     std::vector<MLIParamValue> values;
-    const uint8_t *mem = bus.data();
 
     // Skip parameter count byte
     uint16_t offset = 1;
@@ -492,8 +496,7 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             if (param.type == MLIParamType::BUFFER_PTR ||
                 param.type == MLIParamType::PATHNAME_PTR) {
                 // Read the pointer value (handler needs to know where to write output)
-                uint16_t ptr =
-                    mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+                uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
                 values.push_back(ptr);
                 offset += 2;
             } else {
@@ -520,44 +523,44 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
         switch (param.type) {
         case MLIParamType::BYTE:
         case MLIParamType::REF_NUM: {
-            uint8_t val = mem[param_list_addr + offset];
+            uint8_t val = bus.read(static_cast<uint16_t>(param_list_addr + offset));
             values.push_back(val);
             offset += 1;
             break;
         }
         case MLIParamType::WORD: {
-            uint16_t val = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+            uint16_t val = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
             values.push_back(val);
             offset += 2;
             break;
         }
         case MLIParamType::THREE_BYTE: {
-            uint32_t val = mem[param_list_addr + offset] |
-                           (mem[param_list_addr + offset + 1] << 8) |
-                           (mem[param_list_addr + offset + 2] << 16);
+            uint32_t val = bus.read(static_cast<uint16_t>(param_list_addr + offset)) |
+                           (bus.read(static_cast<uint16_t>(param_list_addr + offset + 1)) << 8) |
+                           (bus.read(static_cast<uint16_t>(param_list_addr + offset + 2)) << 16);
             values.push_back(val);
             offset += 3;
             break;
         }
         case MLIParamType::PATHNAME_PTR: {
-            uint16_t ptr = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+            uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
             offset += 2;
 
             // Read length-prefixed pathname
-            uint8_t len = mem[ptr];
+            uint8_t len = bus.read(ptr);
             std::string pathname;
             // Read at most 64 characters, preventing overflow and wrapping
             uint8_t max_len = (len > 64) ? 64 : len;
             uint16_t str_start = static_cast<uint16_t>(ptr + 1);
             for (uint8_t j = 0; j < max_len; ++j) {
                 uint16_t addr = static_cast<uint16_t>(str_start + j);
-                pathname += static_cast<char>(mem[addr]);
+                pathname += static_cast<char>(bus.read(addr));
             }
             values.push_back(pathname);
             break;
         }
         case MLIParamType::BUFFER_PTR: {
-            uint16_t ptr = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+            uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
             values.push_back(ptr); // Store as uint16_t for now
             offset += 2;
             break;
@@ -574,7 +577,6 @@ MLIParamValue MLIHandler::read_param_value(const Bus &bus, uint16_t param_list_a
         throw std::out_of_range("Parameter index out of range");
     }
 
-    const uint8_t *mem = bus.data();
     uint16_t offset = 1; // Skip parameter count byte
 
     // Calculate offset to the requested parameter
@@ -601,34 +603,35 @@ MLIParamValue MLIHandler::read_param_value(const Bus &bus, uint16_t param_list_a
     switch (param.type) {
     case MLIParamType::BYTE:
     case MLIParamType::REF_NUM: {
-        uint8_t val = mem[param_list_addr + offset];
+        uint8_t val = bus.read(static_cast<uint16_t>(param_list_addr + offset));
         return val;
     }
     case MLIParamType::WORD: {
-        uint16_t val = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+        uint16_t val = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
         return val;
     }
     case MLIParamType::THREE_BYTE: {
-        uint32_t val = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8) |
-                       (mem[param_list_addr + offset + 2] << 16);
+        uint32_t val = bus.read(static_cast<uint16_t>(param_list_addr + offset)) |
+                       (bus.read(static_cast<uint16_t>(param_list_addr + offset + 1)) << 8) |
+                       (bus.read(static_cast<uint16_t>(param_list_addr + offset + 2)) << 16);
         return val;
     }
     case MLIParamType::PATHNAME_PTR: {
-        uint16_t ptr = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+        uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
 
         // Read length-prefixed pathname
-        uint8_t len = mem[ptr];
+        uint8_t len = bus.read(ptr);
         std::string pathname;
         uint8_t max_len = (len > 64) ? 64 : len;
         uint16_t str_start = static_cast<uint16_t>(ptr + 1);
         for (uint8_t j = 0; j < max_len; ++j) {
             uint16_t addr = static_cast<uint16_t>(str_start + j);
-            pathname += static_cast<char>(mem[addr]);
+            pathname += static_cast<char>(bus.read(addr));
         }
         return pathname;
     }
     case MLIParamType::BUFFER_PTR: {
-        uint16_t ptr = mem[param_list_addr + offset] | (mem[param_list_addr + offset + 1] << 8);
+        uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
         return ptr;
     }
     }
@@ -1027,10 +1030,10 @@ ProDOSError MLIHandler::handle_write(Bus &bus, const std::vector<MLIParamValue> 
         return ProDOSError::IO_ERROR;
     }
 
-    const uint8_t *mem = bus.data();
+    // Read data from bus memory into buffer
     std::vector<uint8_t> buffer(request_count);
     for (uint16_t i = 0; i < request_count; ++i) {
-        buffer[i] = mem[data_buffer + i];
+        buffer[i] = bus.read(static_cast<uint16_t>(data_buffer + i));
     }
 
     size_t actual_written = std::fwrite(buffer.data(), 1, request_count, entry->fp);
@@ -1217,15 +1220,17 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     outputs.push_back(uint16_t(0));      // create_time
 
     // Manually write EOF as 3-byte value (descriptor missing EOF field)
-    const uint8_t *mem = bus.data();
+    // Search for the parameter list in memory
     uint16_t param_list = 0;
     for (uint16_t addr = 0; addr < Bus::MEMORY_SIZE - 13; ++addr) {
-        if (mem[addr] == 10) { // GET_FILE_INFO has 10 params
-            uint16_t pathname_ptr = mem[addr + 1] | (mem[addr + 2] << 8);
-            uint8_t path_len = mem[pathname_ptr];
+        if (bus.read(addr) == 10) { // GET_FILE_INFO has 10 params
+            uint16_t pathname_ptr = read_word_bus(bus, static_cast<uint16_t>(addr + 1));
+            uint8_t path_len = bus.read(pathname_ptr);
             if (path_len < 64) {
-                std::string check_path(reinterpret_cast<const char *>(&mem[pathname_ptr + 1]),
-                                       path_len);
+                std::string check_path;
+                for (uint8_t i = 0; i < path_len; ++i) {
+                    check_path += static_cast<char>(bus.read(static_cast<uint16_t>(pathname_ptr + 1 + i)));
+                }
                 if (check_path == prodos_path) {
                     param_list = addr;
                     break;
@@ -1507,7 +1512,6 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
 
     // Add input parameters
     size_t input_idx = 0;
-    const uint8_t *mem = bus.data();
     std::vector<bool> param_logged(desc.param_count, false);
 
     for (uint8_t i = 0; i < desc.param_count; ++i) {
@@ -1691,16 +1695,15 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
 
     uint16_t stack_base = STACK_BASE;
     uint8_t sp = cpu.SP;
-    const uint8_t *mem = bus.data();
 
-    uint8_t ret_lo = mem[stack_base + sp + 1];
-    uint8_t ret_hi = mem[stack_base + sp + 2];
+    uint8_t ret_lo = bus.read(static_cast<uint16_t>(stack_base + sp + 1));
+    uint8_t ret_hi = bus.read(static_cast<uint16_t>(stack_base + sp + 2));
     uint16_t ret_addr = static_cast<uint16_t>((ret_hi << 8) | ret_lo);
     uint16_t call_site = static_cast<uint16_t>(ret_addr + 1);
 
-    uint8_t call_num = mem[call_site];
-    uint8_t param_lo = mem[call_site + 1];
-    uint8_t param_hi = mem[call_site + 2];
+    uint8_t call_num = bus.read(call_site);
+    uint8_t param_lo = bus.read(static_cast<uint16_t>(call_site + 1));
+    uint8_t param_hi = bus.read(static_cast<uint16_t>(call_site + 2));
     uint16_t param_list = static_cast<uint16_t>((param_hi << 8) | param_lo);
 
     auto return_to_caller = [&]() {
@@ -1751,13 +1754,13 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                   << "):" << std::endl;
         std::cout << "    ";
         for (int i = -3; i <= 5; ++i) {
-            std::cout << std::setw(2) << static_cast<int>(mem[call_site + i]) << " ";
+            std::cout << std::setw(2) << static_cast<int>(bus.read(static_cast<uint16_t>(call_site + i))) << " ";
         }
         std::cout << std::endl;
         std::cout << "    JSR ^ CM  PL  PH  --  --  --" << std::endl;
         std::cout << std::endl;
 
-        uint8_t param_count = mem[param_list];
+        uint8_t param_count = bus.read(param_list);
         std::cout << "Parameter List at $" << std::setw(4) << param_list << ":" << std::endl;
         std::cout << "  Parameter count: " << std::dec << static_cast<int>(param_count)
                   << std::endl;
@@ -1768,7 +1771,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
             if ((i - 1) % 8 == 0)
                 std::cout << std::endl << "    ";
             std::cout << " " << std::hex << std::setw(2) << std::setfill('0')
-                      << static_cast<int>(mem[param_list + i]);
+                      << static_cast<int>(bus.read(static_cast<uint16_t>(param_list + i)));
         }
         std::cout << std::endl;
 
@@ -1787,37 +1790,38 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                 case MLIParamType::BYTE:
                 case MLIParamType::REF_NUM:
                     std::cout << "$" << std::hex << std::setw(2) << std::setfill('0')
-                              << static_cast<int>(mem[param_list + offset]);
+                              << static_cast<int>(bus.read(static_cast<uint16_t>(param_list + offset)));
                     offset += 1;
                     break;
                 case MLIParamType::WORD: {
-                    uint16_t val = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                    uint16_t val = read_word_bus(bus, static_cast<uint16_t>(param_list + offset));
                     std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << val;
                 }
                     offset += 2;
                     break;
                 case MLIParamType::THREE_BYTE: {
-                    uint32_t val = mem[param_list + offset] | (mem[param_list + offset + 1] << 8) |
-                                   (mem[param_list + offset + 2] << 16);
+                    uint32_t val = bus.read(static_cast<uint16_t>(param_list + offset)) | 
+                                   (bus.read(static_cast<uint16_t>(param_list + offset + 1)) << 8) |
+                                   (bus.read(static_cast<uint16_t>(param_list + offset + 2)) << 16);
                     std::cout << "$" << std::hex << std::setw(6) << std::setfill('0') << val;
                 }
                     offset += 3;
                     break;
                 case MLIParamType::PATHNAME_PTR: {
-                    uint16_t ptr = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                    uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list + offset));
                     std::cout << "ptr=$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
 
-                    uint8_t path_len = mem[ptr];
+                    uint8_t path_len = bus.read(ptr);
                     std::cout << " \"";
                     for (uint8_t j = 0; j < path_len && j < 64; ++j) {
-                        std::cout << static_cast<char>(mem[ptr + 1 + j]);
+                        std::cout << static_cast<char>(bus.read(static_cast<uint16_t>(ptr + 1 + j)));
                     }
                     std::cout << "\"";
                 }
                     offset += 2;
                     break;
                 case MLIParamType::BUFFER_PTR: {
-                    uint16_t ptr = mem[param_list + offset] | (mem[param_list + offset + 1] << 8);
+                    uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list + offset));
                     std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
                 }
                     offset += 2;
