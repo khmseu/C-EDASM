@@ -15,9 +15,9 @@ bool test_lc_basic_write_read() {
     shims.install_io_traps(bus);
 
     // Initialize ROM area in main RAM to 0x00 (simulating empty ROM)
-    // Now that load_binary writes directly to main RAM, we can use it
+    // Now that initialize_memory writes directly to main RAM, we can use it
     std::vector<uint8_t> empty_rom(0x3000, 0x00);
-    bus.load_binary(0xD000, empty_rom);
+    bus.initialize_memory(0xD000, empty_rom);
 
     // Activate bank2 LCBANK2 (read/write RAM) -> address C083
     // NOTE: Requires TWO successive reads to enable write (per Apple IIe spec)

@@ -110,7 +110,13 @@ class Bus {
     void write_word(uint16_t addr, uint16_t value);
 
     // Load binary data at specific address
-    bool load_binary(uint16_t addr, const std::vector<uint8_t> &data);
+    bool initialize_memory(uint16_t addr, const std::vector<uint8_t> &data);
+    bool write_binary_data(uint16_t addr, const std::vector<uint8_t> &data);
+
+    // Load ROM from file at startup (bypasses bank switching)
+    bool load_rom_from_file(uint16_t addr, const std::string &filename);
+
+    // Load binary from file at runtime (respects bank switching)
     bool load_binary_from_file(uint16_t addr, const std::string &filename);
 
     // Reset memory to trap opcode

@@ -49,7 +49,7 @@ std::vector<ReadMemoryRange> Bus::translate_read_range(uint16_t start_addr, size
         size_t bytes_to_read = std::min(remaining, bytes_in_this_bank);
 
         // Check if this continues the previous range or starts a new one
-        if (!ranges.empty() && 
+        if (!ranges.empty() &&
             ranges.back().data() + ranges.back().size() == memory_.data() + physical_offset) {
             // Extend the previous range by creating a new span from the start
             const uint8_t *start = ranges.back().data();
@@ -57,13 +57,14 @@ std::vector<ReadMemoryRange> Bus::translate_read_range(uint16_t start_addr, size
             ranges.back() = std::span<const uint8_t>(start, new_size);
         } else {
             // Start a new range
-            ranges.push_back(std::span<const uint8_t>(memory_.data() + physical_offset, bytes_to_read));
+            ranges.push_back(
+                std::span<const uint8_t>(memory_.data() + physical_offset, bytes_to_read));
         }
 
         // Handle address wraparound at 64KB boundary
         current_addr = static_cast<uint16_t>(current_addr + bytes_to_read);
         remaining -= bytes_to_read;
-        
+
         // If we wrapped around to 0, we've covered the entire address space
         if (current_addr == 0 && remaining > 0) {
             // Continue from address 0 for remaining bytes
@@ -93,7 +94,7 @@ std::vector<WriteMemoryRange> Bus::translate_write_range(uint16_t start_addr, si
         size_t bytes_to_write = std::min(remaining, bytes_in_this_bank);
 
         // Check if this continues the previous range or starts a new one
-        if (!ranges.empty() && 
+        if (!ranges.empty() &&
             ranges.back().data() + ranges.back().size() == memory_.data() + physical_offset) {
             // Extend the previous range by creating a new span from the start
             uint8_t *start = ranges.back().data();
@@ -107,7 +108,7 @@ std::vector<WriteMemoryRange> Bus::translate_write_range(uint16_t start_addr, si
         // Handle address wraparound at 64KB boundary
         current_addr = static_cast<uint16_t>(current_addr + bytes_to_write);
         remaining -= bytes_to_write;
-        
+
         // If we wrapped around to 0, we've covered the entire address space
         if (current_addr == 0 && remaining > 0) {
             // Continue from address 0 for remaining bytes
@@ -208,11 +209,11 @@ void Bus::write_word(uint16_t addr, uint16_t value) {
           static_cast<uint8_t>((value >> 8) & 0xFF)); // Cast handles overflow
 }
 
-bool Bus::load_binary(uint16_t addr, const std::vector<uint8_t> &data) {
+bool Bus::initialize_memory(uint16_t addr, const std::vector<uint8_t> &data) {
     if (data.empty()) {
         return true; // Nothing to load
     }
-    
+
     if (addr + data.size() > MEMORY_SIZE) {
         return false; // Would overflow address space
     }
@@ -225,10 +226,50 @@ bool Bus::load_binary(uint16_t addr, const std::vector<uint8_t> &data) {
         uint32_t physical_offset = MAIN_RAM_OFFSET + target_addr;
         memory_[physical_offset] = data[i];
     }
-    
+
     return true;
 }
 
+bool Bus::write_binary_data(uint16_t addr, const std::vector<uint8_t> &data) {
+    if (data.empty()) {
+        return true; // Nothing to load
+    }
+
+    if (addr + data.size() > MEMORY_SIZE) {
+        return false; // Would overflow address space
+    }
+
+    // Use write translation to handle bank switching correctly
+    // This respects the bank mapping but bypasses traps
+    auto ranges = translate_write_range(addr, static_cast<uint16_t>(data.size()));
+
+    size_t data_offset = 0;
+    for (auto &range : ranges) {
+        // Copy this portion of data to the physical memory location
+        std::copy(data.begin() + data_offset, data.begin() + data_offset + range.size(),
+                  range.begin());
+        data_offset += range.size();
+    }
+
+    return true;
+}
+bool Bus::load_rom_from_file(uint16_t addr, const std::string &filename) {
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    if (!file) {
+        return false;
+    }
+
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t> buffer(size);
+    if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
+        return false;
+    }
+
+    // Load ROM at startup, bypassing bank switching
+    return initialize_memory(addr, buffer);
+}
 bool Bus::load_binary_from_file(uint16_t addr, const std::string &filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file) {
@@ -243,7 +284,8 @@ bool Bus::load_binary_from_file(uint16_t addr, const std::string &filename) {
         return false;
     }
 
-    return load_binary(addr, buffer);
+    // Load binary at runtime, respecting bank switching
+    return write_binary_data(addr, buffer);
 }
 
 void Bus::set_read_trap(uint16_t addr, ReadTrapHandler handler, const std::string &name) {

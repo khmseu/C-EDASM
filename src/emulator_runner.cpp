@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
     std::filesystem::path rom_path = exe_dir.parent_path() / rom_rel_path;
 
     std::cout << "  Loading monitor ROM: " << rom_path.string() << std::endl;
-    if (bus.load_binary_from_file(rom_base, rom_path.string())) {
+    if (bus.load_rom_from_file(rom_base, rom_path.string())) {
         std::cout << "  Monitor ROM mapped at $F800-$FFFF" << std::endl;
         bus.set_write_trap_range(
             rom_base, 0xFFFF, [](uint16_t, uint8_t) { return true; }, "ROM_WRITE_PROTECT");
