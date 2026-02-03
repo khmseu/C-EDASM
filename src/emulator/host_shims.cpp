@@ -241,9 +241,12 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
         // Check if it's in valid slot range (1-7)
         uint8_t slot = (addr >> 8) & 0x0F;
         if (slot >= 1 && slot <= 7) {
-            // Read directly from memory to avoid recursion through trap handler
-            value = bus_->data()[addr];
-            return true;
+            // Read directly from memory using translation to avoid recursion through trap handler
+            auto ranges = bus_->translate_read_range(addr, 1);
+            if (!ranges.empty()) {
+                value = bus_->physical_memory()[ranges[0].physical_offset];
+                return true;
+            }
         }
     }
 

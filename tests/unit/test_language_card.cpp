@@ -16,9 +16,12 @@ bool test_lc_basic_write_read() {
 
     // Initialize ROM area in main RAM to 0x00 (simulating empty ROM)
     // This is what happens after ROM is loaded in a real system
-    for (uint32_t addr = 0xD000; addr < 0x10000; ++addr) {
-        // Use direct memory access to bypass bank mapping during setup
-        bus.data()[addr] = 0x00;
+    // We need to write directly to physical memory because at power-on, 
+    // writes to $D000-$FFFF are directed to write-sink (ROM is read-only)
+    auto ranges = bus.translate_read_range(0xD000, 0x3000);
+    uint8_t *mem = bus.physical_memory();
+    for (const auto &range : ranges) {
+        std::fill_n(mem + range.physical_offset, range.length, 0x00);
     }
 
     // Activate bank2 LCBANK2 (read/write RAM) -> address C083
