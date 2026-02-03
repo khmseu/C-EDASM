@@ -76,7 +76,7 @@ void test_descriptor_lookup() {
     assert(desc != nullptr);
     assert(desc->call_number == 0x82);
     assert(std::string(desc->name) == "GET_TIME");
-    assert(desc->param_count == 1);
+    assert(desc->param_count == 0); // GET_TIME has no parameters per ProDOS specification
 
     // Housekeeping calls
     desc = MLIHandler::get_call_descriptor(0xC0); // CREATE
