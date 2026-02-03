@@ -3,26 +3,31 @@
 ## Changes Made
 
 ### Removed: Old Single-Line Format
+
 The old format showed raw hex bytes and internal implementation details:
-```
+
+```text
 [PRODOS] call=$C8 (OPEN) params=$3000 params_bytes=[03 00 32 00 40 00 00 00 00 00 00 00 00 00 00 00] A=$00
 ```
 
 ### Added: New Two-Line Format
 
-**Line 1: Call name, number, and INPUT parameters**
+#### Line 1: Call name, number, and INPUT parameters
+
 - Shows parameter names and typed values
 - Strings are quoted
 - Buffers show addresses
 - Other values in hex
 
-**Line 2: Result and OUTPUT parameters (excluding pointers)**
+#### Line 2: Result and OUTPUT parameters (excluding pointers)
+
 - Success or error with descriptive message
 - Output values (excluding buffer/pathname pointers)
 
 ## Implementation Details
 
 ### Code Changes
+
 - **File**: `src/emulator/mli.cpp`
 - **Added helper functions**:
   - `prodos_datetime_to_iso8601()` - Convert ProDOS date/time to ISO 8601
@@ -37,15 +42,20 @@ The old format showed raw hex bytes and internal implementation details:
 ### Special Cases
 
 #### GET_TIME ($82)
+
 Logs only call name, no parameters:
-```
+
+```text
 GET_TIME ($82)
 ```
+
 Reason: GET_TIME has no parameter list - it writes directly to ProDOS system memory ($BF90-$BF93).
 
 #### Error Cases
+
 Logging occurs before error handling, so errors are properly logged:
-```
+
+```text
 OPEN ($C8) pathname="MISSING.TXT" io_buffer=$4000
   Result: error=$46 (File not found)
 ```
@@ -53,6 +63,7 @@ OPEN ($C8) pathname="MISSING.TXT" io_buffer=$4000
 ## Test Results
 
 All MLI-related tests pass:
+
 - ✅ test_mli_descriptors
 - ✅ test_mli_stubs
 - ✅ test_mli_lookup_performance
@@ -62,20 +73,23 @@ All MLI-related tests pass:
 
 ### Successful Calls
 
-**SET_PREFIX**
-```
+#### SET_PREFIX
+
+```text
 SET_PREFIX ($C6) pathname="/"
   Result: success
 ```
 
 **OPEN** (with output parameter)
-```
+
+```text
 OPEN ($C8) pathname="EDASM.ASM" io_buffer=$4000
   Result: success ref_num=$01
 ```
 
 **READ** (multiple parameters)
-```
+
+```text
 READ ($CA) ref_num=$01 data_buffer=$5000 request_count=$000C
   Result: success transfer_count=$000C
 ```
@@ -83,13 +97,15 @@ READ ($CA) ref_num=$01 data_buffer=$5000 request_count=$000C
 ### Failed Calls
 
 **OPEN** (file not found)
-```
+
+```text
 OPEN ($C8) pathname="MISSING.TXT" io_buffer=$4000
   Result: error=$46 (File not found)
 ```
 
 **CLOSE** (invalid reference)
-```
+
+```text
 CLOSE ($CC) ref_num=$FF
   Result: error=$43 (Invalid reference number)
 ```
@@ -97,6 +113,7 @@ CLOSE ($CC) ref_num=$FF
 ## Documentation
 
 Added `docs/MLI_LOGGING_FORMAT.md` with:
+
 - Overview of the format
 - Special case explanation (GET_TIME)
 - Parameter value formatting rules

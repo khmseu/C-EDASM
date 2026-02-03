@@ -5,6 +5,7 @@ This document describes the new two-line logging format for ProDOS MLI (Machine 
 ## Overview
 
 All MLI handlers (except GET_TIME) now log two lines:
+
 1. **Input line**: Call name, number, and INPUT parameters with their values
 2. **Output line**: Result (success/error) and OUTPUT parameters (excluding pointers)
 
@@ -12,13 +13,14 @@ All MLI handlers (except GET_TIME) now log two lines:
 
 GET_TIME is a special case because it has no parameter list - it writes directly to ProDOS memory locations ($BF90-$BF93). Therefore, GET_TIME logs only a single line with the call name and number, followed by a result line with the system date-time:
 
-```
+```text
 GET_TIME ($82)
   Result: success datetime=2026-02-01T22:40
 ```
 
 The handler still logs its internal details separately for debugging:
-```
+
+```text
 GET_TIME: wrote date/time to $BF90-$BF93
   Year (since 1900): 126
   Month: 2
@@ -33,21 +35,21 @@ Parameters are formatted based on their type:
 
 - **Strings (PATHNAME_PTR)**: Quoted strings, e.g., `pathname="EDASM.ASM"`
 - **Buffers (BUFFER_PTR)**: Hex addresses, e.g., `io_buffer=$4000`
-- **Bytes/Words**: Hex values with $ prefix, e.g., `ref_num=$01`, `request_count=$000C`
+- **Bytes/Words**: Hex values with $ prefix, e.g., `ref_num=$01`,`request_count=$000C`
 - **Date/Time Pairs**: Date and time parameters are combined and formatted as ISO 8601 (YYYY-MM-DDTHH:MM). For example, `mod_date` and `mod_time` are combined as `mod=2026-02-01T14:30`. If both values are zero (not set), displays `(not set)`.
 
 ## Examples
 
 ### Successful Call: SET_PREFIX
 
-```
+```text
 SET_PREFIX ($C6) pathname="/"
   Result: success
 ```
 
 ### Successful Call with Date/Time: GET_FILE_INFO
 
-```
+```text
 GET_FILE_INFO ($C4) pathname="EDASM.ASM"
   Result: success access=$C3 file_type=$06 aux_type=$0000 storage_type=$01 blocks_used=$0001 mod=2026-02-01T14:30 create=2026-01-15T09:00
 ```
@@ -56,21 +58,21 @@ Note: Date/time pairs (`mod_date`/`mod_time`, `create_date`/`create_time`) are c
 
 ### Call with Multiple Parameters: READ
 
-```
+```text
 READ ($CA) ref_num=$01 data_buffer=$5000 request_count=$000C
   Result: success transfer_count=$000C
 ```
 
 ### Failed Call: OPEN (file not found)
 
-```
+```text
 OPEN ($C8) pathname="MISSING.TXT" io_buffer=$4000
   Result: error=$46 (File not found)
 ```
 
 ### Failed Call: CLOSE (invalid reference)
 
-```
+```text
 CLOSE ($CC) ref_num=$01
   Result: error=$43 (Invalid reference number)
 ```
@@ -78,17 +80,20 @@ CLOSE ($CC) ref_num=$01
 ## Comparison with Old Format
 
 ### Old Format (removed)
-```
+
+```text
 [PRODOS] call=$C8 (OPEN) params=$3000 params_bytes=[03 00 32 00 40 00 00 00 00 00 00 00 00 00 00 00] A=$00
 ```
 
 ### New Format
-```
+
+```text
 OPEN ($C8) pathname="EDASM.ASM" io_buffer=$4000
   Result: success ref_num=$01
 ```
 
 The new format is:
+
 - More human-readable
 - Shows parameter names and values instead of raw hex bytes
 - Clearly separates inputs from outputs

@@ -45,20 +45,24 @@ This ensures ROM data is written to main RAM regardless of bank mapping state, w
 ## Verification
 
 ### Before Fix
-```
+
+```text
 Entry point (reset vector): $0202  # TRAP_OPCODE bytes
 ```
 
 ### After Fix
-```
+
+```text
 Entry point (reset vector): $FA62  # Actual ROM reset vector
 ```
 
 ### ROM File Verification
+
 ```bash
 $ xxd -s 0x7FC -l 4 "Apple II plus ROM Pages F8-FF - 341-0020 - Autostart Monitor.bin"
 000007fc: 62fa 40fa                                b.@.
 ```
+
 Reset vector bytes: 0x62 0xFA → $FA62 (little-endian)
 
 ## Tests Added

@@ -7,7 +7,6 @@
  */
 
 #include "edasm/emulator/bus.hpp"
-#include "edasm/emulator/traps.hpp"
 #include <algorithm>
 #include <fstream>
 

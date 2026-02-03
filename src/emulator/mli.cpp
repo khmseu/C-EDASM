@@ -11,7 +11,7 @@
 #include "edasm/emulator/mli.hpp"
 #include "edasm/constants.hpp"
 #include "edasm/emulator/traps.hpp"
-#include "edasm/files/prodos_file.hpp"
+#include "edasm/files/file_types.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -179,7 +179,7 @@ bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) 
 
     // Use translate_read_range to get the proper memory ranges for the entire 64KB address space
     auto ranges = bus.translate_read_range(0, Bus::MEMORY_SIZE);
-    
+
     // Write each range to file
     for (const auto &range : ranges) {
         file.write(reinterpret_cast<const char *>(range.data()), range.size());
@@ -1228,7 +1228,8 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
             if (path_len < 64) {
                 std::string check_path;
                 for (uint8_t i = 0; i < path_len; ++i) {
-                    check_path += static_cast<char>(bus.read(static_cast<uint16_t>(pathname_ptr + 1 + i)));
+                    check_path +=
+                        static_cast<char>(bus.read(static_cast<uint16_t>(pathname_ptr + 1 + i)));
                 }
                 if (check_path == prodos_path) {
                     param_list = addr;
@@ -1753,7 +1754,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                   << "):" << std::endl;
         std::cout << "    ";
         for (int i = -3; i <= 5; ++i) {
-            std::cout << std::setw(2) << static_cast<int>(bus.read(static_cast<uint16_t>(call_site + i))) << " ";
+            std::cout << std::setw(2)
+                      << static_cast<int>(bus.read(static_cast<uint16_t>(call_site + i))) << " ";
         }
         std::cout << std::endl;
         std::cout << "    JSR ^ CM  PL  PH  --  --  --" << std::endl;
@@ -1789,7 +1791,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                 case MLIParamType::BYTE:
                 case MLIParamType::REF_NUM:
                     std::cout << "$" << std::hex << std::setw(2) << std::setfill('0')
-                              << static_cast<int>(bus.read(static_cast<uint16_t>(param_list + offset)));
+                              << static_cast<int>(
+                                     bus.read(static_cast<uint16_t>(param_list + offset)));
                     offset += 1;
                     break;
                 case MLIParamType::WORD: {
@@ -1799,7 +1802,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     offset += 2;
                     break;
                 case MLIParamType::THREE_BYTE: {
-                    uint32_t val = bus.read(static_cast<uint16_t>(param_list + offset)) | 
+                    uint32_t val = bus.read(static_cast<uint16_t>(param_list + offset)) |
                                    (bus.read(static_cast<uint16_t>(param_list + offset + 1)) << 8) |
                                    (bus.read(static_cast<uint16_t>(param_list + offset + 2)) << 16);
                     std::cout << "$" << std::hex << std::setw(6) << std::setfill('0') << val;
@@ -1813,7 +1816,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     uint8_t path_len = bus.read(ptr);
                     std::cout << " \"";
                     for (uint8_t j = 0; j < path_len && j < 64; ++j) {
-                        std::cout << static_cast<char>(bus.read(static_cast<uint16_t>(ptr + 1 + j)));
+                        std::cout << static_cast<char>(
+                            bus.read(static_cast<uint16_t>(ptr + 1 + j)));
                     }
                     std::cout << "\"";
                 }

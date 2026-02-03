@@ -193,7 +193,7 @@ bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename)
 
     // Use translate_read_range to get the proper memory ranges for the entire 64KB address space
     auto ranges = bus.translate_read_range(0, Bus::MEMORY_SIZE);
-    
+
     // Write each range to file
     for (const auto &range : ranges) {
         file.write(reinterpret_cast<const char *>(range.data()), range.size());
