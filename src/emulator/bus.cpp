@@ -51,8 +51,8 @@ std::vector<MemoryRange> Bus::translate_read_range(uint16_t start_addr, size_t l
         // Check if this continues the previous range or starts a new one
         if (!ranges.empty() && 
             ranges.back().data() + ranges.back().size() == memory_.data() + physical_offset) {
-            // Extend the previous range by creating a new span
-            uint8_t *start = const_cast<uint8_t*>(ranges.back().data());
+            // Extend the previous range by creating a new span from the start
+            uint8_t *start = ranges.back().data();
             size_t new_size = ranges.back().size() + bytes_to_read;
             ranges.back() = std::span<uint8_t>(start, new_size);
         } else {
@@ -95,7 +95,7 @@ std::vector<MemoryRange> Bus::translate_write_range(uint16_t start_addr, size_t 
         // Check if this continues the previous range or starts a new one
         if (!ranges.empty() && 
             ranges.back().data() + ranges.back().size() == memory_.data() + physical_offset) {
-            // Extend the previous range by creating a new span
+            // Extend the previous range by creating a new span from the start
             uint8_t *start = ranges.back().data();
             size_t new_size = ranges.back().size() + bytes_to_write;
             ranges.back() = std::span<uint8_t>(start, new_size);
