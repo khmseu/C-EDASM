@@ -18,17 +18,35 @@ void test_single_vs_double_read() {
     shims.install_io_traps(bus);
 
     // Initialize all memory including language card banks to 0xFF (simulating ROM content)
-    // Use translate_write_range to access physical memory directly for initialization
+    // Use translate_write_range to get spans and fill them
+
+    // Initialize main RAM $D000-$FFFF area
     auto ranges = bus.translate_write_range(0xD000, 0x3000);
-    uint8_t *mem = bus.physical_memory();
-    for (const auto &range : ranges) {
-        std::fill_n(mem + range.physical_offset, range.length, 0xFF);
+    for (auto range : ranges) {
+        std::fill(range.begin(), range.end(), 0xFF);
     }
-    
-    // Initialize language card banks
-    std::fill_n(mem + Bus::LC_BANK1_OFFSET, 0x1000, 0xFF);
-    std::fill_n(mem + Bus::LC_BANK2_OFFSET, 0x1000, 0xFF);
-    std::fill_n(mem + Bus::LC_FIXED_RAM_OFFSET, 0x2000, 0xFF);
+
+    // Initialize language card bank 1 by switching to it and writing
+    bus.read(0xC08B); // Enable LC bank 1 write
+    bus.read(0xC08B); // Double read to enable write
+    ranges = bus.translate_write_range(0xD000, 0x1000);
+    for (auto range : ranges) {
+        std::fill(range.begin(), range.end(), 0xFF);
+    }
+
+    // Initialize language card bank 2 by switching to it and writing
+    bus.read(0xC083); // Enable LC bank 2 write
+    bus.read(0xC083); // Double read to enable write
+    ranges = bus.translate_write_range(0xD000, 0x1000);
+    for (auto range : ranges) {
+        std::fill(range.begin(), range.end(), 0xFF);
+    }
+
+    // Initialize fixed RAM area $E000-$FFFF (same for both banks)
+    ranges = bus.translate_write_range(0xE000, 0x2000);
+    for (auto range : ranges) {
+        std::fill(range.begin(), range.end(), 0xFF);
+    }
 
     std::cout << "1. Testing SINGLE read of $C083 (should NOT enable write):" << std::endl;
     std::cout << "   - Reading $C083 once..." << std::endl;
