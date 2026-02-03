@@ -192,6 +192,60 @@ void test_cpu_jsr_rts() {
     std::cout << "✓ test_cpu_jsr_rts passed" << std::endl;
 }
 
+void test_rom_loading_at_reset() {
+    Bus bus;
+    
+    // Create a mock ROM with a reset vector pointing to 0xF800
+    std::vector<uint8_t> rom_data(0x800, 0xEA); // 2KB of NOPs
+    
+    // Set reset vector at $FFFC-$FFFD to point to $F800
+    rom_data[0x07FC] = 0x00; // Low byte of $F800
+    rom_data[0x07FD] = 0xF8; // High byte of $F800
+    
+    // Put a special marker at $F800 (start of ROM)
+    rom_data[0x0000] = 0xA9; // LDA #$42
+    rom_data[0x0001] = 0x42;
+    
+    // Load ROM at $F800-$FFFF
+    bool loaded = bus.load_binary(0xF800, rom_data);
+    assert(loaded);
+    
+    // Verify that ROM data was written to physical main RAM, not write-sink
+    // At power-on state, reads from $F800-$FFFF go to main RAM
+    assert(bus.read(0xF800) == 0xA9);  // LDA opcode
+    assert(bus.read(0xF801) == 0x42);  // Immediate value
+    
+    // Verify reset vector is correct
+    uint16_t reset_vec = bus.read_word(0xFFFC);
+    assert(reset_vec == 0xF800);
+    
+    // Verify the bytes are not TRAP_OPCODE
+    assert(bus.read(0xFFFC) != Bus::TRAP_OPCODE);
+    assert(bus.read(0xFFFF) != Bus::TRAP_OPCODE);
+    
+    std::cout << "✓ test_rom_loading_at_reset passed" << std::endl;
+}
+
+void test_rom_write_protected() {
+    Bus bus;
+    
+    // Load ROM with a known value
+    std::vector<uint8_t> rom_data(0x800, 0xEA); // 2KB of NOPs
+    bus.load_binary(0xF800, rom_data);
+    
+    // Verify ROM loaded correctly
+    assert(bus.read(0xF800) == 0xEA);
+    
+    // At power-on state, writes to $F800-$FFFF should go to write-sink
+    // (not affect the main RAM that we read from)
+    bus.write(0xF800, 0x42);
+    
+    // Read should still return original ROM value
+    assert(bus.read(0xF800) == 0xEA);
+    
+    std::cout << "✓ test_rom_write_protected passed" << std::endl;
+}
+
 int main() {
     std::cout << "Running CPU/Bus unit tests..." << std::endl << std::endl;
 
@@ -205,6 +259,8 @@ int main() {
         test_cpu_stack();
         test_cpu_branches();
         test_cpu_jsr_rts();
+        test_rom_loading_at_reset();
+        test_rom_write_protected();
 
         std::cout << std::endl << "All tests passed! ✓" << std::endl;
         return 0;
