@@ -184,7 +184,7 @@ std::string TrapManager::dump_memory(const Bus &bus, uint16_t addr, size_t size)
     return oss.str();
 }
 
-bool TrapManager::write_memory_dump(Bus &bus, const std::string &filename) {
+bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
         std::cerr << "Error: Failed to open " << filename << " for writing" << std::endl;
