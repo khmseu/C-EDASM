@@ -44,6 +44,9 @@ class HostShims {
     // Check if emulator should stop (set when first screen char is 'E')
     bool should_stop() const;
 
+    // Static utility to dump text screen (page 1 or 2) to stdout
+    static void dump_text_screen(const Bus &bus, bool page2 = false, const std::string &label = "");
+
   private:
     std::queue<std::string> input_lines_;
     std::string current_line_;
@@ -59,6 +62,9 @@ class HostShims {
 
     // Report unimplemented I/O access and request emulator stop
     void report_unhandled_io(uint16_t addr, bool is_write, uint8_t value);
+
+    // Dump screen and memory, then request stop
+    void dump_and_stop(const std::string &reason);
 
     // Specific device handlers
     bool handle_kbd_read(uint16_t addr, uint8_t &value);

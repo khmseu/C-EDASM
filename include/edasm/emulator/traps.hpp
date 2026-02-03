@@ -109,6 +109,9 @@ class TrapManager {
     // Write full memory dump to binary file
     static bool write_memory_dump(const Bus &bus, const std::string &filename);
 
+    // Halt emulator with reason, dumping screen and memory
+    static bool halt_and_dump(const std::string &reason, CPUState &cpu, Bus &bus, uint16_t pc);
+
   private:
     // Registry of address-specific trap handlers
     static std::map<uint16_t, TrapHandler> &get_handler_registry();

@@ -50,11 +50,7 @@ void HostShims::install_io_traps(Bus &bus) {
                     std::cout << "\n[HostShims] First screen character set to 'E' - logging and "
                                  "stopping\n"
                               << std::endl;
-                    log_text_screen("First screen character set to 'E'");
-                    if (bus_) {
-                        TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
-                    }
-                    stop_requested_ = true;
+                    dump_and_stop("First screen character set to 'E'");
                 }
             }
 
@@ -132,11 +128,7 @@ bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
     if (!has_queued_input()) {
         std::cout << "\n[HostShims] KBDSTRB read with no more input - logging screen and stopping\n"
                   << std::endl;
-        log_text_screen("KBDSTRB read with no more input");
-        if (bus_) {
-            TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
-        }
-        stop_requested_ = true;
+        dump_and_stop("KBDSTRB read with no more input");
     }
 
     return true; // Trap handled
@@ -396,18 +388,24 @@ void HostShims::log_text_screen(const std::string &why) {
     if (!bus_) {
         return;
     }
+    dump_text_screen(*bus_, page2_, why);
+}
 
-    const uint16_t base = page2_ ? 0x0800 : 0x0400;
+// Static utility to dump text screen
+void HostShims::dump_text_screen(const Bus &bus, bool page2, const std::string &label) {
+    const uint16_t base = page2 ? 0x0800 : 0x0400;
 
-    std::cout << "[HostShims] Text screen snapshot (page " << (page2_ ? 2 : 1) << ") " << why
-              << "\n";
+    if (!label.empty()) {
+        std::cout << "[HostShims] Text screen snapshot (page " << (page2 ? 2 : 1) << ") " << label
+                  << "\n";
+    }
 
     for (int row = 0; row < 24; ++row) {
         std::cout << std::setw(2) << row << ": ";
         for (int col = 0; col < 40; ++col) {
             const uint16_t addr =
                 static_cast<uint16_t>(base + (row % 8) * 128 + (row / 8) * 40 + col);
-            uint8_t byte = bus_->read(addr);
+            uint8_t byte = bus.read(addr);
             char ch = static_cast<char>(byte & 0x7F);
             if (ch < 0x20)
                 ch += 0x40;
@@ -422,17 +420,23 @@ void HostShims::log_text_screen(const std::string &why) {
     std::cout.flush();
 }
 
+// Dump screen and memory, then request stop
+void HostShims::dump_and_stop(const std::string &reason) {
+    std::cout << "\n[HostShims] Stopping: " << reason << std::endl;
+    log_text_screen(reason);
+    if (bus_) {
+        TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
+    }
+    stop_requested_ = true;
+}
+
 // Report unimplemented I/O access and request emulator stop
 void HostShims::report_unhandled_io(uint16_t addr, bool is_write, uint8_t value) {
     std::cerr << "[HostShims] UNIMPLEMENTED I/O " << (is_write ? "WRITE" : "READ") << " at $"
               << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << addr
               << " value=$" << std::setw(2) << static_cast<int>(value) << " - stopping"
               << std::endl;
-    if (bus_) {
-        log_text_screen("UNIMPLEMENTED I/O access");
-        TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
-    }
-    stop_requested_ = true;
+    dump_and_stop("UNIMPLEMENTED I/O access");
 }
 
 // Language Card control: handle reads/writes to $C080..$C08F
