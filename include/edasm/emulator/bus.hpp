@@ -25,17 +25,15 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string>
 #include <vector>
 
 namespace edasm {
 
-// Memory range mapping structure
+// Memory range mapping - uses std::span to provide direct access to physical memory
 // Represents a contiguous physical memory range corresponding to 6502 addresses
-struct MemoryRange {
-    uint32_t physical_offset; // Offset in the memory_ array
-    uint16_t length;          // Number of bytes in this range
-};
+using MemoryRange = std::span<uint8_t>;
 
 // Trap callback types
 // Returns true to allow normal memory access, false to block it
@@ -94,12 +92,12 @@ class Bus {
 
     Bus();
 
-    // Address translation - converts 6502 address ranges to physical memory ranges
-    // Returns a vector of (physical_offset, length) pairs that cover the requested range
+    // Address translation - converts 6502 address ranges to physical memory spans
+    // Returns a vector of memory spans that cover the requested range
     // Filtered through bank switching mechanism (read vs write may differ)
     // Note: length can be larger than 64KB for special operations like memory dumps
-    std::vector<MemoryRange> translate_read_range(uint16_t start_addr, size_t length) const;
-    std::vector<MemoryRange> translate_write_range(uint16_t start_addr, size_t length) const;
+    std::vector<MemoryRange> translate_read_range(uint16_t start_addr, size_t length);
+    std::vector<MemoryRange> translate_write_range(uint16_t start_addr, size_t length);
 
     // Access to physical memory (for use with translated ranges)
     uint8_t *physical_memory() {

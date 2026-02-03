@@ -244,7 +244,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
             // Read directly from memory using translation to avoid recursion through trap handler
             auto ranges = bus_->translate_read_range(addr, 1);
             if (!ranges.empty()) {
-                value = bus_->physical_memory()[ranges[0].physical_offset];
+                value = ranges[0][0];
                 return true;
             }
         }
