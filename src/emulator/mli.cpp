@@ -1848,10 +1848,9 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         // Unknown call number
         log_call_details("halt");
         std::cout << std::endl;
-        std::cout << "=== HALTING - ProDOS MLI call $" << std::hex << std::uppercase << std::setw(2)
+        std::cout << "=== ProDOS MLI call $" << std::hex << std::uppercase << std::setw(2)
                   << std::setfill('0') << static_cast<int>(call_num) << " unknown ===" << std::endl;
-        write_memory_dump(bus, "memory_dump.bin");
-        return false;
+        return TrapManager::halt_and_dump("Unknown ProDOS MLI call", cpu, bus, cpu.PC);
     }
 
     // Check if handler is implemented
@@ -1965,13 +1964,10 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         }
 
         std::cout << "Message: " << error_msg << std::endl;
-        std::cout << TrapManager::dump_cpu_state(cpu) << std::endl;
-
-        write_memory_dump(bus, "memory_dump.bin");
-        std::cout << "=== HALTING ===" << std::endl;
 
         set_error(cpu, error);
-        return false; // Signal to stop emulation
+        return TrapManager::halt_and_dump("MLI call failed: " + std::string(desc->name), 
+                                          cpu, bus, cpu.PC);
     }
 
     // Return to caller

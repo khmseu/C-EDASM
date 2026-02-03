@@ -28,8 +28,8 @@ void append_symbol(std::ostringstream &oss, uint16_t address, uint8_t opcode) {
     auto it = table.find(address);
     if (it == table.end()) {
         if (opcode == 0x02)
-            std::cerr << "No symbol found for address $" << std::hex << std::uppercase
-                      << std::setw(4) << std::setfill('0') << address << std::endl;
+            oss << " ; No symbol found for address $" << std::hex << std::uppercase
+                << std::setw(4) << std::setfill('0') << address;
         return;
     }
     oss << " <" << it->second << ">";

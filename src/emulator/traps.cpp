@@ -94,12 +94,15 @@ bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
               << std::setfill('0') << trap_pc << " ===" << std::endl;
     log_cpu_state(cpu, bus, trap_pc);
     log_memory_window(bus, trap_pc, 32);
-    std::cerr << "=== HALTING ===" << std::endl;
 
-    // Write memory dump before halting
-    write_memory_dump(bus, "memory_dump.bin");
-
-    return false; // Halt execution
+    return halt_and_dump("Unhandled trap at $" + 
+                         [&]() {
+                             std::ostringstream oss;
+                             oss << std::hex << std::uppercase << std::setw(4) 
+                                 << std::setfill('0') << trap_pc;
+                             return oss.str();
+                         }(), 
+                         cpu, bus, trap_pc);
 }
 
 TrapHandler TrapManager::create_logging_handler(const std::string &name) {
@@ -107,7 +110,7 @@ TrapHandler TrapManager::create_logging_handler(const std::string &name) {
         std::cout << "[TRAP:" << name << "] PC=$" << std::hex << std::uppercase << std::setw(4)
                   << std::setfill('0') << trap_pc << std::endl;
         log_cpu_state(cpu, bus, trap_pc);
-        return false; // Halt after logging
+        return halt_and_dump("Logging trap: " + name, cpu, bus, trap_pc);
     };
 }
 
@@ -207,6 +210,53 @@ bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename)
     std::cout << "Memory dump written to: " << filename << " (" << Bus::MEMORY_SIZE << " bytes)"
               << std::endl;
     return true;
+}
+
+// Dump text screen to stdout
+static void dump_text_screen(const Bus &bus) {
+    // Default to page 1 ($0400-$07FF)
+    const uint16_t base = 0x0400;
+
+    std::cout << "[TrapManager] Text screen snapshot:\n";
+
+    for (int row = 0; row < 24; ++row) {
+        // Apple II memory map has interleaved rows
+        uint16_t row_base = base;
+        if (row < 8)
+            row_base += row * 0x80;
+        else if (row < 16)
+            row_base += (row - 8) * 0x80 + 0x28;
+        else
+            row_base += (row - 16) * 0x80 + 0x50;
+
+        for (int col = 0; col < 40; ++col) {
+            uint8_t ch = bus.read(static_cast<uint16_t>(row_base + col));
+            // Convert Apple II character to ASCII
+            ch &= 0x7F; // Strip high bit
+            if (ch < 0x20)
+                ch += 0x40; // Control characters -> inverse uppercase
+            std::cout << static_cast<char>(ch);
+        }
+        std::cout << '\n';
+    }
+    std::cout.flush();
+}
+
+bool TrapManager::halt_and_dump(const std::string &reason, CPUState &cpu, Bus &bus, uint16_t pc) {
+    std::cout << "\n=== HALTING: " << reason << " ===" << std::endl;
+    std::cout << dump_cpu_state(cpu) << std::endl;
+    std::cout << "PC=$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << pc
+              << std::endl;
+
+    // Dump screen
+    dump_text_screen(bus);
+
+    // Dump memory
+    write_memory_dump(bus, "memory_dump.bin");
+
+    std::cout << "=== HALTING ===" << std::endl;
+
+    return false; // Halt execution
 }
 
 // Forward to MLI handler for ProDOS MLI calls
