@@ -15,22 +15,9 @@ bool test_lc_basic_write_read() {
     shims.install_io_traps(bus);
 
     // Initialize ROM area in main RAM to 0x00 (simulating empty ROM)
-    // This is what happens after ROM is loaded in a real system
-    // We need to write directly to physical memory because at power-on, 
-    // writes to $D000-$FFFF are directed to write-sink (ROM is read-only)
-    // 
-    // Solution: Temporarily set bank mappings to allow writes to main RAM,
-    // then restore power-on state
-    for (uint8_t i = 26; i < 32; i++) {
-        uint32_t bank_start = static_cast<uint32_t>(i * Bus::BANK_SIZE);
-        bus.set_bank_mapping(i, Bus::MAIN_RAM_OFFSET + bank_start, Bus::MAIN_RAM_OFFSET + bank_start);
-    }
-    auto ranges = bus.translate_write_range(0xD000, 0x3000);
-    for (auto &range : ranges) {
-        std::fill(range.begin(), range.end(), 0x00);
-    }
-    // Restore power-on bank mappings
-    bus.reset_bank_mappings();
+    // Now that load_binary writes directly to main RAM, we can use it
+    std::vector<uint8_t> empty_rom(0x3000, 0x00);
+    bus.load_binary(0xD000, empty_rom);
 
     // Activate bank2 LCBANK2 (read/write RAM) -> address C083
     // NOTE: Requires TWO successive reads to enable write (per Apple IIe spec)

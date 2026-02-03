@@ -217,17 +217,13 @@ bool Bus::load_binary(uint16_t addr, const std::vector<uint8_t> &data) {
         return false; // Would overflow address space
     }
 
-    // Use write translation to handle bank switching correctly
-    // This respects the bank mapping but bypasses traps
-    auto ranges = translate_write_range(addr, static_cast<uint16_t>(data.size()));
-    
-    size_t data_offset = 0;
-    for (auto &range : ranges) {
-        // Copy this portion of data to the physical memory location
-        std::copy(data.begin() + data_offset, 
-                  data.begin() + data_offset + range.size(),
-                  range.begin());
-        data_offset += range.size();
+    // Load binary data directly to physical main RAM, bypassing bank mappings
+    // This is essential for loading ROM images at reset, since the power-on
+    // state routes writes to 0xD000-0xFFFF to the write-sink (ROM is read-only)
+    for (size_t i = 0; i < data.size(); ++i) {
+        uint16_t target_addr = static_cast<uint16_t>(addr + i);
+        uint32_t physical_offset = MAIN_RAM_OFFSET + target_addr;
+        memory_[physical_offset] = data[i];
     }
     
     return true;
