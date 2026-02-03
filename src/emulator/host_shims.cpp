@@ -388,18 +388,24 @@ void HostShims::log_text_screen(const std::string &why) {
     if (!bus_) {
         return;
     }
+    dump_text_screen(*bus_, page2_, why);
+}
 
-    const uint16_t base = page2_ ? 0x0800 : 0x0400;
+// Static utility to dump text screen
+void HostShims::dump_text_screen(const Bus &bus, bool page2, const std::string &label) {
+    const uint16_t base = page2 ? 0x0800 : 0x0400;
 
-    std::cout << "[HostShims] Text screen snapshot (page " << (page2_ ? 2 : 1) << ") " << why
-              << "\n";
+    if (!label.empty()) {
+        std::cout << "[HostShims] Text screen snapshot (page " << (page2 ? 2 : 1) << ") " << label
+                  << "\n";
+    }
 
     for (int row = 0; row < 24; ++row) {
         std::cout << std::setw(2) << row << ": ";
         for (int col = 0; col < 40; ++col) {
             const uint16_t addr =
                 static_cast<uint16_t>(base + (row % 8) * 128 + (row / 8) * 40 + col);
-            uint8_t byte = bus_->read(addr);
+            uint8_t byte = bus.read(addr);
             char ch = static_cast<char>(byte & 0x7F);
             if (ch < 0x20)
                 ch += 0x40;

@@ -44,6 +44,9 @@ class HostShims {
     // Check if emulator should stop (set when first screen char is 'E')
     bool should_stop() const;
 
+    // Static utility to dump text screen (page 1 or 2) to stdout
+    static void dump_text_screen(const Bus &bus, bool page2 = false, const std::string &label = "");
+
   private:
     std::queue<std::string> input_lines_;
     std::string current_line_;
