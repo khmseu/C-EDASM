@@ -30,6 +30,13 @@
 
 namespace edasm {
 
+// Memory range mapping structure
+// Represents a contiguous physical memory range corresponding to 6502 addresses
+struct MemoryRange {
+    uint32_t physical_offset; // Offset in the memory_ array
+    uint16_t length;          // Number of bytes in this range
+};
+
 // Trap callback types
 // Returns true to allow normal memory access, false to block it
 using ReadTrapHandler = std::function<bool(uint16_t addr, uint8_t &value)>;
@@ -87,6 +94,21 @@ class Bus {
 
     Bus();
 
+    // Address translation - converts 6502 address ranges to physical memory ranges
+    // Returns a vector of (physical_offset, length) pairs that cover the requested range
+    // Filtered through bank switching mechanism (read vs write may differ)
+    // Note: length can be larger than 64KB for special operations like memory dumps
+    std::vector<MemoryRange> translate_read_range(uint16_t start_addr, size_t length) const;
+    std::vector<MemoryRange> translate_write_range(uint16_t start_addr, size_t length) const;
+
+    // Access to physical memory (for use with translated ranges)
+    uint8_t *physical_memory() {
+        return memory_.data();
+    }
+    const uint8_t *physical_memory() const {
+        return memory_.data();
+    }
+
     // Memory operations
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t value);
@@ -113,33 +135,6 @@ class Bus {
     // Clear trap handlers
     void clear_read_traps();
     void clear_write_traps();
-
-    // Direct memory access (bypasses traps)
-    // Only provides access to main 64KB for compatibility
-    uint8_t *data() {
-        return memory_.data();
-    }
-    const uint8_t *data() const {
-        return memory_.data();
-    }
-
-    // Direct access to extended memory regions (for language card implementation)
-    uint8_t *lc_bank1() {
-        return memory_.data() + LC_BANK1_OFFSET;
-    }
-    uint8_t *lc_bank2() {
-        return memory_.data() + LC_BANK2_OFFSET;
-    }
-    uint8_t *lc_fixed_ram() {
-        return memory_.data() + LC_FIXED_RAM_OFFSET;
-    }
-    uint8_t *write_sink() {
-        return memory_.data() + WRITE_SINK_OFFSET;
-    }
-    // Legacy ROM accessor - ROM is now in main RAM at D000-FFFF
-    uint8_t *lc_rom() {
-        return memory_.data() + 0xD000; // ROM in main RAM
-    }
 
     // Language card control - updates bank mapping tables
     void set_bank_mapping(uint8_t bank_index, uint32_t read_offset, uint32_t write_offset);

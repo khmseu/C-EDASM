@@ -160,7 +160,6 @@ std::string TrapManager::dump_memory(const Bus &bus, uint16_t addr, size_t size)
     oss << "Memory at $" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << addr
         << ":" << std::endl;
 
-    const uint8_t *data = bus.data();
     for (size_t i = 0; i < size; ++i) {
         if (i % 16 == 0) {
             if (i > 0)
@@ -169,7 +168,9 @@ std::string TrapManager::dump_memory(const Bus &bus, uint16_t addr, size_t size)
         } else if (i % 8 == 0) {
             oss << " ";
         }
-        oss << std::setw(2) << static_cast<int>(data[addr + i]) << " ";
+        // Use bus.read() to properly handle bank switching
+        uint8_t byte = bus.read(static_cast<uint16_t>(addr + i));
+        oss << std::setw(2) << static_cast<int>(byte) << " ";
     }
 
     return oss.str();
@@ -182,12 +183,17 @@ bool TrapManager::write_memory_dump(const Bus &bus, const std::string &filename)
         return false;
     }
 
-    const uint8_t *mem = bus.data();
-    file.write(reinterpret_cast<const char *>(mem), Bus::MEMORY_SIZE);
-
-    if (!file) {
-        std::cerr << "Error: Failed to write memory dump" << std::endl;
-        return false;
+    // Use translate_read_range to get the proper memory ranges for the entire 64KB address space
+    auto ranges = bus.translate_read_range(0, Bus::MEMORY_SIZE);
+    const uint8_t *mem = bus.physical_memory();
+    
+    // Write each range to file
+    for (const auto &range : ranges) {
+        file.write(reinterpret_cast<const char *>(mem + range.physical_offset), range.length);
+        if (!file) {
+            std::cerr << "Error: Failed to write memory dump" << std::endl;
+            return false;
+        }
     }
 
     file.close();
