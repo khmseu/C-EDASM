@@ -112,6 +112,17 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# ROM loading and reset vector test
+add_executable(test_rom_reset unit/test_rom_reset.cpp)
+target_link_libraries(test_rom_reset PRIVATE edasm)
+target_include_directories(test_rom_reset PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_rom_reset
+  COMMAND test_rom_reset
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 # ============================================================================
 # Integration Test Cases (using fixture files)
 # ============================================================================
@@ -176,6 +187,6 @@ set_tests_properties(test_asm_rel_module1 test_asm_rel_module2 test_linker_modul
   LABELS "linker"
 )
 
-set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors test_mli_stubs test_mli_lookup_performance PROPERTIES
+set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors test_mli_stubs test_mli_lookup_performance test_language_card test_io_traps test_rom_reset PROPERTIES
   LABELS "unit"
 )
