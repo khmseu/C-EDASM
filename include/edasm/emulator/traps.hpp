@@ -107,7 +107,7 @@ class TrapManager {
     static std::string dump_memory(const Bus &bus, uint16_t addr, size_t size = 16);
 
     // Write full memory dump to binary file
-    static bool write_memory_dump(Bus &bus, const std::string &filename);
+    static bool write_memory_dump(const Bus &bus, const std::string &filename);
 
   private:
     // Registry of address-specific trap handlers

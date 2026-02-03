@@ -33,7 +33,9 @@ namespace edasm {
 
 // Memory range mapping - uses std::span to provide direct access to physical memory
 // Represents a contiguous physical memory range corresponding to 6502 addresses
-using MemoryRange = std::span<uint8_t>;
+// Split into read-only and writable variants for const-correctness
+using ReadMemoryRange = std::span<const uint8_t>;
+using WriteMemoryRange = std::span<uint8_t>;
 
 // Trap callback types
 // Returns true to allow normal memory access, false to block it
@@ -96,8 +98,8 @@ class Bus {
     // Returns a vector of memory spans that cover the requested range
     // Filtered through bank switching mechanism (read vs write may differ)
     // Note: length can be larger than 64KB for special operations like memory dumps
-    std::vector<MemoryRange> translate_read_range(uint16_t start_addr, size_t length);
-    std::vector<MemoryRange> translate_write_range(uint16_t start_addr, size_t length);
+    std::vector<ReadMemoryRange> translate_read_range(uint16_t start_addr, size_t length) const;
+    std::vector<WriteMemoryRange> translate_write_range(uint16_t start_addr, size_t length);
 
     // Memory operations
     uint8_t read(uint16_t addr) const;

@@ -29,8 +29,8 @@ void Bus::reset() {
     clear_write_traps();
 }
 
-std::vector<MemoryRange> Bus::translate_read_range(uint16_t start_addr, size_t length) {
-    std::vector<MemoryRange> ranges;
+std::vector<ReadMemoryRange> Bus::translate_read_range(uint16_t start_addr, size_t length) const {
+    std::vector<ReadMemoryRange> ranges;
     if (length == 0) {
         return ranges;
     }
@@ -52,12 +52,12 @@ std::vector<MemoryRange> Bus::translate_read_range(uint16_t start_addr, size_t l
         if (!ranges.empty() && 
             ranges.back().data() + ranges.back().size() == memory_.data() + physical_offset) {
             // Extend the previous range by creating a new span from the start
-            uint8_t *start = ranges.back().data();
+            const uint8_t *start = ranges.back().data();
             size_t new_size = ranges.back().size() + bytes_to_read;
-            ranges.back() = std::span<uint8_t>(start, new_size);
+            ranges.back() = std::span<const uint8_t>(start, new_size);
         } else {
             // Start a new range
-            ranges.push_back(std::span<uint8_t>(memory_.data() + physical_offset, bytes_to_read));
+            ranges.push_back(std::span<const uint8_t>(memory_.data() + physical_offset, bytes_to_read));
         }
 
         // Handle address wraparound at 64KB boundary
@@ -73,8 +73,8 @@ std::vector<MemoryRange> Bus::translate_read_range(uint16_t start_addr, size_t l
     return ranges;
 }
 
-std::vector<MemoryRange> Bus::translate_write_range(uint16_t start_addr, size_t length) {
-    std::vector<MemoryRange> ranges;
+std::vector<WriteMemoryRange> Bus::translate_write_range(uint16_t start_addr, size_t length) {
+    std::vector<WriteMemoryRange> ranges;
     if (length == 0) {
         return ranges;
     }

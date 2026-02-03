@@ -120,7 +120,7 @@ class MLIHandler {
     static void set_success(CPUState &cpu);
     static void set_error(CPUState &cpu, uint8_t err);
     static void set_error(CPUState &cpu, ProDOSError err);
-    static bool write_memory_dump(Bus &bus, const std::string &filename);
+    static bool write_memory_dump(const Bus &bus, const std::string &filename);
 
     // Parameter descriptor lookup
     static const MLICallDescriptor *get_call_descriptor(uint8_t call_num);

@@ -170,7 +170,7 @@ void MLIHandler::set_error(CPUState &cpu, ProDOSError err) {
     set_error(cpu, static_cast<uint8_t>(err));
 }
 
-bool MLIHandler::write_memory_dump(Bus &bus, const std::string &filename) {
+bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
         std::cerr << "Error: Failed to open " << filename << " for writing" << std::endl;
