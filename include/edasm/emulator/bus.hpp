@@ -99,14 +99,6 @@ class Bus {
     std::vector<MemoryRange> translate_read_range(uint16_t start_addr, size_t length);
     std::vector<MemoryRange> translate_write_range(uint16_t start_addr, size_t length);
 
-    // Access to physical memory (for use with translated ranges)
-    uint8_t *physical_memory() {
-        return memory_.data();
-    }
-    const uint8_t *physical_memory() const {
-        return memory_.data();
-    }
-
     // Memory operations
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t value);
