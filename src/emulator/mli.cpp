@@ -36,6 +36,8 @@ struct FileEntry {
     std::string host_path;
     uint32_t mark = 0;      // current file position
     uint32_t file_size = 0; // bytes
+    uint8_t newline_enable_mask = 0x00; // $00 = disabled, nonzero = enabled
+    uint8_t newline_char = 0x0D;        // default to CR ($0D)
 };
 
 constexpr size_t kMaxFiles = 16; // ProDOS refnums are 1-15; slot 0 unused
@@ -318,7 +320,7 @@ static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
          IN(BYTE, INPUT, "enable_mask"),
          IN(BYTE, INPUT, "newline_char"),
      }},
-     nullptr},
+     &MLIHandler::handle_newline},
     {0xCA,
      "READ",
      4,
@@ -930,11 +932,34 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
         size_t n = std::fread(buffer.data(), 1, bytes_to_read, entry->fp);
         actual_read = static_cast<uint16_t>(n);
 
-        for (uint16_t i = 0; i < actual_read; ++i) {
-            bus.write(static_cast<uint16_t>(data_buffer + i), buffer[i]);
+        // Check for newline character if newline mode is enabled
+        bool newline_found = false;
+        if (entry->newline_enable_mask != 0x00) {
+            for (uint16_t i = 0; i < actual_read; ++i) {
+                uint8_t ch = buffer[i];
+                bus.write(static_cast<uint16_t>(data_buffer + i), ch);
+                
+                // Check if this character matches the newline char (after masking)
+                if ((ch & entry->newline_enable_mask) == entry->newline_char) {
+                    // Found newline - terminate read after this character
+                    actual_read = i + 1;
+                    newline_found = true;
+                    break;
+                }
+            }
+        } else {
+            // Newline mode disabled - just copy all bytes
+            for (uint16_t i = 0; i < actual_read; ++i) {
+                bus.write(static_cast<uint16_t>(data_buffer + i), buffer[i]);
+            }
         }
 
         entry->mark += actual_read;
+        
+        if (TrapManager::is_trace_enabled() && newline_found) {
+            std::cout << "READ ($CA): terminated on newline character at byte " << std::dec
+                      << (actual_read - 1) << std::endl;
+        }
     }
 
     if (TrapManager::is_trace_enabled()) {
@@ -1273,8 +1298,42 @@ ProDOSError MLIHandler::handle_online(Bus &bus, const std::vector<MLIParamValue>
 
 ProDOSError MLIHandler::handle_newline(Bus &bus, const std::vector<MLIParamValue> &inputs,
                                        std::vector<MLIParamValue> &outputs) {
-    std::cerr << "NEWLINE ($C9): not implemented" << std::endl;
-    return ProDOSError::BAD_CALL_NUMBER;
+    uint8_t refnum = std::get<uint8_t>(inputs[0]);
+    uint8_t enable_mask = std::get<uint8_t>(inputs[1]);
+    uint8_t newline_char = std::get<uint8_t>(inputs[2]);
+
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "NEWLINE ($C9): refnum=" << std::dec << static_cast<int>(refnum)
+                  << ", enable_mask=$" << std::hex << std::uppercase << std::setw(2)
+                  << std::setfill('0') << static_cast<int>(enable_mask)
+                  << ", newline_char=$" << std::hex << std::uppercase << std::setw(2)
+                  << std::setfill('0') << static_cast<int>(newline_char) << std::endl;
+    }
+
+    FileEntry *entry = get_refnum(refnum);
+    if (!entry) {
+        std::cerr << "NEWLINE ($C9): invalid refnum (" << std::dec << static_cast<int>(refnum)
+                  << ")" << std::endl;
+        return ProDOSError::INVALID_REF_NUM;
+    }
+
+    // Set newline mode parameters
+    entry->newline_enable_mask = enable_mask;
+    entry->newline_char = newline_char;
+
+    if (TrapManager::is_trace_enabled()) {
+        if (enable_mask == 0x00) {
+            std::cout << "NEWLINE ($C9): newline mode DISABLED" << std::endl;
+        } else {
+            std::cout << "NEWLINE ($C9): newline mode ENABLED, char=$" << std::hex
+                      << std::uppercase << std::setw(2) << std::setfill('0')
+                      << static_cast<int>(newline_char) << ", mask=$" << std::hex << std::uppercase
+                      << std::setw(2) << std::setfill('0') << static_cast<int>(enable_mask)
+                      << std::endl;
+        }
+    }
+
+    return ProDOSError::NO_ERROR;
 }
 
 ProDOSError MLIHandler::handle_set_eof(Bus &bus, const std::vector<MLIParamValue> &inputs,
