@@ -101,6 +101,16 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+add_executable(test_mli_newline unit/test_mli_newline.cpp)
+target_link_libraries(test_mli_newline PRIVATE edasm)
+target_include_directories(test_mli_newline PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_mli_newline
+  COMMAND test_mli_newline
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Language card soft-switch unit test
 add_executable(test_language_card unit/test_language_card.cpp)
 target_link_libraries(test_language_card PRIVATE edasm)
@@ -187,6 +197,6 @@ set_tests_properties(test_asm_rel_module1 test_asm_rel_module2 test_linker_modul
   LABELS "linker"
 )
 
-set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors test_mli_stubs test_mli_lookup_performance test_language_card test_io_traps test_rom_reset PROPERTIES
+set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors test_mli_stubs test_mli_lookup_performance test_mli_newline test_language_card test_io_traps test_rom_reset PROPERTIES
   LABELS "unit"
 )
