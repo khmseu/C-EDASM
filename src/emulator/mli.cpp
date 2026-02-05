@@ -1133,16 +1133,30 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
 
     // Manually write EOF as 3-byte value (descriptor missing EOF field)
     // Search for the parameter list in memory
+    // Skip I/O space ($C000-$CFFF) to avoid triggering soft switches
     uint16_t param_list = 0;
     for (uint16_t addr = 0; addr < Bus::MEMORY_SIZE - 13; ++addr) {
+        // Skip I/O space to avoid triggering language card and other soft switches
+        if (addr >= 0xC000 && addr < 0xD000) {
+            addr = 0xCFFF; // Will be incremented to 0xD000 in next iteration
+            continue;
+        }
         if (bus.read(addr) == 10) { // GET_FILE_INFO has 10 params
             uint16_t pathname_ptr = bus.read_word(static_cast<uint16_t>(addr + 1));
+            // Skip if pathname_ptr points to I/O space
+            if (pathname_ptr >= 0xC000 && pathname_ptr < 0xD000) {
+                continue;
+            }
             uint8_t path_len = bus.read(pathname_ptr);
             if (path_len < 64) {
                 std::string check_path;
                 for (uint8_t i = 0; i < path_len; ++i) {
-                    check_path +=
-                        static_cast<char>(bus.read(static_cast<uint16_t>(pathname_ptr + 1 + i)));
+                    uint16_t char_addr = static_cast<uint16_t>(pathname_ptr + 1 + i);
+                    // Skip if character address is in I/O space
+                    if (char_addr >= 0xC000 && char_addr < 0xD000) {
+                        break; // Invalid path string, skip this candidate
+                    }
+                    check_path += static_cast<char>(bus.read(char_addr));
                 }
                 if (check_path == prodos_path) {
                     param_list = addr;
