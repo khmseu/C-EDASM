@@ -265,7 +265,7 @@ static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
      nullptr},
     {0xC4,
      "GET_FILE_INFO",
-     10,
+     11,
      {{
          IN(PATHNAME_PTR, INPUT, "pathname"),
          OUT(BYTE, OUTPUT, "access"),
@@ -277,6 +277,7 @@ static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
          OUT(WORD, OUTPUT, "mod_time"),
          OUT(WORD, OUTPUT, "create_date"),
          OUT(WORD, OUTPUT, "create_time"),
+         OUT(THREE_BYTE, OUTPUT, "eof"),
      }},
      &MLIHandler::handle_get_file_info},
     {0xC5,
@@ -1098,7 +1099,7 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     if (ec) {
         std::cerr << "GET_FILE_INFO ($C4): file not found: " << host_path
                   << " (error: " << ec.message() << ")" << std::endl;
-        // Push zero placeholders for all 9 output parameters
+        // Push zero placeholders for all 10 output parameters
         outputs.push_back(uint8_t(0));  // access
         outputs.push_back(uint8_t(0));  // file_type
         outputs.push_back(uint16_t(0)); // aux_type
@@ -1108,6 +1109,7 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
         outputs.push_back(uint16_t(0)); // mod_time
         outputs.push_back(uint16_t(0)); // create_date
         outputs.push_back(uint16_t(0)); // create_time
+        outputs.push_back(uint32_t(0)); // eof (3 bytes)
         return ProDOSError::FILE_NOT_FOUND;
     }
 
@@ -1130,36 +1132,7 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     outputs.push_back(uint16_t(0));      // mod_time
     outputs.push_back(uint16_t(0));      // create_date
     outputs.push_back(uint16_t(0));      // create_time
-
-    // Manually write EOF as 3-byte value (descriptor missing EOF field)
-    // Search for the parameter list in memory
-    uint16_t param_list = 0;
-    for (uint16_t addr = 0; addr < Bus::MEMORY_SIZE - 13; ++addr) {
-        if (bus.read(addr) == 10) { // GET_FILE_INFO has 10 params
-            uint16_t pathname_ptr = bus.read_word(static_cast<uint16_t>(addr + 1));
-            uint8_t path_len = bus.read(pathname_ptr);
-            if (path_len < 64) {
-                std::string check_path;
-                for (uint8_t i = 0; i < path_len; ++i) {
-                    check_path +=
-                        static_cast<char>(bus.read(static_cast<uint16_t>(pathname_ptr + 1 + i)));
-                }
-                if (check_path == prodos_path) {
-                    param_list = addr;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (param_list > 0) {
-        uint16_t eof_offset = param_list + 10;
-        bus.write(eof_offset, static_cast<uint8_t>(size32 & 0xFF));
-        bus.write(static_cast<uint16_t>(eof_offset + 1),
-                  static_cast<uint8_t>((size32 >> 8) & 0xFF));
-        bus.write(static_cast<uint16_t>(eof_offset + 2),
-                  static_cast<uint8_t>((size32 >> 16) & 0xFF));
-    }
+    outputs.push_back(size32);           // eof (3 bytes)
 
     return ProDOSError::NO_ERROR;
 }
