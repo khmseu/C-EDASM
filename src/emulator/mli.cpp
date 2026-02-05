@@ -34,8 +34,8 @@ struct FileEntry {
     bool used = false;
     FILE *fp = nullptr;
     std::string host_path;
-    uint32_t mark = 0;      // current file position
-    uint32_t file_size = 0; // bytes
+    uint32_t mark = 0;                  // current file position
+    uint32_t file_size = 0;             // bytes
     uint8_t newline_enable_mask = 0x00; // $00 = disabled, nonzero = enabled
     uint8_t newline_char = 0x0D;        // default to CR ($0D)
 };
@@ -298,7 +298,7 @@ static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
      "GET_PREFIX",
      1,
      {{
-         IN(BUFFER_PTR, OUTPUT, "data_buffer"),
+         IN(PATHNAME_PTR, INPUT_OUTPUT, "data_buffer"),
      }},
      &MLIHandler::handle_get_prefix},
 
@@ -504,6 +504,12 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
         case MLIParamType::PATHNAME_PTR: {
             uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
             offset += 2;
+
+            if (param.direction == MLIParamDirection::INPUT_OUTPUT) {
+                // Keep pointer for INPUT_OUTPUT so handlers can use buffer address
+                values.push_back(ptr);
+                break;
+            }
 
             // Read length-prefixed pathname
             uint8_t len = bus.read(ptr);
@@ -907,7 +913,7 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
             for (uint16_t i = 0; i < actual_read; ++i) {
                 uint8_t ch = buffer[i];
                 bus.write(static_cast<uint16_t>(data_buffer + i), ch);
-                
+
                 // Check if this character matches the newline char (after masking)
                 if ((ch & entry->newline_enable_mask) == entry->newline_char) {
                     // Found newline - terminate read after this character
@@ -1229,9 +1235,9 @@ ProDOSError MLIHandler::handle_newline(Bus &bus, const std::vector<MLIParamValue
     if (TrapManager::is_trace_enabled()) {
         std::cout << "NEWLINE ($C9): refnum=" << std::dec << static_cast<int>(refnum)
                   << ", enable_mask=$" << std::hex << std::uppercase << std::setw(2)
-                  << std::setfill('0') << static_cast<int>(enable_mask)
-                  << ", newline_char=$" << std::hex << std::uppercase << std::setw(2)
-                  << std::setfill('0') << static_cast<int>(newline_char) << std::endl;
+                  << std::setfill('0') << static_cast<int>(enable_mask) << ", newline_char=$"
+                  << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+                  << static_cast<int>(newline_char) << std::endl;
     }
 
     FileEntry *entry = get_refnum(refnum);
@@ -1249,11 +1255,10 @@ ProDOSError MLIHandler::handle_newline(Bus &bus, const std::vector<MLIParamValue
         if (enable_mask == 0x00) {
             std::cout << "NEWLINE ($C9): newline mode DISABLED" << std::endl;
         } else {
-            std::cout << "NEWLINE ($C9): newline mode ENABLED, char=$" << std::hex
-                      << std::uppercase << std::setw(2) << std::setfill('0')
-                      << static_cast<int>(newline_char) << ", mask=$" << std::hex << std::uppercase
-                      << std::setw(2) << std::setfill('0') << static_cast<int>(enable_mask)
-                      << std::endl;
+            std::cout << "NEWLINE ($C9): newline mode ENABLED, char=$" << std::hex << std::uppercase
+                      << std::setw(2) << std::setfill('0') << static_cast<int>(newline_char)
+                      << ", mask=$" << std::hex << std::uppercase << std::setw(2)
+                      << std::setfill('0') << static_cast<int>(enable_mask) << std::endl;
         }
     }
 
@@ -1353,8 +1358,23 @@ std::string format_param_value(const MLIParamDescriptor &param, const MLIParamVa
         break;
     }
     case MLIParamType::PATHNAME_PTR: {
-        std::string pathname = std::get<std::string>(value);
-        oss << "\"" << pathname << "\"";
+        if (const auto *pathname = std::get_if<std::string>(&value)) {
+            oss << "\"" << *pathname << "\"";
+            break;
+        }
+        if (const auto *ptr = std::get_if<uint16_t>(&value)) {
+            uint8_t len = bus.read(*ptr);
+            uint8_t max_len = (len > 64) ? 64 : len;
+            uint16_t str_start = static_cast<uint16_t>(*ptr + 1);
+            std::string pathname;
+            for (uint8_t j = 0; j < max_len; ++j) {
+                uint16_t addr = static_cast<uint16_t>(str_start + j);
+                pathname += static_cast<char>(bus.read(addr));
+            }
+            oss << "\"" << pathname << "\"";
+            break;
+        }
+        oss << "\"\"";
         break;
     }
     case MLIParamType::BUFFER_PTR: {
@@ -1453,17 +1473,36 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
 
     // Add input parameters
     size_t input_idx = 0;
+    uint16_t offset = 1; // Skip parameter count byte
     std::vector<bool> param_logged(desc.param_count, false);
 
     for (uint8_t i = 0; i < desc.param_count; ++i) {
+        const auto &param = desc.params[i];
+
+        size_t param_size = 1;
+        switch (param.type) {
+        case MLIParamType::BYTE:
+        case MLIParamType::REF_NUM:
+            param_size = 1;
+            break;
+        case MLIParamType::WORD:
+        case MLIParamType::PATHNAME_PTR:
+        case MLIParamType::BUFFER_PTR:
+            param_size = 2;
+            break;
+        case MLIParamType::THREE_BYTE:
+            param_size = 3;
+            break;
+        }
+
         if (param_logged[i]) {
+            offset = static_cast<uint16_t>(offset + param_size);
             continue; // Already logged as part of a date/time pair
         }
 
-        const auto &param = desc.params[i];
-
         // Only log INPUT and INPUT_OUTPUT parameters
         if (param.direction == MLIParamDirection::OUTPUT) {
+            offset = static_cast<uint16_t>(offset + param_size);
             continue;
         }
 
@@ -1497,6 +1536,7 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
                             param_logged[i] = true;
                             param_logged[j] = true;
                             input_idx += 2; // Skip both date and time
+                            offset = static_cast<uint16_t>(offset + param_size);
                             goto next_param;
                         }
                     }
@@ -1505,10 +1545,31 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
         }
 
         // Normal parameter logging (not part of a date/time pair)
+        if (param.direction == MLIParamDirection::INPUT_OUTPUT &&
+            param.type == MLIParamType::PATHNAME_PTR) {
+            // For INPUT_OUTPUT PATHNAME_PTR, defer logging until after the call
+            param_logged[i] = true;
+            input_idx++;
+            offset = static_cast<uint16_t>(offset + param_size);
+            goto next_param;
+        }
+
         oss << " " << param.name << "=";
-        oss << format_param_value(param, inputs[input_idx], bus, param_list_addr, i);
+        if (param.type == MLIParamType::PATHNAME_PTR) {
+            uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
+            oss << "ptr=$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << ptr
+                << " ";
+            oss << format_param_value(param, inputs[input_idx], bus, param_list_addr, i);
+        } else if (param.type == MLIParamType::BUFFER_PTR) {
+            uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
+            oss << "ptr=$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
+                << ptr;
+        } else {
+            oss << format_param_value(param, inputs[input_idx], bus, param_list_addr, i);
+        }
         param_logged[i] = true;
         input_idx++;
+        offset = static_cast<uint16_t>(offset + param_size);
 
     next_param:;
     }
@@ -1562,14 +1623,20 @@ void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamVal
                 continue;
             }
 
+            // For INPUT_OUTPUT PATHNAME_PTR, log after call from memory
+            if (param.direction == MLIParamDirection::INPUT_OUTPUT &&
+                param.type == MLIParamType::PATHNAME_PTR) {
+                MLIParamValue value = MLIHandler::read_param_value(bus, param_list_addr, desc, i);
+                oss << " " << param.name << "=";
+                oss << format_param_value(param, value, bus, param_list_addr, i);
+                param_logged[i] = true;
+                goto next_param;
+            }
+
             // Skip pointer types
             if (param.type == MLIParamType::BUFFER_PTR ||
                 param.type == MLIParamType::PATHNAME_PTR) {
                 continue;
-            }
-
-            if (output_idx >= outputs.size()) {
-                break;
             }
 
             // Check if this is a date parameter with a matching time parameter
@@ -1608,6 +1675,9 @@ void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamVal
             }
 
             // Normal parameter logging (not part of a date/time pair)
+            if (output_idx >= outputs.size()) {
+                break;
+            }
             oss << " " << param.name << "=";
             oss << format_param_value(param, outputs[output_idx], bus, param_list_addr, i);
             param_logged[i] = true;
@@ -1766,7 +1836,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     break;
                 case MLIParamType::BUFFER_PTR: {
                     uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list + offset));
-                    std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
+                    std::cout << "ptr=$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
                 }
                     offset += 2;
                     break;
@@ -1909,8 +1979,12 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         std::cout << "Message: " << error_msg << std::endl;
 
         set_error(cpu, error);
-        return TrapManager::halt_and_dump("MLI call failed: " + std::string(desc->name), cpu, bus,
-                                          cpu.PC);
+
+        // Allow READ ($CA) to return EOF ($4C) without halting
+        if (!(desc->call_number == 0xCA && error == ProDOSError::END_OF_FILE)) {
+            return TrapManager::halt_and_dump("MLI call failed: " + std::string(desc->name), cpu,
+                                              bus, cpu.PC);
+        }
     }
 
     // Return to caller

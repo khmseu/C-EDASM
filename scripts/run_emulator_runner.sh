@@ -29,7 +29,8 @@ done
 for i in test_input.txt test_simple.src; do
     tr '\n' '\r' <"${ROOT}/tests/fixtures/${i}" >"${TESTDIR}/${i}"
 done
-touch "${TESTDIR}/EDASM.AUTOST"
+mv -vi "${TESTDIR}/test_input.txt" "${TESTDIR}/EDASM.AUTOST"
+echo "***" >"${TESTDIR}/test_input.txt"
 
 cd "${TESTDIR}"
 touch EDASM.SWAP

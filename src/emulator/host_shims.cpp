@@ -111,12 +111,6 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
         }
     }
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "[I/O] Keyboard read at $" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << addr << " = $" << std::setw(2)
-                  << static_cast<int>(kbd_value_) << std::endl;
-    }
-
     // Return current keyboard value
     if (TrapManager::is_trace_enabled()) {
         std::cout << "[I/O] Keyboard read at $" << std::hex << std::uppercase << std::setw(4)
@@ -130,8 +124,8 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
 bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
     // Reading KBDSTROBE clears the keyboard strobe by clearing the high bit
     if (TrapManager::is_trace_enabled()) {
-        std::cout << "[I/O] Keyboard strobe read at $" << std::hex << std::uppercase
-                  << std::setw(4) << std::setfill('0') << addr << " (clearing strobe)" << std::endl;
+        std::cout << "[I/O] Keyboard strobe read at $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << addr << " (clearing strobe)" << std::endl;
     }
     value = 0;
     kbd_value_ = kbd_value_ & 0x7F; // Clear high bit
@@ -359,11 +353,6 @@ bool HostShims::handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_
     // $C057: HIRES (Hi-res graphics)
     // $C058: CLRAN0-$C05F: Various other switches
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "[I/O] Graphics switch at $" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << addr << std::endl;
-    }
-
     switch (addr) {
     case 0xC050: // TXTCLR - Graphics mode
         text_mode_ = false;
@@ -401,6 +390,13 @@ bool HostShims::handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_
         // $C058-$C05F: Annunciators and other switches
         value = 0;
         break;
+    }
+
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[I/O] Graphics switch at $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << addr << " -> text=" << std::boolalpha << text_mode_
+                  << " mixed=" << mixed_mode_ << " page2=" << page2_ << " hires=" << hires_
+                  << std::noboolalpha << std::endl;
     }
 
     return true;
