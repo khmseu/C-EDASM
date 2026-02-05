@@ -138,6 +138,9 @@ constexpr uint16_t SOFTEV = 0x03F2;  // RESET vector
 constexpr uint16_t PWREDUP = 0x03F4; // Power-up byte
 constexpr uint16_t USRADR = 0x03F8;  // Ctrl-Y vector
 
+constexpr uint16_t TEXT1_LINE1 = 0x0400; // Start of text page 1
+constexpr uint16_t TEXT2_LINE1 = 0x0800; // Start of text page 2
+
 constexpr uint16_t LOAD_ADDR_SYS = 0x2000;    // Load & Exec addr of SYS files
 constexpr uint16_t LOAD_ADDR_EDITOR = 0x8900; // Load Addr of Editor Module
 constexpr uint16_t LOAD_ADDR_EI = 0xB100;     // Load Addr of EI Module

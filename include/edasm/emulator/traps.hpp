@@ -57,9 +57,6 @@ class TrapStatistics {
     // Print statistics table to stdout, ordered by trap address
     static void print_statistics();
 
-    // Clear all statistics
-    static void clear();
-
   private:
     static std::vector<TrapStatistic> &get_statistics();
 };
@@ -88,9 +85,6 @@ class TrapManager {
 
     // Default trap handler: log and halt
     static bool default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc);
-
-    // ProDOS MLI trap handler: forwards to MLIHandler (for compatibility)
-    static bool prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc);
 
     // Monitor ROM trap handler: SETNORM ($FE84) - sets InvFlg ($32) to $FF
     static bool monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc);

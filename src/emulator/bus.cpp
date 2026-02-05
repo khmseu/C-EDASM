@@ -9,6 +9,7 @@
 #include "edasm/emulator/bus.hpp"
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 
 namespace edasm {
 
@@ -208,6 +209,31 @@ void Bus::write_word(uint16_t addr, uint16_t value) {
           static_cast<uint8_t>((value >> 8) & 0xFF)); // Cast handles overflow
 }
 
+bool Bus::write_memory_dump(const std::string &filename) const {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error: Failed to open " << filename << " for writing" << std::endl;
+        return false;
+    }
+
+    // Use translate_read_range to get the proper memory ranges for the entire 64KB address space
+    auto ranges = translate_read_range(0, MEMORY_SIZE);
+
+    // Write each range to file
+    for (const auto &range : ranges) {
+        file.write(reinterpret_cast<const char *>(range.data()), range.size());
+        if (!file) {
+            std::cerr << "Error: Failed to write memory dump" << std::endl;
+            return false;
+        }
+    }
+
+    file.close();
+    std::cout << "Memory dump written to: " << filename << " (" << MEMORY_SIZE << " bytes)"
+              << std::endl;
+    return true;
+}
+
 bool Bus::initialize_memory(uint16_t addr, const std::vector<uint8_t> &data) {
     if (data.empty()) {
         return true; // Nothing to load
@@ -285,14 +311,6 @@ bool Bus::load_binary_from_file(uint16_t addr, const std::string &filename) {
 
     // Load binary at runtime, respecting bank switching
     return write_binary_data(addr, buffer);
-}
-
-void Bus::set_read_trap(uint16_t addr, ReadTrapHandler handler, const std::string &name) {
-    set_read_trap_range(addr, addr, handler, name);
-}
-
-void Bus::set_write_trap(uint16_t addr, WriteTrapHandler handler, const std::string &name) {
-    set_write_trap_range(addr, addr, handler, name);
 }
 
 void Bus::set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler,

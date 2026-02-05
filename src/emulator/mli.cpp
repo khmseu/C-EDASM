@@ -19,7 +19,6 @@
 #include <ctime>
 #include <errno.h>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits.h>
@@ -41,10 +40,6 @@ struct FileEntry {
 
 constexpr size_t kMaxFiles = 16; // ProDOS refnums are 1-15; slot 0 unused
 std::array<FileEntry, kMaxFiles> s_file_table{};
-
-uint16_t read_word_bus(const Bus &bus, uint16_t addr) {
-    return static_cast<uint16_t>(bus.read(addr) | (bus.read(static_cast<uint16_t>(addr + 1)) << 8));
-}
 
 std::string current_prefix() {
     char cwd_buf[PATH_MAX] = {0};
@@ -142,14 +137,6 @@ constexpr uint8_t ERR_ILLEGAL_PARAM = 0x2C;
 
 } // namespace
 
-void MLIHandler::set_trace(bool enabled) {
-    TrapManager::set_trace(enabled);
-}
-
-bool MLIHandler::is_trace_enabled() {
-    return TrapManager::is_trace_enabled();
-}
-
 void MLIHandler::set_success(CPUState &cpu) {
     cpu.A = 0;
     cpu.P &= ~StatusFlags::C;
@@ -159,40 +146,11 @@ void MLIHandler::set_success(CPUState &cpu) {
     cpu.P |= StatusFlags::U;
 }
 
-void MLIHandler::set_error(CPUState &cpu, uint8_t err) {
-    cpu.A = err;
+void MLIHandler::set_error(CPUState &cpu, ProDOSError err) {
+    cpu.A = static_cast<uint8_t>(err);
     cpu.P |= StatusFlags::C;
     cpu.P &= ~StatusFlags::Z;
     cpu.P |= StatusFlags::U;
-}
-
-void MLIHandler::set_error(CPUState &cpu, ProDOSError err) {
-    set_error(cpu, static_cast<uint8_t>(err));
-}
-
-bool MLIHandler::write_memory_dump(const Bus &bus, const std::string &filename) {
-    std::ofstream file(filename, std::ios::binary);
-    if (!file) {
-        std::cerr << "Error: Failed to open " << filename << " for writing" << std::endl;
-        return false;
-    }
-
-    // Use translate_read_range to get the proper memory ranges for the entire 64KB address space
-    auto ranges = bus.translate_read_range(0, Bus::MEMORY_SIZE);
-
-    // Write each range to file
-    for (const auto &range : ranges) {
-        file.write(reinterpret_cast<const char *>(range.data()), range.size());
-        if (!file) {
-            std::cerr << "Error: Failed to write memory dump" << std::endl;
-            return false;
-        }
-    }
-
-    file.close();
-    std::cout << "Memory dump written to: " << filename << " (" << Bus::MEMORY_SIZE << " bytes)"
-              << std::endl;
-    return true;
 }
 
 // MLI Call Descriptors
@@ -495,7 +453,7 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             if (param.type == MLIParamType::BUFFER_PTR ||
                 param.type == MLIParamType::PATHNAME_PTR) {
                 // Read the pointer value (handler needs to know where to write output)
-                uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
+                uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
                 values.push_back(ptr);
                 offset += 2;
             } else {
@@ -528,7 +486,7 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             break;
         }
         case MLIParamType::WORD: {
-            uint16_t val = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
+            uint16_t val = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
             values.push_back(val);
             offset += 2;
             break;
@@ -542,7 +500,7 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             break;
         }
         case MLIParamType::PATHNAME_PTR: {
-            uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
+            uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
             offset += 2;
 
             // Read length-prefixed pathname
@@ -559,7 +517,7 @@ std::vector<MLIParamValue> MLIHandler::read_input_params(const Bus &bus, uint16_
             break;
         }
         case MLIParamType::BUFFER_PTR: {
-            uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
+            uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
             values.push_back(ptr); // Store as uint16_t for now
             offset += 2;
             break;
@@ -606,7 +564,7 @@ MLIParamValue MLIHandler::read_param_value(const Bus &bus, uint16_t param_list_a
         return val;
     }
     case MLIParamType::WORD: {
-        uint16_t val = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
+        uint16_t val = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
         return val;
     }
     case MLIParamType::THREE_BYTE: {
@@ -616,7 +574,7 @@ MLIParamValue MLIHandler::read_param_value(const Bus &bus, uint16_t param_list_a
         return val;
     }
     case MLIParamType::PATHNAME_PTR: {
-        uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
+        uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
 
         // Read length-prefixed pathname
         uint8_t len = bus.read(ptr);
@@ -630,7 +588,7 @@ MLIParamValue MLIHandler::read_param_value(const Bus &bus, uint16_t param_list_a
         return pathname;
     }
     case MLIParamType::BUFFER_PTR: {
-        uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list_addr + offset));
+        uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list_addr + offset));
         return ptr;
     }
     }
@@ -782,7 +740,7 @@ ProDOSError MLIHandler::handle_get_time(Bus &bus, const std::vector<MLIParamValu
     bus.write(static_cast<uint16_t>(P8TIME + 1), hour);
     bus.write(P8TIME, minute);
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "GET_TIME: wrote date/time to $BF90-$BF93" << std::endl;
         std::cout << "  Year (since 1900): " << std::dec << static_cast<int>(year) << std::endl;
         std::cout << "  Month: " << static_cast<int>(month) << std::endl;
@@ -835,7 +793,7 @@ ProDOSError MLIHandler::handle_get_prefix(Bus &bus, const std::vector<MLIParamVa
                                           std::vector<MLIParamValue> &outputs) {
     uint16_t buf_ptr = std::get<uint16_t>(inputs[0]);
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
                   << std::setfill('0') << buf_ptr << std::endl;
     }
@@ -862,7 +820,7 @@ ProDOSError MLIHandler::handle_get_prefix(Bus &bus, const std::vector<MLIParamVa
 
     uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
     bus.write(buf_ptr, prefix_len);
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "GET_PREFIX: writing prefix length=" << std::dec
                   << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
                   << std::endl;
@@ -910,7 +868,7 @@ ProDOSError MLIHandler::handle_open(Bus &bus, const std::vector<MLIParamValue> &
     entry.mark = 0;
     entry.file_size = static_cast<uint32_t>(file_size);
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "OPEN ($C8): opened " << host_path << " as refnum " << ref
                   << ", file_size=" << file_size << std::endl;
     }
@@ -925,7 +883,7 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
     uint16_t data_buffer = std::get<uint16_t>(inputs[1]);
     uint16_t request_count = std::get<uint16_t>(inputs[2]);
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "READ ($CA): refnum=" << std::dec << static_cast<int>(refnum)
                   << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
                   << std::setfill('0') << data_buffer << ", request_count=" << std::dec
@@ -979,7 +937,7 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
         entry->mark += actual_read;
     }
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "READ ($CA): read " << std::dec << actual_read
                   << " bytes, new mark=" << entry->mark << std::endl;
     }
@@ -998,7 +956,7 @@ ProDOSError MLIHandler::handle_write(Bus &bus, const std::vector<MLIParamValue> 
     uint16_t data_buffer = std::get<uint16_t>(inputs[1]);
     uint16_t request_count = std::get<uint16_t>(inputs[2]);
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "WRITE ($CB): refnum=" << std::dec << static_cast<int>(refnum)
                   << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
                   << std::setfill('0') << data_buffer << ", request_count=" << std::dec
@@ -1043,7 +1001,7 @@ ProDOSError MLIHandler::handle_write(Bus &bus, const std::vector<MLIParamValue> 
         entry->file_size = entry->mark;
     }
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "WRITE ($CB): wrote " << std::dec << trans_count
                   << " bytes, new mark=" << entry->mark << ", file_size=" << entry->file_size
                   << std::endl;
@@ -1061,7 +1019,7 @@ ProDOSError MLIHandler::handle_close(Bus &bus, const std::vector<MLIParamValue> 
                                      std::vector<MLIParamValue> &outputs) {
     uint8_t refnum = std::get<uint8_t>(inputs[0]);
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "CLOSE ($CC): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
     }
 
@@ -1071,7 +1029,7 @@ ProDOSError MLIHandler::handle_close(Bus &bus, const std::vector<MLIParamValue> 
                 close_entry(s_file_table[i]);
             }
         }
-        if (is_trace_enabled()) {
+        if (TrapManager::is_trace_enabled()) {
             std::cout << "CLOSE ($CC): closed all files" << std::endl;
         }
         return ProDOSError::NO_ERROR;
@@ -1084,7 +1042,7 @@ ProDOSError MLIHandler::handle_close(Bus &bus, const std::vector<MLIParamValue> 
         return ProDOSError::INVALID_REF_NUM;
     }
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "CLOSE ($CC): closing " << entry->host_path << std::endl;
     }
 
@@ -1096,7 +1054,7 @@ ProDOSError MLIHandler::handle_flush(Bus &bus, const std::vector<MLIParamValue> 
                                      std::vector<MLIParamValue> &outputs) {
     uint8_t refnum = std::get<uint8_t>(inputs[0]);
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "FLUSH ($CD): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
     }
 
@@ -1106,7 +1064,7 @@ ProDOSError MLIHandler::handle_flush(Bus &bus, const std::vector<MLIParamValue> 
                 std::fflush(s_file_table[i].fp);
             }
         }
-        if (is_trace_enabled()) {
+        if (TrapManager::is_trace_enabled()) {
             std::cout << "FLUSH ($CD): flushed all files" << std::endl;
         }
         return ProDOSError::NO_ERROR;
@@ -1123,7 +1081,7 @@ ProDOSError MLIHandler::handle_flush(Bus &bus, const std::vector<MLIParamValue> 
         std::fflush(entry->fp);
     }
 
-    if (is_trace_enabled()) {
+    if (TrapManager::is_trace_enabled()) {
         std::cout << "FLUSH ($CD): flushed " << entry->host_path << std::endl;
     }
 
@@ -1223,7 +1181,7 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     uint16_t param_list = 0;
     for (uint16_t addr = 0; addr < Bus::MEMORY_SIZE - 13; ++addr) {
         if (bus.read(addr) == 10) { // GET_FILE_INFO has 10 params
-            uint16_t pathname_ptr = read_word_bus(bus, static_cast<uint16_t>(addr + 1));
+            uint16_t pathname_ptr = bus.read_word(static_cast<uint16_t>(addr + 1));
             uint8_t path_len = bus.read(pathname_ptr);
             if (path_len < 64) {
                 std::string check_path;
@@ -1497,7 +1455,7 @@ std::string get_error_message(ProDOSError error) {
 // Log input parameters (first line)
 void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValue> &inputs,
                    const Bus &bus, uint16_t param_list_addr) {
-    if (!MLIHandler::is_trace_enabled())
+    if (!TrapManager::is_trace_enabled())
         return;
 
     std::ostringstream oss;
@@ -1578,7 +1536,7 @@ void log_mli_input(const MLICallDescriptor &desc, const std::vector<MLIParamValu
 // Log output parameters and result (second line)
 void log_mli_output(const MLICallDescriptor &desc, const std::vector<MLIParamValue> &outputs,
                     ProDOSError error, const Bus &bus, uint16_t param_list_addr) {
-    if (!MLIHandler::is_trace_enabled())
+    if (!TrapManager::is_trace_enabled())
         return;
 
     // Special case: GET_TIME - log the ProDOS system date-time from the system page
@@ -1720,7 +1678,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         if (reason == "trace") {
             return; // Skip verbose logging for normal traced calls
         }
-        if (!is_trace_enabled() && reason != "halt") {
+        if (!TrapManager::is_trace_enabled() && reason != "halt") {
             // std::cout << "No logs s_trace_enabled=" << is_trace_enabled() << " reason=" <<
             // reason;
             return;
@@ -1796,7 +1754,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     offset += 1;
                     break;
                 case MLIParamType::WORD: {
-                    uint16_t val = read_word_bus(bus, static_cast<uint16_t>(param_list + offset));
+                    uint16_t val = bus.read_word(static_cast<uint16_t>(param_list + offset));
                     std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << val;
                 }
                     offset += 2;
@@ -1810,7 +1768,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     offset += 3;
                     break;
                 case MLIParamType::PATHNAME_PTR: {
-                    uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list + offset));
+                    uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list + offset));
                     std::cout << "ptr=$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
 
                     uint8_t path_len = bus.read(ptr);
@@ -1824,7 +1782,7 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
                     offset += 2;
                     break;
                 case MLIParamType::BUFFER_PTR: {
-                    uint16_t ptr = read_word_bus(bus, static_cast<uint16_t>(param_list + offset));
+                    uint16_t ptr = bus.read_word(static_cast<uint16_t>(param_list + offset));
                     std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << ptr;
                 }
                     offset += 2;
@@ -1859,6 +1817,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         std::cout << "[MLI STUB] Call $" << std::hex << std::uppercase << std::setw(2)
                   << std::setfill('0') << static_cast<int>(call_num) << " (" << desc->name
                   << ") not yet implemented" << std::endl;
+        return TrapManager::halt_and_dump("MLI call not implemented: " + std::string(desc->name),
+                                          cpu, bus, cpu.PC);
         set_error(cpu, ProDOSError::BAD_CALL_NUMBER);
         return_to_caller();
         return true;
@@ -1966,8 +1926,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         std::cout << "Message: " << error_msg << std::endl;
 
         set_error(cpu, error);
-        return TrapManager::halt_and_dump("MLI call failed: " + std::string(desc->name), 
-                                          cpu, bus, cpu.PC);
+        return TrapManager::halt_and_dump("MLI call failed: " + std::string(desc->name), cpu, bus,
+                                          cpu.PC);
     }
 
     // Return to caller

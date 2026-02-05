@@ -28,8 +28,8 @@ void append_symbol(std::ostringstream &oss, uint16_t address, uint8_t opcode) {
     auto it = table.find(address);
     if (it == table.end()) {
         if (opcode == 0x02)
-            oss << " ; No symbol found for address $" << std::hex << std::uppercase
-                << std::setw(4) << std::setfill('0') << address;
+            oss << " ; No symbol found for address $" << std::hex << std::uppercase << std::setw(4)
+                << std::setfill('0') << address;
         return;
     }
     oss << " <" << it->second << ">";
@@ -425,6 +425,8 @@ void register_default_disassembly_symbols() {
     EDASM_REGISTER_SYMBOL(STACK_BASE);
     EDASM_REGISTER_SYMBOL(INBUF);
     EDASM_REGISTER_SYMBOL(TXBUF2);
+    EDASM_REGISTER_SYMBOL(TEXT1_LINE1);
+    EDASM_REGISTER_SYMBOL(TEXT2_LINE1);
     EDASM_REGISTER_SYMBOL(SOFTEV);
     EDASM_REGISTER_SYMBOL(PWREDUP);
     EDASM_REGISTER_SYMBOL(USRADR);
@@ -559,6 +561,7 @@ void register_default_disassembly_symbols() {
 
     // Keyboard and device I/O (register after overlapping addresses to take priority)
     EDASM_REGISTER_SYMBOL(KBD);     // $C000 - overwrites _80STOREOFF
+    EDASM_REGISTER_SYMBOL(AKD);     // $C010 - alternate name for KBDSTRB
     EDASM_REGISTER_SYMBOL(KBDSTRB); // $C010 - overwrites AKD
     EDASM_REGISTER_SYMBOL(CASSOUT);
     EDASM_REGISTER_SYMBOL(SPEAKER);

@@ -109,19 +109,12 @@ struct MLICallDescriptor {
 // ProDOS MLI (Machine Language Interface) handler
 class MLIHandler {
   public:
-    // Set trace mode (enables detailed logging)
-    static void set_trace(bool enabled);
-    static bool is_trace_enabled();
-
     // ProDOS MLI trap handler: decode and log MLI calls (for $BF00)
     static bool prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc);
 
     // Helper utilities used by MLI handler
     static void set_success(CPUState &cpu);
-    static void set_error(CPUState &cpu, uint8_t err);
     static void set_error(CPUState &cpu, ProDOSError err);
-    static bool write_memory_dump(const Bus &bus, const std::string &filename);
-
     // Parameter descriptor lookup
     static const MLICallDescriptor *get_call_descriptor(uint8_t call_num);
 

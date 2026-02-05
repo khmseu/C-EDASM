@@ -26,10 +26,10 @@ namespace edasm {
 // Host shims for ProDOS and monitor services
 class HostShims {
   public:
-    HostShims();
+    HostShims(Bus &bus);
 
     // Install shims into bus for I/O traps
-    void install_io_traps(Bus &bus);
+    void install_io_traps();
 
     // Queue input lines for EXEC-like feeding
     void queue_input_line(const std::string &line);
@@ -52,7 +52,7 @@ class HostShims {
     std::string current_line_;
     size_t current_pos_;
 
-    Bus *bus_;
+    Bus &bus_;
     bool screen_dirty_;
     bool stop_requested_;
 
@@ -71,8 +71,6 @@ class HostShims {
     bool handle_kbdstrb_read(uint16_t addr, uint8_t &value);
     bool handle_speaker_toggle(uint16_t addr, uint8_t &value);
     bool handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_write);
-
-    void log_text_screen(const std::string &why);
 
     // Apple II soft switch state
     uint8_t kbd_value_; // $C000: Keyboard data (with high bit indicating new key available)
@@ -113,8 +111,6 @@ class HostShims {
     // Language Card handlers
     bool handle_language_control_read(uint16_t addr, uint8_t &value);
     bool handle_language_control_write(uint16_t addr, uint8_t value);
-    bool handle_lc_read(uint16_t addr, uint8_t &value);
-    bool handle_lc_write(uint16_t addr, uint8_t value);
     void update_lc_bank_mappings(); // Update bank mappings based on LC state
 };
 

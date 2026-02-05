@@ -11,7 +11,7 @@ void print_test_result(const std::string &test_name, bool passed) {
 
 bool test_lc_basic_write_read() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
     shims.install_io_traps(bus);
 
     // Initialize ROM area in main RAM to 0x00 (simulating empty ROM)

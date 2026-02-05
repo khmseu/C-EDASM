@@ -109,6 +109,9 @@ class Bus {
     uint16_t read_word(uint16_t addr) const;
     void write_word(uint16_t addr, uint16_t value);
 
+    // Write full memory dump to binary file
+    bool write_memory_dump(const std::string &filename) const;
+
     // Load binary data at specific address
     bool initialize_memory(uint16_t addr, const std::vector<uint8_t> &data);
     bool write_binary_data(uint16_t addr, const std::vector<uint8_t> &data);
@@ -122,9 +125,7 @@ class Bus {
     // Reset memory to trap opcode
     void reset();
 
-    // Set read/write trap handlers for specific address or range
-    void set_read_trap(uint16_t addr, ReadTrapHandler handler, const std::string &name = "");
-    void set_write_trap(uint16_t addr, WriteTrapHandler handler, const std::string &name = "");
+    // Set read/write trap handlers for address ranges
     void set_read_trap_range(uint16_t start, uint16_t end, ReadTrapHandler handler,
                              const std::string &name = "");
     void set_write_trap_range(uint16_t start, uint16_t end, WriteTrapHandler handler,

@@ -19,7 +19,7 @@ void print_test_result(const std::string &test_name, bool passed) {
 // Test keyboard I/O traps
 bool test_keyboard_io() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     // Install I/O traps
     shims.install_io_traps(bus);
@@ -70,7 +70,7 @@ bool test_keyboard_io() {
 // Test graphics switches
 bool test_graphics_switches() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     // Install I/O traps
     shims.install_io_traps(bus);
@@ -96,7 +96,7 @@ bool test_graphics_switches() {
 // Test speaker toggle
 bool test_speaker_toggle() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     // Install I/O traps
     shims.install_io_traps(bus);
@@ -111,7 +111,7 @@ bool test_speaker_toggle() {
 // Test game I/O
 bool test_game_io() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     // Install I/O traps
     shims.install_io_traps(bus);
@@ -132,7 +132,7 @@ bool test_game_io() {
 // Test text screen logging on $C000 access
 bool test_text_screen_logging() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     shims.install_io_traps(bus);
 
@@ -141,7 +141,7 @@ bool test_text_screen_logging() {
     std::streambuf *old_buf = std::cout.rdbuf(oss.rdbuf());
 
     // Write to text page 1 and trigger keyboard read trap
-    bus.write(0x0400, 'A');
+    bus.write(LINE1, 'A');
     bus.read(0xC000); // Should log screen snapshot
 
     std::cout.rdbuf(old_buf);
@@ -173,7 +173,7 @@ bool test_text_screen_logging() {
 // Test stop on 'E' character at first screen position
 bool test_stop_on_e_character() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     shims.install_io_traps(bus);
 
@@ -182,7 +182,7 @@ bool test_stop_on_e_character() {
     std::streambuf *old_buf = std::cout.rdbuf(oss.rdbuf());
 
     // Write 'A' to first position - should not stop
-    bus.write(0x0400, 'A');
+    bus.write(LINE1, 'A');
     std::cout.rdbuf(old_buf);
 
     if (shims.should_stop()) {
@@ -194,7 +194,7 @@ bool test_stop_on_e_character() {
     oss.str("");
     oss.clear();
     old_buf = std::cout.rdbuf(oss.rdbuf());
-    bus.write(0x0400, 'E');
+    bus.write(LINE1, 'E');
     std::cout.rdbuf(old_buf);
 
     const std::string output = oss.str();
@@ -220,7 +220,7 @@ bool test_stop_on_e_character() {
 // Test full I/O range coverage
 bool test_full_io_range() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     // Install I/O traps
     shims.install_io_traps(bus);
@@ -244,7 +244,7 @@ bool test_full_io_range() {
 // Test that traps are properly installed
 bool test_trap_installation() {
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
 
     // Before installing traps, reads should return trap opcode ($02)
     uint8_t value = bus.read(0xC000);

@@ -19,6 +19,7 @@
 #include "edasm/emulator/cpu.hpp"
 #include "edasm/emulator/disassembly.hpp"
 #include "edasm/emulator/host_shims.hpp"
+#include "edasm/emulator/mli.hpp"
 #include "edasm/emulator/traps.hpp"
 #include <filesystem>
 #include <fstream>
@@ -97,7 +98,7 @@ int main(int argc, char *argv[]) {
     // Initialize emulator
     Bus bus;
     CPU cpu(bus);
-    HostShims shims;
+    HostShims shims(bus);
 
     // Load and queue input file if provided
     if (!input_file_path.empty()) {
@@ -145,7 +146,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Install host shims
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
     std::cout << "  I/O traps installed at $C000 (KBD) and $C010 (KBDSTRB)" << std::endl;
 
     // Try to load binary
@@ -171,7 +172,7 @@ int main(int argc, char *argv[]) {
 
     // Install general trap handler with ProDOS MLI handler at $BF00
     TrapManager::set_trace(trace);
-    TrapManager::install_address_handler(PRODOS8, TrapManager::prodos_mli_trap_handler,
+    TrapManager::install_address_handler(PRODOS8, MLIHandler::prodos_mli_trap_handler,
                                          "ProDOS MLI");
     TrapManager::install_address_handler(0xFE84, TrapManager::monitor_setnorm_trap_handler,
                                          "MONITOR SETNORM");

@@ -77,7 +77,7 @@ bool TrapManager::general_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
         auto ret = it->second(cpu, bus, trap_pc);
         std::cerr << "[TRAP HANDLER] Address $" << std::hex << std::uppercase << std::setw(4)
                   << std::setfill('0') << trap_pc << " handled by registered handler, returns "
-                  << ret << std::endl;
+                  << std::boolalpha << ret << std::endl;
         return ret;
     }
 
@@ -96,14 +96,14 @@ bool TrapManager::default_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
     log_cpu_state(cpu, bus, trap_pc);
     log_memory_window(bus, trap_pc, 32);
 
-    return halt_and_dump("Unhandled trap at $" + 
-                         [&]() {
-                             std::ostringstream oss;
-                             oss << std::hex << std::uppercase << std::setw(4) 
-                                 << std::setfill('0') << trap_pc;
-                             return oss.str();
-                         }(), 
-                         cpu, bus, trap_pc);
+    return halt_and_dump(
+        "Unhandled trap at $" +
+            [&]() {
+                std::ostringstream oss;
+                oss << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << trap_pc;
+                return oss.str();
+            }(),
+        cpu, bus, trap_pc);
 }
 
 TrapHandler TrapManager::create_logging_handler(const std::string &name) {
@@ -231,10 +231,6 @@ bool TrapManager::halt_and_dump(const std::string &reason, CPUState &cpu, Bus &b
 }
 
 // Forward to MLI handler for ProDOS MLI calls
-bool TrapManager::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
-    return MLIHandler::prodos_mli_trap_handler(cpu, bus, trap_pc);
-}
-
 bool TrapManager::monitor_setnorm_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc) {
     // Record trap statistic
     TrapStatistics::record_trap("MONITOR SETNORM", trap_pc, TrapKind::CALL);
@@ -409,10 +405,6 @@ void TrapStatistics::print_statistics() {
     std::cout << std::string(90, '-') << std::endl;
     std::cout << "Total trap entries: " << stats.size() << std::endl;
     std::cout << "=======================" << std::endl;
-}
-
-void TrapStatistics::clear() {
-    get_statistics().clear();
 }
 
 } // namespace edasm

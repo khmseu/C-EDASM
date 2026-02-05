@@ -14,7 +14,7 @@ void test_single_vs_double_read() {
     std::cout << std::endl;
 
     Bus bus;
-    HostShims shims;
+    HostShims shims(bus);
     shims.install_io_traps(bus);
 
     // Initialize all memory including language card banks to 0xFF (simulating ROM content)

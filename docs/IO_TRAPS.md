@@ -23,7 +23,7 @@ This feature is useful for debugging and capturing specific program states durin
 ```cpp
 Bus bus;
 CPU cpu(bus);
-HostShims shims;
+HostShims shims(bus);
 shims.install_io_traps(bus);
 
 while (running) {
@@ -78,8 +78,8 @@ Individual handlers for different I/O regions:
 #### $C000 (KBD) - Keyboard Data
 
 - **Read**: Returns keyboard data with high bit set if key available
-    - After strobe clear: Returns last key with high bit clear
-    - Auto-fetches queued input when available
+  - After strobe clear: Returns last key with high bit clear
+  - Auto-fetches queued input when available
 - **Write**: Ignored (read-only)
 
 #### $C010 (KBDSTRB) - Keyboard Strobe
@@ -151,7 +151,7 @@ All graphics switches work the same for read or write (access triggers the actio
 // Initialize emulator
 Bus bus;
 CPU cpu(bus);
-HostShims shims;
+HostShims shims(bus);
 
 // Install I/O traps (covers $C000-$C7FF)
 shims.install_io_traps(bus);

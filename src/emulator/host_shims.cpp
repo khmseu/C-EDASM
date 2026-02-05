@@ -15,25 +15,23 @@
 
 namespace edasm {
 
-HostShims::HostShims()
-    : current_pos_(0), bus_(nullptr), screen_dirty_(false), kbd_value_(0), text_mode_(true),
+HostShims::HostShims(Bus &bus)
+    : current_pos_(0), bus_(bus), screen_dirty_(false), kbd_value_(0), text_mode_(true),
       mixed_mode_(false), page2_(false), hires_(false), stop_requested_(false) {}
 
-void HostShims::install_io_traps(Bus &bus) {
-    bus_ = &bus;
-
+void HostShims::install_io_traps() {
     // Install I/O traps for full $C000-$C7FF range
-    bus.set_read_trap_range(
+    bus_.set_read_trap_range(
         KBD, 0xC7FF,
         [this](uint16_t addr, uint8_t &value) { return this->handle_io_read(addr, value); }, "I/O");
 
-    bus.set_write_trap_range(
+    bus_.set_write_trap_range(
         KBD, 0xC7FF,
         [this](uint16_t addr, uint8_t value) { return this->handle_io_write(addr, value); }, "I/O");
 
     // Install write trap for text page 1 ($0400-$07FF)
-    bus.set_write_trap_range(
-        0x0400, 0x07FF,
+    bus_.set_write_trap_range(
+        TEXT1_LINE1, 0x07FF,
         [this](uint16_t addr, uint8_t value) {
             // Record screen write statistics
             TrapStatistics::record_trap("SCREEN", addr, TrapKind::WRITE);
@@ -43,7 +41,7 @@ void HostShims::install_io_traps(Bus &bus) {
 
             // Check if writing to first character position ($0400)
             // Strip high bit and check for 'E' (handles normal, inverse, and flashing text)
-            if (addr == 0x0400) {
+            if (addr == TEXT1_LINE1) {
                 // Check for 'E' by masking high bit (handles all Apple II text modes)
                 char ch = static_cast<char>(value & 0x7F);
                 if (ch == 'E' || ch == 'e') {
@@ -94,8 +92,8 @@ char HostShims::get_next_char() {
 }
 
 bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
-    if (screen_dirty_ && bus_) {
-        log_text_screen("screen_dirty_");
+    if (screen_dirty_) {
+        dump_text_screen(bus_, page2_, "screen_dirty_");
         screen_dirty_ = false;
     }
 
@@ -234,7 +232,7 @@ bool HostShims::handle_io_read(uint16_t addr, uint8_t &value) {
         uint8_t slot = (addr >> 8) & 0x0F;
         if (slot >= 1 && slot <= 7) {
             // Read directly from memory using translation to avoid recursion through trap handler
-            auto ranges = bus_->translate_read_range(addr, 1);
+            auto ranges = bus_.translate_read_range(addr, 1);
             if (!ranges.empty()) {
                 value = ranges[0][0];
                 return true;
@@ -384,16 +382,9 @@ bool HostShims::handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_
     return true;
 }
 
-void HostShims::log_text_screen(const std::string &why) {
-    if (!bus_) {
-        return;
-    }
-    dump_text_screen(*bus_, page2_, why);
-}
-
 // Static utility to dump text screen
 void HostShims::dump_text_screen(const Bus &bus, bool page2, const std::string &label) {
-    const uint16_t base = page2 ? 0x0800 : 0x0400;
+    const uint16_t base = page2 ? TEXT2_LINE1 : TEXT1_LINE1;
 
     if (!label.empty()) {
         std::cout << "[HostShims] Text screen snapshot (page " << (page2 ? 2 : 1) << ") " << label
@@ -423,10 +414,8 @@ void HostShims::dump_text_screen(const Bus &bus, bool page2, const std::string &
 // Dump screen and memory, then request stop
 void HostShims::dump_and_stop(const std::string &reason) {
     std::cout << "\n[HostShims] Stopping: " << reason << std::endl;
-    log_text_screen(reason);
-    if (bus_) {
-        TrapManager::write_memory_dump(*bus_, "memory_dump.bin");
-    }
+    dump_text_screen(bus_, page2_, reason);
+    TrapManager::write_memory_dump(bus_, "memory_dump.bin");
     stop_requested_ = true;
 }
 
@@ -561,9 +550,6 @@ bool HostShims::handle_language_control_write(uint16_t addr, uint8_t value) {
 // Update bank mappings for the language card region (D000-FFFF)
 // This replaces the old trap-based approach with direct bank mapping
 void HostShims::update_lc_bank_mappings() {
-    if (!bus_) {
-        return;
-    }
 
     uint8_t bank = lc_.active_bank & 0x1;
     auto mode = lc_.bank_mode[bank];
@@ -606,7 +592,7 @@ void HostShims::update_lc_bank_mappings() {
             write_offset = Bus::WRITE_SINK_OFFSET;
         }
 
-        bus_->set_bank_mapping(bank_idx, read_offset, write_offset);
+        bus_.set_bank_mapping(bank_idx, read_offset, write_offset);
     }
 
     // E000-FFFF (banks 28-31): Fixed RAM/ROM region
@@ -631,22 +617,8 @@ void HostShims::update_lc_bank_mappings() {
             write_offset = Bus::WRITE_SINK_OFFSET;
         }
 
-        bus_->set_bank_mapping(bank_idx, read_offset, write_offset);
+        bus_.set_bank_mapping(bank_idx, read_offset, write_offset);
     }
-}
-
-// Handle reads from the entire language-card ROM/overlay window ($D000-$FFFF)
-// NOTE: This is now unused - kept for compatibility during transition
-bool HostShims::handle_lc_read(uint16_t addr, uint8_t &value) {
-    // This function is no longer called since we removed the D000-FFFF read trap
-    // Kept for reference/compatibility
-    return false;
-}
-
-bool HostShims::handle_lc_write(uint16_t addr, uint8_t value) {
-    // This function is no longer called since we removed the D000-FFFF write trap
-    // Kept for reference/compatibility
-    return false;
 }
 
 bool HostShims::should_stop() const {
