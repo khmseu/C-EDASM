@@ -742,15 +742,6 @@ ProDOSError MLIHandler::handle_get_time(Bus &bus, const std::vector<MLIParamValu
     bus.write(static_cast<uint16_t>(P8TIME + 1), hour);
     bus.write(P8TIME, minute);
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "GET_TIME: wrote date/time to $BF90-$BF93" << std::endl;
-        std::cout << "  Year (since 1900): " << std::dec << static_cast<int>(year) << std::endl;
-        std::cout << "  Month: " << static_cast<int>(month) << std::endl;
-        std::cout << "  Day: " << static_cast<int>(day) << std::endl;
-        std::cout << "  Hour: " << static_cast<int>(hour) << std::endl;
-        std::cout << "  Minute: " << static_cast<int>(minute) << std::endl;
-    }
-
     return ProDOSError::NO_ERROR;
 }
 
@@ -795,11 +786,6 @@ ProDOSError MLIHandler::handle_get_prefix(Bus &bus, const std::vector<MLIParamVa
                                           std::vector<MLIParamValue> &outputs) {
     uint16_t buf_ptr = std::get<uint16_t>(inputs[0]);
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "GET_PREFIX: buffer ptr=$" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << buf_ptr << std::endl;
-    }
-
     char cwd_buf[PATH_MAX] = {0};
     if (!::getcwd(cwd_buf, sizeof(cwd_buf))) {
         std::cerr << "GET_PREFIX: getcwd failed: " << ::strerror(errno) << std::endl;
@@ -822,11 +808,6 @@ ProDOSError MLIHandler::handle_get_prefix(Bus &bus, const std::vector<MLIParamVa
 
     uint8_t prefix_len = static_cast<uint8_t>(prefix_str.length());
     bus.write(buf_ptr, prefix_len);
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "GET_PREFIX: writing prefix length=" << std::dec
-                  << static_cast<int>(prefix_len) << " prefix=\"" << prefix_str << "\""
-                  << std::endl;
-    }
 
     for (size_t i = 0; i < prefix_str.length(); ++i) {
         uint8_t ch = static_cast<uint8_t>(prefix_str[i]) & 0x7F;
@@ -870,11 +851,6 @@ ProDOSError MLIHandler::handle_open(Bus &bus, const std::vector<MLIParamValue> &
     entry.mark = 0;
     entry.file_size = static_cast<uint32_t>(file_size);
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "OPEN ($C8): opened " << host_path << " as refnum " << ref
-                  << ", file_size=" << file_size << std::endl;
-    }
-
     outputs.push_back(static_cast<uint8_t>(ref));
     return ProDOSError::NO_ERROR;
 }
@@ -884,13 +860,6 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
     uint8_t refnum = std::get<uint8_t>(inputs[0]);
     uint16_t data_buffer = std::get<uint16_t>(inputs[1]);
     uint16_t request_count = std::get<uint16_t>(inputs[2]);
-
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "READ ($CA): refnum=" << std::dec << static_cast<int>(refnum)
-                  << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << data_buffer << ", request_count=" << std::dec
-                  << request_count << std::endl;
-    }
 
     FileEntry *entry = get_refnum(refnum);
     if (!entry) {
@@ -955,16 +924,6 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
         }
 
         entry->mark += actual_read;
-        
-        if (TrapManager::is_trace_enabled() && newline_found) {
-            std::cout << "READ ($CA): terminated on newline character at byte " << std::dec
-                      << (actual_read - 1) << std::endl;
-        }
-    }
-
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "READ ($CA): read " << std::dec << actual_read
-                  << " bytes, new mark=" << entry->mark << std::endl;
     }
 
     outputs.push_back(actual_read);
@@ -980,13 +939,6 @@ ProDOSError MLIHandler::handle_write(Bus &bus, const std::vector<MLIParamValue> 
     uint8_t refnum = std::get<uint8_t>(inputs[0]);
     uint16_t data_buffer = std::get<uint16_t>(inputs[1]);
     uint16_t request_count = std::get<uint16_t>(inputs[2]);
-
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "WRITE ($CB): refnum=" << std::dec << static_cast<int>(refnum)
-                  << ", data_buffer=$" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << data_buffer << ", request_count=" << std::dec
-                  << request_count << std::endl;
-    }
 
     FileEntry *entry = get_refnum(refnum);
     if (!entry) {
@@ -1026,12 +978,6 @@ ProDOSError MLIHandler::handle_write(Bus &bus, const std::vector<MLIParamValue> 
         entry->file_size = entry->mark;
     }
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "WRITE ($CB): wrote " << std::dec << trans_count
-                  << " bytes, new mark=" << entry->mark << ", file_size=" << entry->file_size
-                  << std::endl;
-    }
-
     outputs.push_back(trans_count);
 
     if (trans_count < request_count) {
@@ -1044,18 +990,11 @@ ProDOSError MLIHandler::handle_close(Bus &bus, const std::vector<MLIParamValue> 
                                      std::vector<MLIParamValue> &outputs) {
     uint8_t refnum = std::get<uint8_t>(inputs[0]);
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "CLOSE ($CC): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
-    }
-
     if (refnum == 0) {
         for (size_t i = 1; i < s_file_table.size(); ++i) {
             if (s_file_table[i].used) {
                 close_entry(s_file_table[i]);
             }
-        }
-        if (TrapManager::is_trace_enabled()) {
-            std::cout << "CLOSE ($CC): closed all files" << std::endl;
         }
         return ProDOSError::NO_ERROR;
     }
@@ -1067,10 +1006,6 @@ ProDOSError MLIHandler::handle_close(Bus &bus, const std::vector<MLIParamValue> 
         return ProDOSError::INVALID_REF_NUM;
     }
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "CLOSE ($CC): closing " << entry->host_path << std::endl;
-    }
-
     close_entry(*entry);
     return ProDOSError::NO_ERROR;
 }
@@ -1079,18 +1014,11 @@ ProDOSError MLIHandler::handle_flush(Bus &bus, const std::vector<MLIParamValue> 
                                      std::vector<MLIParamValue> &outputs) {
     uint8_t refnum = std::get<uint8_t>(inputs[0]);
 
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "FLUSH ($CD): refnum=" << std::dec << static_cast<int>(refnum) << std::endl;
-    }
-
     if (refnum == 0) {
         for (size_t i = 1; i < s_file_table.size(); ++i) {
             if (s_file_table[i].used && s_file_table[i].fp) {
                 std::fflush(s_file_table[i].fp);
             }
-        }
-        if (TrapManager::is_trace_enabled()) {
-            std::cout << "FLUSH ($CD): flushed all files" << std::endl;
         }
         return ProDOSError::NO_ERROR;
     }
@@ -1104,10 +1032,6 @@ ProDOSError MLIHandler::handle_flush(Bus &bus, const std::vector<MLIParamValue> 
 
     if (entry->fp) {
         std::fflush(entry->fp);
-    }
-
-    if (TrapManager::is_trace_enabled()) {
-        std::cout << "FLUSH ($CD): flushed " << entry->host_path << std::endl;
     }
 
     return ProDOSError::NO_ERROR;

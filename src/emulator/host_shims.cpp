@@ -111,13 +111,28 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
         }
     }
 
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[I/O] Keyboard read at $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << addr << " = $" << std::setw(2)
+                  << static_cast<int>(kbd_value_) << std::endl;
+    }
+
     // Return current keyboard value
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[I/O] Keyboard read at $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << addr << " = $" << std::setw(2)
+                  << static_cast<int>(kbd_value_) << std::endl;
+    }
     value = kbd_value_;
     return true; // Trap handled
 }
 
 bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
     // Reading KBDSTROBE clears the keyboard strobe by clearing the high bit
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[I/O] Keyboard strobe read at $" << std::hex << std::uppercase
+                  << std::setw(4) << std::setfill('0') << addr << " (clearing strobe)" << std::endl;
+    }
     value = 0;
     kbd_value_ = kbd_value_ & 0x7F; // Clear high bit
 
@@ -324,6 +339,10 @@ bool HostShims::handle_io_write(uint16_t addr, uint8_t value) {
 bool HostShims::handle_speaker_toggle(uint16_t addr, uint8_t &value) {
     // Speaker toggle: any access to $C030 toggles speaker
     // We don't actually produce sound, just acknowledge the access
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[I/O] Speaker toggle at $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << addr << std::endl;
+    }
     value = 0;
     return true;
 }
@@ -339,6 +358,11 @@ bool HostShims::handle_graphics_switches(uint16_t addr, uint8_t &value, bool is_
     // $C056: LORES (Lo-res graphics)
     // $C057: HIRES (Hi-res graphics)
     // $C058: CLRAN0-$C05F: Various other switches
+
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "[I/O] Graphics switch at $" << std::hex << std::uppercase << std::setw(4)
+                  << std::setfill('0') << addr << std::endl;
+    }
 
     switch (addr) {
     case 0xC050: // TXTCLR - Graphics mode
