@@ -1095,9 +1095,10 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
     std::string prodos_path = std::get<std::string>(inputs[0]);
     std::string host_path = prodos_path_to_host(prodos_path);
 
+    // Check if path exists
     std::error_code ec;
-    auto file_size = std::filesystem::file_size(host_path, ec);
-    if (ec) {
+    bool exists = std::filesystem::exists(host_path, ec);
+    if (!exists || ec) {
         std::cerr << "GET_FILE_INFO ($C4): file not found: " << host_path
                   << " (error: " << ec.message() << ")" << std::endl;
         // Push zero placeholders for all 10 output parameters
@@ -1114,26 +1115,80 @@ ProDOSError MLIHandler::handle_get_file_info(Bus &bus, const std::vector<MLIPara
         return ProDOSError::FILE_NOT_FOUND;
     }
 
-    uint32_t size32 = static_cast<uint32_t>(file_size);
-    uint16_t blocks_used = static_cast<uint16_t>((size32 + 511) / 512);
+    // Check if this is a directory
+    bool is_dir = std::filesystem::is_directory(host_path, ec);
+    
+    uint32_t size32;
+    uint16_t blocks_used;
+    uint8_t storage_type;
+    uint8_t prodos_ftype;
+
+    if (is_dir) {
+        // Directory handling
+        // Count entries in the directory
+        size_t entry_count = 0;
+        try {
+            for (const auto& entry : std::filesystem::directory_iterator(host_path)) {
+                (void)entry; // Suppress unused variable warning
+                entry_count++;
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            // If we can't read the directory, treat it as empty
+            entry_count = 0;
+        }
+
+        // ProDOS directory format:
+        // - storage_type = 0x0D (directory)
+        // - file_type = 0x0F (directory)
+        // - EOF = header + entries, where each entry is 39 bytes
+        // - Header block is 512 bytes, subsequent entry blocks are 512 bytes
+        storage_type = 0x0D;
+        prodos_ftype = 0x0F;
+        
+        // Calculate EOF: header (512 bytes) + entries (39 bytes each)
+        size32 = 512 + (entry_count * 39);
+        blocks_used = static_cast<uint16_t>((size32 + 511) / 512);
+    } else {
+        // Regular file handling
+        auto file_size = std::filesystem::file_size(host_path, ec);
+        if (ec) {
+            std::cerr << "GET_FILE_INFO ($C4): cannot get file size: " << host_path
+                      << " (error: " << ec.message() << ")" << std::endl;
+            // Push zero placeholders for all 10 output parameters
+            outputs.push_back(uint8_t(0));  // access
+            outputs.push_back(uint8_t(0));  // file_type
+            outputs.push_back(uint16_t(0)); // aux_type
+            outputs.push_back(uint8_t(0));  // storage_type
+            outputs.push_back(uint16_t(0)); // blocks_used
+            outputs.push_back(uint16_t(0)); // mod_date
+            outputs.push_back(uint16_t(0)); // mod_time
+            outputs.push_back(uint16_t(0)); // create_date
+            outputs.push_back(uint16_t(0)); // create_time
+            outputs.push_back(uint32_t(0)); // eof (3 bytes)
+            return ProDOSError::FILE_NOT_FOUND;
+        }
+
+        size32 = static_cast<uint32_t>(file_size);
+        blocks_used = static_cast<uint16_t>((size32 + 511) / 512);
+        storage_type = 0x01; // seedling file
+
+        // Determine a likely ProDOS file type from the host filename extension
+        std::filesystem::path p(host_path);
+        std::string ext = p.extension().string();
+        auto pf_type = edasm::type_from_extension(ext);
+        prodos_ftype = edasm::prodos_type_code(pf_type);
+    }
 
     outputs.push_back(uint8_t(0xC3)); // access
-
-    // Determine a likely ProDOS file type from the host filename extension
-    std::filesystem::path p(host_path);
-    std::string ext = p.extension().string();
-    auto pf_type = edasm::type_from_extension(ext);
-    uint8_t prodos_ftype = edasm::prodos_type_code(pf_type);
-    outputs.push_back(prodos_ftype); // file_type
-
+    outputs.push_back(prodos_ftype);  // file_type
     outputs.push_back(uint16_t(0x0000)); // aux_type
-    outputs.push_back(uint8_t(0x01));    // storage_type
-    outputs.push_back(blocks_used);      // blocks_used
-    outputs.push_back(uint16_t(0));      // mod_date
-    outputs.push_back(uint16_t(0));      // mod_time
-    outputs.push_back(uint16_t(0));      // create_date
-    outputs.push_back(uint16_t(0));      // create_time
-    outputs.push_back(size32);           // eof (3 bytes)
+    outputs.push_back(storage_type);  // storage_type
+    outputs.push_back(blocks_used);   // blocks_used
+    outputs.push_back(uint16_t(0));   // mod_date
+    outputs.push_back(uint16_t(0));   // mod_time
+    outputs.push_back(uint16_t(0));   // create_date
+    outputs.push_back(uint16_t(0));   // create_time
+    outputs.push_back(size32);        // eof (3 bytes)
 
     return ProDOSError::NO_ERROR;
 }

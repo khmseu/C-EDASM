@@ -6,6 +6,7 @@
 #include "edasm/emulator/bus.hpp"
 #include "edasm/emulator/cpu.hpp"
 #include "edasm/emulator/host_shims.hpp"
+#include "edasm/constants.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -22,7 +23,7 @@ bool test_keyboard_io() {
     HostShims shims(bus);
 
     // Install I/O traps
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Test 1: Read from $C000 with no input (should return 0, no key available)
     uint8_t value = bus.read(0xC000);
@@ -73,7 +74,7 @@ bool test_graphics_switches() {
     HostShims shims(bus);
 
     // Install I/O traps
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Test soft switches (read or write triggers them)
     // Just verify no crashes when accessing these addresses
@@ -99,7 +100,7 @@ bool test_speaker_toggle() {
     HostShims shims(bus);
 
     // Install I/O traps
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Access speaker toggle (any access to $C030 toggles speaker)
     bus.read(0xC030);
@@ -114,7 +115,7 @@ bool test_game_io() {
     HostShims shims(bus);
 
     // Install I/O traps
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Read paddle buttons ($C061-$C063)
     uint8_t btn0 = bus.read(0xC061);
@@ -134,14 +135,14 @@ bool test_text_screen_logging() {
     Bus bus;
     HostShims shims(bus);
 
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Capture stdout
     std::ostringstream oss;
     std::streambuf *old_buf = std::cout.rdbuf(oss.rdbuf());
 
     // Write to text page 1 and trigger keyboard read trap
-    bus.write(LINE1, 'A');
+    bus.write(TEXT1_LINE1, 'A');
     bus.read(0xC000); // Should log screen snapshot
 
     std::cout.rdbuf(old_buf);
@@ -175,14 +176,14 @@ bool test_stop_on_e_character() {
     Bus bus;
     HostShims shims(bus);
 
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Capture stdout
     std::ostringstream oss;
     std::streambuf *old_buf = std::cout.rdbuf(oss.rdbuf());
 
     // Write 'A' to first position - should not stop
-    bus.write(LINE1, 'A');
+    bus.write(TEXT1_LINE1, 'A');
     std::cout.rdbuf(old_buf);
 
     if (shims.should_stop()) {
@@ -194,7 +195,7 @@ bool test_stop_on_e_character() {
     oss.str("");
     oss.clear();
     old_buf = std::cout.rdbuf(oss.rdbuf());
-    bus.write(LINE1, 'E');
+    bus.write(TEXT1_LINE1, 'E');
     std::cout.rdbuf(old_buf);
 
     const std::string output = oss.str();
@@ -223,7 +224,7 @@ bool test_full_io_range() {
     HostShims shims(bus);
 
     // Install I/O traps
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Test that we can read/write across entire $C000-$C7FF range
     // without crashes
@@ -255,7 +256,7 @@ bool test_trap_installation() {
     }
 
     // After installing traps, reads should return trap handler values
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
     value = bus.read(0xC000);
     if (value == 0x02) {
         std::cerr << "Expected trap handler to be called, but got trap opcode" << std::endl;

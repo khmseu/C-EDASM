@@ -89,7 +89,7 @@ void test_descriptor_lookup() {
     assert(desc != nullptr);
     assert(desc->call_number == 0xC4);
     assert(std::string(desc->name) == "GET_FILE_INFO");
-    assert(desc->param_count == 10);
+    assert(desc->param_count == 11); // 11 parameters including EOF
 
     desc = MLIHandler::get_call_descriptor(0xC6); // SET_PREFIX
     assert(desc != nullptr);
@@ -193,7 +193,7 @@ void test_open_descriptor_details() {
 void test_get_file_info_descriptor_details() {
     const MLICallDescriptor *desc = MLIHandler::get_call_descriptor(0xC4); // GET_FILE_INFO
     assert(desc != nullptr);
-    assert(desc->param_count == 10);
+    assert(desc->param_count == 11); // 11 parameters including EOF
 
     // First param is input (pathname)
     assert(desc->params[0].type == MLIParamType::PATHNAME_PTR);
@@ -209,6 +209,7 @@ void test_get_file_info_descriptor_details() {
     assert(desc->params[7].direction == MLIParamDirection::OUTPUT);
     assert(desc->params[8].direction == MLIParamDirection::OUTPUT);
     assert(desc->params[9].direction == MLIParamDirection::OUTPUT);
+    assert(desc->params[10].direction == MLIParamDirection::OUTPUT); // EOF param
 
     std::cout << "✓ test_get_file_info_descriptor_details passed" << std::endl;
 }
