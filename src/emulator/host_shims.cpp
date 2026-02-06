@@ -116,8 +116,9 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
     // If high bit is off and no input available, increment counter
     if ((kbd_value_ & 0x80) == 0 && !has_queued_input()) {
         kbd_no_input_count_++;
-        if (kbd_no_input_count_ >= 10) {
-            std::cout << "\n[HostShims] KBD read with high bit off and no input (10 times) - logging screen and stopping\n"
+        if (kbd_no_input_count_ >= 100000) {
+            std::cout << "\n[HostShims] KBD read with high bit off and no input (10 times) - "
+                         "logging screen and stopping\n"
                       << std::endl;
             dump_and_stop("KBD read with high bit off and no input (10 times)");
         }
