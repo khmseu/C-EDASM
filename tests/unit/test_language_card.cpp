@@ -12,7 +12,7 @@ void print_test_result(const std::string &test_name, bool passed) {
 bool test_lc_basic_write_read() {
     Bus bus;
     HostShims shims(bus);
-    shims.install_io_traps(bus);
+    shims.install_io_traps();
 
     // Initialize ROM area in main RAM to 0x00 (simulating empty ROM)
     // Now that initialize_memory writes directly to main RAM, we can use it

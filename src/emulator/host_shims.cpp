@@ -16,8 +16,8 @@
 namespace edasm {
 
 HostShims::HostShims(Bus &bus)
-    : current_pos_(0), bus_(bus), screen_dirty_(false), kbd_value_(0), text_mode_(true),
-      mixed_mode_(false), page2_(false), hires_(false), stop_requested_(false) {}
+    : current_pos_(0), bus_(bus), screen_dirty_(false), kbd_value_(0), kbd_no_input_count_(0),
+      text_mode_(true), mixed_mode_(false), page2_(false), hires_(false), stop_requested_(false) {}
 
 void HostShims::install_io_traps() {
     // Install I/O traps for full $C000-$C7FF range
@@ -108,7 +108,22 @@ bool HostShims::handle_kbd_read(uint16_t addr, uint8_t &value) {
         if (ch != 0) {
             // Load new character with high bit set
             kbd_value_ = (static_cast<uint8_t>(ch) & 0x7F) | 0x80;
+            kbd_no_input_count_ = 0; // Reset counter when we load a new character
         }
+    }
+
+    // Check for no-more-input condition:
+    // If high bit is off and no input available, increment counter
+    if ((kbd_value_ & 0x80) == 0 && !has_queued_input()) {
+        kbd_no_input_count_++;
+        if (kbd_no_input_count_ >= 10) {
+            std::cout << "\n[HostShims] KBD read with high bit off and no input (10 times) - logging screen and stopping\n"
+                      << std::endl;
+            dump_and_stop("KBD read with high bit off and no input (10 times)");
+        }
+    } else {
+        // Reset counter if high bit is set or input is available
+        kbd_no_input_count_ = 0;
     }
 
     // Return current keyboard value
@@ -129,14 +144,6 @@ bool HostShims::handle_kbdstrb_read(uint16_t addr, uint8_t &value) {
     }
     value = 0;
     kbd_value_ = kbd_value_ & 0x7F; // Clear high bit
-
-    // Check if we're out of input and should stop
-    // When strobe is cleared with no more input, program will loop forever polling
-    if (!has_queued_input()) {
-        std::cout << "\n[HostShims] KBDSTRB read with no more input - logging screen and stopping\n"
-                  << std::endl;
-        dump_and_stop("KBDSTRB read with no more input");
-    }
 
     return true; // Trap handled
 }

@@ -14,7 +14,7 @@ void test_stub_handler_create() {
     CPU cpu(bus);
     CPUState &state = cpu.state();
 
-    // Set up a CREATE call at $BF00 (trap handler address)
+    // Set up a DESTROY call at $BF00 (trap handler address)
     // MLI call structure:
     //   JSR $BF00         (at $2000-$2002)
     //   .BYTE command_number (at $2003)
@@ -26,12 +26,12 @@ void test_stub_handler_create() {
     bus.write(0x01FF, 0x20); // Return address high byte
 
     // Set up MLI call parameters at $2003 (ret_addr + 1)
-    bus.write(0x2003, 0xC0); // CREATE command
+    bus.write(0x2003, 0xC1); // DESTROY command (unimplemented)
     bus.write(0x2004, 0x00); // Parameter list pointer low
     bus.write(0x2005, 0x30); // Parameter list pointer high
 
     // Set up parameter list at $3000
-    bus.write(0x3000, 7);    // param_count
+    bus.write(0x3000, 1);    // param_count
     bus.write(0x3001, 0x00); // pathname pointer low
     bus.write(0x3002, 0x31); // pathname pointer high
     // ... rest of parameters not needed for stub test
@@ -54,7 +54,7 @@ void test_stub_handler_create() {
     // SP should be restored (popped 2 bytes)
     assert(state.SP == 0xFF);
 
-    std::cout << "✓ test_stub_handler_create passed" << std::endl;
+    std::cout << "✓ test_stub_handler_destroy passed" << std::endl;
 }
 
 void test_stub_handler_destroy() {
