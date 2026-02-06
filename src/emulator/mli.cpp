@@ -1171,8 +1171,35 @@ ProDOSError MLIHandler::handle_write_block(Bus &bus, const std::vector<MLIParamV
 
 ProDOSError MLIHandler::handle_create(Bus &bus, const std::vector<MLIParamValue> &inputs,
                                       std::vector<MLIParamValue> &outputs) {
-    std::cerr << "CREATE ($C0): not implemented" << std::endl;
-    return ProDOSError::BAD_CALL_NUMBER;
+    // Inputs: pathname, access, file_type, aux_type, storage_type, create_date, create_time
+    std::string prodos_path = std::get<std::string>(inputs[0]);
+    uint8_t access = std::get<uint8_t>(inputs[1]);
+    uint8_t file_type = std::get<uint8_t>(inputs[2]);
+    uint16_t aux_type = std::get<uint16_t>(inputs[3]);
+    uint8_t storage_type = std::get<uint8_t>(inputs[4]);
+    uint16_t create_date = std::get<uint16_t>(inputs[5]);
+    uint16_t create_time = std::get<uint16_t>(inputs[6]);
+
+    std::string host_path = prodos_path_to_host(prodos_path);
+    std::filesystem::path p(host_path);
+
+    // Check if file already exists
+    if (std::filesystem::exists(p)) {
+        return ProDOSError::DUPLICATE_FILE;
+    }
+
+    // Create file (empty)
+    std::ofstream ofs(host_path, std::ios::binary);
+    if (!ofs) {
+        return ProDOSError::PATH_NOT_FOUND;
+    }
+    ofs.close();
+
+    // Optionally set file type/aux info (not implemented)
+    // Could use extended attributes or file extension
+
+    // Success
+    return ProDOSError::NO_ERROR;
 }
 
 ProDOSError MLIHandler::handle_destroy(Bus &bus, const std::vector<MLIParamValue> &inputs,
@@ -1954,7 +1981,8 @@ bool MLIHandler::prodos_mli_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_
         set_error(cpu, error);
 
         // Allow READ ($CA) to return EOF ($4C) without halting
-        if (!(desc->call_number == 0xCA && error == ProDOSError::END_OF_FILE)) {
+        // if (desc->call_number != 0xCA || error != ProDOSError::END_OF_FILE) {
+        if (error == ProDOSError::BAD_CALL_NUMBER) {
             return TrapManager::halt_and_dump("MLI call failed: " + std::string(desc->name), cpu,
                                               bus, cpu.PC);
         }

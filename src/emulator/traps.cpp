@@ -72,12 +72,12 @@ bool TrapManager::general_trap_handler(CPUState &cpu, Bus &bus, uint16_t trap_pc
 
     if (it != registry.end()) {
         // Call the registered handler (which will record statistics)
-        std::cerr << "[TRAP HANDLER] Address $" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << trap_pc << " found a handler" << std::endl;
+        // std::cerr << "[TRAP HANDLER] Address $" << std::hex << std::uppercase << std::setw(4)
+        //           << std::setfill('0') << trap_pc << " found a handler" << std::endl;
         auto ret = it->second(cpu, bus, trap_pc);
-        std::cerr << "[TRAP HANDLER] Address $" << std::hex << std::uppercase << std::setw(4)
-                  << std::setfill('0') << trap_pc << " handled by registered handler, returns "
-                  << std::boolalpha << ret << std::endl;
+        // std::cerr << "[TRAP HANDLER] Address $" << std::hex << std::uppercase << std::setw(4)
+        //           << std::setfill('0') << trap_pc << " handled by registered handler, returns "
+        //           << std::boolalpha << ret << std::endl;
         return ret;
     }
 
