@@ -263,7 +263,7 @@ static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
          IN(WORD, INPUT, "mod_date"),
          IN(WORD, INPUT, "mod_time"),
      }},
-     nullptr},
+     &MLIHandler::handle_set_file_info},
     {0xC4,
      "GET_FILE_INFO",
      11,
@@ -1224,8 +1224,50 @@ ProDOSError MLIHandler::handle_rename(Bus &bus, const std::vector<MLIParamValue>
 
 ProDOSError MLIHandler::handle_set_file_info(Bus &bus, const std::vector<MLIParamValue> &inputs,
                                              std::vector<MLIParamValue> &outputs) {
-    std::cerr << "SET_FILE_INFO ($C3): not implemented" << std::endl;
-    return ProDOSError::BAD_CALL_NUMBER;
+    // Inputs: pathname, access, file_type, aux_type, reserved1, mod_date, mod_time
+    std::string prodos_path = std::get<std::string>(inputs[0]);
+    uint8_t access = std::get<uint8_t>(inputs[1]);
+    uint8_t file_type = std::get<uint8_t>(inputs[2]);
+    uint16_t aux_type = std::get<uint16_t>(inputs[3]);
+    uint8_t reserved1 = std::get<uint8_t>(inputs[4]);
+    uint16_t mod_date = std::get<uint16_t>(inputs[5]);
+    uint16_t mod_time = std::get<uint16_t>(inputs[6]);
+
+    (void)access;      // Currently not stored (would need extended attributes)
+    (void)file_type;   // Currently not stored (would need extended attributes)
+    (void)aux_type;    // Currently not stored (would need extended attributes)
+    (void)reserved1;   // Reserved field, ignored per ProDOS spec
+    (void)mod_date;    // Currently not implemented (would need to decode ProDOS date format)
+    (void)mod_time;    // Currently not implemented (would need to decode ProDOS time format)
+
+    std::string host_path = prodos_path_to_host(prodos_path);
+
+    // Check if file exists
+    if (!std::filesystem::exists(host_path)) {
+        std::cerr << "SET_FILE_INFO ($C3): file not found: " << host_path << std::endl;
+        return ProDOSError::FILE_NOT_FOUND;
+    }
+
+    // Note: In a full implementation, we would:
+    // 1. Store file_type and aux_type (possibly using extended attributes or a metadata file)
+    // 2. Store access permissions (would map to Unix file permissions)
+    // 3. Decode mod_date and mod_time from ProDOS format and update file modification time
+    //
+    // For now, this is a minimal implementation that validates the file exists
+    // and returns success. This allows ProDOS programs that call SET_FILE_INFO
+    // to continue running without errors.
+
+    if (TrapManager::is_trace_enabled()) {
+        std::cout << "SET_FILE_INFO ($C3): " << prodos_path 
+                  << " (access=$" << std::hex << std::setw(2) << std::setfill('0') 
+                  << static_cast<int>(access)
+                  << ", type=$" << std::hex << std::setw(2) << std::setfill('0')
+                  << static_cast<int>(file_type)
+                  << ", aux=$" << std::hex << std::setw(4) << std::setfill('0')
+                  << aux_type << ")" << std::endl;
+    }
+
+    return ProDOSError::NO_ERROR;
 }
 
 ProDOSError MLIHandler::handle_online(Bus &bus, const std::vector<MLIParamValue> &inputs,
