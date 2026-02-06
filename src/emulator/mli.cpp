@@ -19,6 +19,7 @@
 #include <ctime>
 #include <errno.h>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits.h>
@@ -234,7 +235,7 @@ static std::array<MLICallDescriptor, 26> s_call_descriptors = {{
          IN(WORD, INPUT, "create_date"),
          IN(WORD, INPUT, "create_time"),
      }},
-     nullptr},
+     &MLIHandler::handle_create},
     {0xC1,
      "DESTROY",
      1,
@@ -1179,6 +1180,13 @@ ProDOSError MLIHandler::handle_create(Bus &bus, const std::vector<MLIParamValue>
     uint8_t storage_type = std::get<uint8_t>(inputs[4]);
     uint16_t create_date = std::get<uint16_t>(inputs[5]);
     uint16_t create_time = std::get<uint16_t>(inputs[6]);
+
+    (void)access;
+    (void)file_type;
+    (void)aux_type;
+    (void)storage_type;
+    (void)create_date;
+    (void)create_time;
 
     std::string host_path = prodos_path_to_host(prodos_path);
     std::filesystem::path p(host_path);
