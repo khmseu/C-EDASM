@@ -25,14 +25,22 @@ for i in "${BINARY_PATH}/"*; do
     cp -avi "${i}" "${TESTDIR}/${fname_nohash}"
 done
 
-# Copy test command file
-for i in test_input.txt test_simple.src; do
-    tr '\n' '\r' <"${ROOT}/tests/fixtures/${i}" >"${TESTDIR}/${i}"
-done
-mv -vi "${TESTDIR}/test_input.txt" "${TESTDIR}/EDASM.AUTOST"
-echo "***" >"${TESTDIR}/test_input.txt"
+# Keyboard input
+tr '\n' '\r' >"${TESTDIR}/test_input.txt" <<'EOF'
+***
+EOF
+
+# Copy command file
+tr '\n' '\r' >"${TESTDIR}/EDASM.AUTOST" <<'EOF'
+ASM INPUT.SRC
+CAT
+END
+EOF
+
+# Test assembler input
+tr '\n' '\r' <"${ROOT}/tests/fixtures/test_lst.src" >"${TESTDIR}/INPUT.SRC"
 
 cd "${TESTDIR}"
-touch EDASM.SWAP
+# touch EDASM.SWAP
 "${BUILD_DIR}/emulator_runner" --binary EDASM.SYSTEM --input-file test_input.txt "$@" &>emulator_runner.log
 echo "Emulator stopped with no errors."

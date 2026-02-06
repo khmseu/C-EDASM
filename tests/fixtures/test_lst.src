@@ -1,0 +1,18 @@
+* Test LST and MSB directives
+ LST ON
+*
+        ORG $1000
+*
+* Test ASC with MSB OFF (default)
+MSG1:    ASC "HELLO"
+*
+* Enable MSB and test
+        MSB ON
+MSG2:    ASC "WORLD"
+*
+* Disable MSB
+        MSB OFF
+MSG3:    ASC "TEST"
+*
+        END
+*
