@@ -111,6 +111,16 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+add_executable(test_mli_read_eof unit/test_mli_read_eof.cpp)
+target_link_libraries(test_mli_read_eof PRIVATE edasm)
+target_include_directories(test_mli_read_eof PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_test(
+  NAME test_mli_read_eof
+  COMMAND test_mli_read_eof
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 add_executable(test_mli_set_file_info unit/test_mli_set_file_info.cpp)
 target_link_libraries(test_mli_set_file_info PRIVATE edasm)
 target_include_directories(test_mli_set_file_info PRIVATE ${CMAKE_SOURCE_DIR}/include)
@@ -217,6 +227,6 @@ set_tests_properties(test_asm_rel_module1 test_asm_rel_module2 test_linker_modul
   LABELS "linker"
 )
 
-set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors test_mli_stubs test_mli_lookup_performance test_mli_newline test_mli_set_file_info test_mli_get_file_info test_language_card test_io_traps test_rom_reset PROPERTIES
+set_tests_properties(test_editor test_assembler_integration test_emulator test_mli_descriptors test_mli_stubs test_mli_lookup_performance test_mli_newline test_mli_read_eof test_mli_set_file_info test_mli_get_file_info test_language_card test_io_traps test_rom_reset PROPERTIES
   LABELS "unit"
 )

@@ -898,7 +898,10 @@ ProDOSError MLIHandler::handle_read(Bus &bus, const std::vector<MLIParamValue> &
     }
 
     uint16_t bytes_to_read = request_count;
-    uint32_t bytes_available = entry->file_size - entry->mark;
+    uint32_t bytes_available = 0;
+    if (entry->mark < entry->file_size) {
+        bytes_available = entry->file_size - entry->mark;
+    }
     if (bytes_to_read > bytes_available) {
         bytes_to_read = static_cast<uint16_t>(bytes_available);
     }
